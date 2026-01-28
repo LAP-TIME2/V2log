@@ -1,0 +1,40 @@
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$restTimerHash() => r'7890b542f8169e0d1cfdcfec72b65328fa221e7f';
+
+/// 휴식 타이머 Provider
+///
+/// Copied from [RestTimer].
+@ProviderFor(RestTimer)
+final restTimerProvider = NotifierProvider<RestTimer, RestTimerState>.internal(
+  RestTimer.new,
+  name: r'restTimerProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$restTimerHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$RestTimer = Notifier<RestTimerState>;
+String _$workoutTimerHash() => r'92b15f7e036424fc14102498ef119249c59be410';
+
+/// 운동 세션 타이머 (총 운동 시간)
+///
+/// Copied from [WorkoutTimer].
+@ProviderFor(WorkoutTimer)
+final workoutTimerProvider = NotifierProvider<WorkoutTimer, int>.internal(
+  WorkoutTimer.new,
+  name: r'workoutTimerProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$workoutTimerHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$WorkoutTimer = Notifier<int>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

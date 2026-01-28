@@ -1,0 +1,66 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'user_provider.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$currentUserHash() => r'1b6075b65a406d7b2fb6f9d93f8c11c6214a5bb3';
+
+/// 현재 사용자 Provider (Auth에서 파생)
+///
+/// Copied from [currentUser].
+@ProviderFor(currentUser)
+final currentUserProvider = AutoDisposeProvider<UserModel?>.internal(
+  currentUser,
+  name: r'currentUserProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$currentUserHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CurrentUserRef = AutoDisposeProviderRef<UserModel?>;
+String _$userStatsHash() => r'850880ab8d56d527197004ff19146f688d043096';
+
+/// 사용자 통계 Provider
+///
+/// Copied from [userStats].
+@ProviderFor(userStats)
+final userStatsProvider = AutoDisposeFutureProvider<UserStats>.internal(
+  userStats,
+  name: r'userStatsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$userStatsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UserStatsRef = AutoDisposeFutureProviderRef<UserStats>;
+String _$userProfileHash() => r'ec764767cecaaaf97fba916f43ba1b95a7c6fd0d';
+
+/// 사용자 프로필 업데이트 Provider
+///
+/// Copied from [UserProfile].
+@ProviderFor(UserProfile)
+final userProfileProvider =
+    AutoDisposeAsyncNotifierProvider<UserProfile, void>.internal(
+      UserProfile.new,
+      name: r'userProfileProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$userProfileHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$UserProfile = AutoDisposeAsyncNotifier<void>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

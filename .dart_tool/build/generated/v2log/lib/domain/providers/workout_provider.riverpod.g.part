@@ -1,0 +1,370 @@
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$isWorkoutInProgressHash() =>
+    r'fc7abc26edd3d125f7f070b74702f60ffd10d981';
+
+/// 운동 진행 상태 Provider
+///
+/// Copied from [isWorkoutInProgress].
+@ProviderFor(isWorkoutInProgress)
+final isWorkoutInProgressProvider = AutoDisposeProvider<bool>.internal(
+  isWorkoutInProgress,
+  name: r'isWorkoutInProgressProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$isWorkoutInProgressHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef IsWorkoutInProgressRef = AutoDisposeProviderRef<bool>;
+String _$currentWorkoutSetsHash() =>
+    r'c9687a8c0aaaf625b5401b74ad7a21a29766f8fc';
+
+/// 현재 운동의 세트 목록 Provider
+///
+/// Copied from [currentWorkoutSets].
+@ProviderFor(currentWorkoutSets)
+final currentWorkoutSetsProvider =
+    AutoDisposeProvider<List<WorkoutSetModel>>.internal(
+      currentWorkoutSets,
+      name: r'currentWorkoutSetsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$currentWorkoutSetsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CurrentWorkoutSetsRef = AutoDisposeProviderRef<List<WorkoutSetModel>>;
+String _$exerciseSetsHash() => r'13a7b3e243d21bb84f29c106ea9a0586f7e2ab43';
+
+/// Copied from Dart SDK
+class _SystemHash {
+  _SystemHash._();
+
+  static int combine(int hash, int value) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + value);
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+    return hash ^ (hash >> 6);
+  }
+
+  static int finish(int hash) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    // ignore: parameter_assignments
+    hash = hash ^ (hash >> 11);
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+}
+
+/// 특정 운동의 세트 목록 Provider
+///
+/// Copied from [exerciseSets].
+@ProviderFor(exerciseSets)
+const exerciseSetsProvider = ExerciseSetsFamily();
+
+/// 특정 운동의 세트 목록 Provider
+///
+/// Copied from [exerciseSets].
+class ExerciseSetsFamily extends Family<List<WorkoutSetModel>> {
+  /// 특정 운동의 세트 목록 Provider
+  ///
+  /// Copied from [exerciseSets].
+  const ExerciseSetsFamily();
+
+  /// 특정 운동의 세트 목록 Provider
+  ///
+  /// Copied from [exerciseSets].
+  ExerciseSetsProvider call(String exerciseId) {
+    return ExerciseSetsProvider(exerciseId);
+  }
+
+  @override
+  ExerciseSetsProvider getProviderOverride(
+    covariant ExerciseSetsProvider provider,
+  ) {
+    return call(provider.exerciseId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'exerciseSetsProvider';
+}
+
+/// 특정 운동의 세트 목록 Provider
+///
+/// Copied from [exerciseSets].
+class ExerciseSetsProvider extends AutoDisposeProvider<List<WorkoutSetModel>> {
+  /// 특정 운동의 세트 목록 Provider
+  ///
+  /// Copied from [exerciseSets].
+  ExerciseSetsProvider(String exerciseId)
+    : this._internal(
+        (ref) => exerciseSets(ref as ExerciseSetsRef, exerciseId),
+        from: exerciseSetsProvider,
+        name: r'exerciseSetsProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$exerciseSetsHash,
+        dependencies: ExerciseSetsFamily._dependencies,
+        allTransitiveDependencies:
+            ExerciseSetsFamily._allTransitiveDependencies,
+        exerciseId: exerciseId,
+      );
+
+  ExerciseSetsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.exerciseId,
+  }) : super.internal();
+
+  final String exerciseId;
+
+  @override
+  Override overrideWith(
+    List<WorkoutSetModel> Function(ExerciseSetsRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: ExerciseSetsProvider._internal(
+        (ref) => create(ref as ExerciseSetsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        exerciseId: exerciseId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeProviderElement<List<WorkoutSetModel>> createElement() {
+    return _ExerciseSetsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ExerciseSetsProvider && other.exerciseId == exerciseId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, exerciseId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ExerciseSetsRef on AutoDisposeProviderRef<List<WorkoutSetModel>> {
+  /// The parameter `exerciseId` of this provider.
+  String get exerciseId;
+}
+
+class _ExerciseSetsProviderElement
+    extends AutoDisposeProviderElement<List<WorkoutSetModel>>
+    with ExerciseSetsRef {
+  _ExerciseSetsProviderElement(super.provider);
+
+  @override
+  String get exerciseId => (origin as ExerciseSetsProvider).exerciseId;
+}
+
+String _$lastSetInfoHash() => r'548f2a4ed32b94723b4fe0cbbef2db730ced215f';
+
+/// 운동별 마지막 세트 정보 Provider
+///
+/// Copied from [lastSetInfo].
+@ProviderFor(lastSetInfo)
+const lastSetInfoProvider = LastSetInfoFamily();
+
+/// 운동별 마지막 세트 정보 Provider
+///
+/// Copied from [lastSetInfo].
+class LastSetInfoFamily extends Family<AsyncValue<Map<String, dynamic>?>> {
+  /// 운동별 마지막 세트 정보 Provider
+  ///
+  /// Copied from [lastSetInfo].
+  const LastSetInfoFamily();
+
+  /// 운동별 마지막 세트 정보 Provider
+  ///
+  /// Copied from [lastSetInfo].
+  LastSetInfoProvider call(String exerciseId) {
+    return LastSetInfoProvider(exerciseId);
+  }
+
+  @override
+  LastSetInfoProvider getProviderOverride(
+    covariant LastSetInfoProvider provider,
+  ) {
+    return call(provider.exerciseId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'lastSetInfoProvider';
+}
+
+/// 운동별 마지막 세트 정보 Provider
+///
+/// Copied from [lastSetInfo].
+class LastSetInfoProvider
+    extends AutoDisposeFutureProvider<Map<String, dynamic>?> {
+  /// 운동별 마지막 세트 정보 Provider
+  ///
+  /// Copied from [lastSetInfo].
+  LastSetInfoProvider(String exerciseId)
+    : this._internal(
+        (ref) => lastSetInfo(ref as LastSetInfoRef, exerciseId),
+        from: lastSetInfoProvider,
+        name: r'lastSetInfoProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$lastSetInfoHash,
+        dependencies: LastSetInfoFamily._dependencies,
+        allTransitiveDependencies: LastSetInfoFamily._allTransitiveDependencies,
+        exerciseId: exerciseId,
+      );
+
+  LastSetInfoProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.exerciseId,
+  }) : super.internal();
+
+  final String exerciseId;
+
+  @override
+  Override overrideWith(
+    FutureOr<Map<String, dynamic>?> Function(LastSetInfoRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: LastSetInfoProvider._internal(
+        (ref) => create(ref as LastSetInfoRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        exerciseId: exerciseId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<Map<String, dynamic>?> createElement() {
+    return _LastSetInfoProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LastSetInfoProvider && other.exerciseId == exerciseId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, exerciseId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin LastSetInfoRef on AutoDisposeFutureProviderRef<Map<String, dynamic>?> {
+  /// The parameter `exerciseId` of this provider.
+  String get exerciseId;
+}
+
+class _LastSetInfoProviderElement
+    extends AutoDisposeFutureProviderElement<Map<String, dynamic>?>
+    with LastSetInfoRef {
+  _LastSetInfoProviderElement(super.provider);
+
+  @override
+  String get exerciseId => (origin as LastSetInfoProvider).exerciseId;
+}
+
+String _$currentExercisesHash() => r'594176bf5f2ee53ce768486e7ef83cc9bd50db2e';
+
+/// 현재 운동 운동 목록 Provider
+///
+/// Copied from [currentExercises].
+@ProviderFor(currentExercises)
+final currentExercisesProvider =
+    AutoDisposeProvider<List<ExerciseModel>>.internal(
+      currentExercises,
+      name: r'currentExercisesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$currentExercisesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CurrentExercisesRef = AutoDisposeProviderRef<List<ExerciseModel>>;
+String _$activeWorkoutHash() => r'5a720952db03aff88834a041ba24dbd5abdb74de';
+
+/// 활성 운동 세션 Provider
+///
+/// Copied from [ActiveWorkout].
+@ProviderFor(ActiveWorkout)
+final activeWorkoutProvider =
+    NotifierProvider<ActiveWorkout, WorkoutSessionModel?>.internal(
+      ActiveWorkout.new,
+      name: r'activeWorkoutProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$activeWorkoutHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$ActiveWorkout = Notifier<WorkoutSessionModel?>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

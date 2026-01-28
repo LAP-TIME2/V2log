@@ -1,0 +1,110 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'routine_model.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$RoutineModelImpl _$$RoutineModelImplFromJson(Map<String, dynamic> json) =>
+    _$RoutineModelImpl(
+      id: json['id'] as String,
+      userId: json['userId'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      sourceType:
+          $enumDecodeNullable(_$RoutineSourceTypeEnumMap, json['sourceType']) ??
+          RoutineSourceType.custom,
+      isAiGenerated: json['isAiGenerated'] as bool? ?? false,
+      targetMuscles:
+          (json['targetMuscles'] as List<dynamic>?)
+              ?.map((e) => $enumDecode(_$MuscleGroupEnumMap, e))
+              .toList() ??
+          const [],
+      estimatedDuration: (json['estimatedDuration'] as num?)?.toInt(),
+      isActive: json['isActive'] as bool? ?? true,
+      exercises:
+          (json['exercises'] as List<dynamic>?)
+              ?.map(
+                (e) => RoutineExerciseModel.fromJson(e as Map<String, dynamic>),
+              )
+              .toList() ??
+          const [],
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+    );
+
+Map<String, dynamic> _$$RoutineModelImplToJson(_$RoutineModelImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'userId': instance.userId,
+      'name': instance.name,
+      'description': instance.description,
+      'sourceType': _$RoutineSourceTypeEnumMap[instance.sourceType]!,
+      'isAiGenerated': instance.isAiGenerated,
+      'targetMuscles': instance.targetMuscles
+          .map((e) => _$MuscleGroupEnumMap[e]!)
+          .toList(),
+      'estimatedDuration': instance.estimatedDuration,
+      'isActive': instance.isActive,
+      'exercises': instance.exercises,
+      'createdAt': instance.createdAt.toIso8601String(),
+      'updatedAt': instance.updatedAt.toIso8601String(),
+    };
+
+const _$RoutineSourceTypeEnumMap = {
+  RoutineSourceType.ai: 'AI',
+  RoutineSourceType.custom: 'CUSTOM',
+  RoutineSourceType.template: 'TEMPLATE',
+};
+
+const _$MuscleGroupEnumMap = {
+  MuscleGroup.chest: 'CHEST',
+  MuscleGroup.back: 'BACK',
+  MuscleGroup.shoulders: 'SHOULDERS',
+  MuscleGroup.biceps: 'BICEPS',
+  MuscleGroup.triceps: 'TRICEPS',
+  MuscleGroup.forearms: 'FOREARMS',
+  MuscleGroup.abs: 'ABS',
+  MuscleGroup.obliques: 'OBLIQUES',
+  MuscleGroup.quads: 'QUADS',
+  MuscleGroup.hamstrings: 'HAMSTRINGS',
+  MuscleGroup.glutes: 'GLUTES',
+  MuscleGroup.calves: 'CALVES',
+  MuscleGroup.traps: 'TRAPS',
+  MuscleGroup.lats: 'LATS',
+  MuscleGroup.lowerBack: 'LOWER_BACK',
+  MuscleGroup.fullBody: 'FULL_BODY',
+};
+
+_$RoutineExerciseModelImpl _$$RoutineExerciseModelImplFromJson(
+  Map<String, dynamic> json,
+) => _$RoutineExerciseModelImpl(
+  id: json['id'] as String,
+  routineId: json['routineId'] as String,
+  exerciseId: json['exerciseId'] as String,
+  orderIndex: (json['orderIndex'] as num).toInt(),
+  targetSets: (json['targetSets'] as num?)?.toInt() ?? 3,
+  targetReps: json['targetReps'] as String? ?? '10-12',
+  targetWeight: (json['targetWeight'] as num?)?.toDouble(),
+  restSeconds: (json['restSeconds'] as num?)?.toInt() ?? 90,
+  notes: json['notes'] as String?,
+  exercise: json['exercise'] == null
+      ? null
+      : ExerciseModel.fromJson(json['exercise'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$$RoutineExerciseModelImplToJson(
+  _$RoutineExerciseModelImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'routineId': instance.routineId,
+  'exerciseId': instance.exerciseId,
+  'orderIndex': instance.orderIndex,
+  'targetSets': instance.targetSets,
+  'targetReps': instance.targetReps,
+  'targetWeight': instance.targetWeight,
+  'restSeconds': instance.restSeconds,
+  'notes': instance.notes,
+  'exercise': instance.exercise,
+};

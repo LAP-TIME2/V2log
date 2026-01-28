@@ -1,0 +1,48 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'supabase_service.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$supabaseServiceHash() => r'30e25e716491d0f8e0480418ead2ea96dc836559';
+
+/// Supabase 서비스 Provider
+///
+/// Copied from [supabaseService].
+@ProviderFor(supabaseService)
+final supabaseServiceProvider = Provider<SupabaseService>.internal(
+  supabaseService,
+  name: r'supabaseServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$supabaseServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SupabaseServiceRef = ProviderRef<SupabaseService>;
+String _$supabaseClientHash() => r'b005fbed46f2f97671442f4306f4d95b1b4f108d';
+
+/// Supabase 클라이언트 Provider
+///
+/// Copied from [supabaseClient].
+@ProviderFor(supabaseClient)
+final supabaseClientProvider = Provider<SupabaseClient>.internal(
+  supabaseClient,
+  name: r'supabaseClientProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$supabaseClientHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SupabaseClientRef = ProviderRef<SupabaseClient>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
