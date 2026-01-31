@@ -51,7 +51,7 @@ class RoutineExerciseModel with _$RoutineExerciseModel {
 /// 루틴 소스 타입
 @JsonEnum(valueField: 'value')
 enum RoutineSourceType {
-  ai('AI', 'AI 생성'),
+  preset('PRESET', '프리셋'),
   custom('CUSTOM', '직접 생성'),
   template('TEMPLATE', '템플릿');
 

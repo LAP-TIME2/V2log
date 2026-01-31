@@ -67,7 +67,7 @@ class WorkoutSessionModel with _$WorkoutSessionModel {
 /// 운동 모드
 @JsonEnum(valueField: 'value')
 enum WorkoutMode {
-  ai('AI', 'AI 추천 모드'),
+  preset('PRESET', '전문가 루틴 모드'),
   free('FREE', '자유 기록 모드');
 
   final String value;

@@ -1,0 +1,51 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'body_record_model.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$BodyRecordModelImpl _$$BodyRecordModelImplFromJson(
+  Map<String, dynamic> json,
+) => _$BodyRecordModelImpl(
+  id: json['id'] as String,
+  userId: json['user_id'] as String,
+  weight: (json['weight'] as num?)?.toDouble(),
+  bodyFatPercentage: (json['body_fat_percentage'] as num?)?.toDouble(),
+  muscleMass: (json['muscle_mass'] as num?)?.toDouble(),
+  skeletalMuscleMass: (json['skeletal_muscle_mass'] as num?)?.toDouble(),
+  bmi: (json['bmi'] as num?)?.toDouble(),
+  chest: (json['chest'] as num?)?.toDouble(),
+  waist: (json['waist'] as num?)?.toDouble(),
+  hip: (json['hip'] as num?)?.toDouble(),
+  thigh: (json['thigh'] as num?)?.toDouble(),
+  arm: (json['arm'] as num?)?.toDouble(),
+  notes: json['notes'] as String?,
+  photoUrl: json['photo_url'] as String?,
+  recordedAt: DateTime.parse(json['recorded_at'] as String),
+  createdAt: json['created_at'] == null
+      ? null
+      : DateTime.parse(json['created_at'] as String),
+);
+
+Map<String, dynamic> _$$BodyRecordModelImplToJson(
+  _$BodyRecordModelImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'user_id': instance.userId,
+  'weight': instance.weight,
+  'body_fat_percentage': instance.bodyFatPercentage,
+  'muscle_mass': instance.muscleMass,
+  'skeletal_muscle_mass': instance.skeletalMuscleMass,
+  'bmi': instance.bmi,
+  'chest': instance.chest,
+  'waist': instance.waist,
+  'hip': instance.hip,
+  'thigh': instance.thigh,
+  'arm': instance.arm,
+  'notes': instance.notes,
+  'photo_url': instance.photoUrl,
+  'recorded_at': instance.recordedAt.toIso8601String(),
+  'created_at': instance.createdAt?.toIso8601String(),
+};

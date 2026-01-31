@@ -6,6 +6,28 @@ part of 'workout_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$currentRoutineExerciseHash() =>
+    r'82dce533c7425c1374236f2b95f6c03bc9b0be14';
+
+/// 현재 운동 (루틴 모드)
+///
+/// Copied from [currentRoutineExercise].
+@ProviderFor(currentRoutineExercise)
+final currentRoutineExerciseProvider =
+    AutoDisposeProvider<PresetRoutineExerciseModel?>.internal(
+      currentRoutineExercise,
+      name: r'currentRoutineExerciseProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$currentRoutineExerciseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CurrentRoutineExerciseRef =
+    AutoDisposeProviderRef<PresetRoutineExerciseModel?>;
 String _$isWorkoutInProgressHash() =>
     r'fc7abc26edd3d125f7f070b74702f60ffd10d981';
 
@@ -200,7 +222,7 @@ class _ExerciseSetsProviderElement
   String get exerciseId => (origin as ExerciseSetsProvider).exerciseId;
 }
 
-String _$lastSetInfoHash() => r'548f2a4ed32b94723b4fe0cbbef2db730ced215f';
+String _$lastSetInfoHash() => r'f16d21a1de8208875f13f3621a8ab7a530bb678e';
 
 /// 운동별 마지막 세트 정보 Provider
 ///
@@ -332,9 +354,9 @@ class _LastSetInfoProviderElement
   String get exerciseId => (origin as LastSetInfoProvider).exerciseId;
 }
 
-String _$currentExercisesHash() => r'594176bf5f2ee53ce768486e7ef83cc9bd50db2e';
+String _$currentExercisesHash() => r'a9f6627fd69c0113036069153bdacf2312acec28';
 
-/// 현재 운동 운동 목록 Provider
+/// 현재 운동 운동 목록 Provider (더미 데이터 사용)
 ///
 /// Copied from [currentExercises].
 @ProviderFor(currentExercises)
@@ -352,7 +374,180 @@ final currentExercisesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentExercisesRef = AutoDisposeProviderRef<List<ExerciseModel>>;
-String _$activeWorkoutHash() => r'5a720952db03aff88834a041ba24dbd5abdb74de';
+String _$recentWorkoutsHash() => r'd7fbe6c621317d195636b4051801d2a24bd608f8';
+
+/// 최근 운동 기록 Provider
+///
+/// Copied from [recentWorkouts].
+@ProviderFor(recentWorkouts)
+final recentWorkoutsProvider =
+    AutoDisposeFutureProvider<List<WorkoutSessionModel>>.internal(
+      recentWorkouts,
+      name: r'recentWorkoutsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$recentWorkoutsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RecentWorkoutsRef =
+    AutoDisposeFutureProviderRef<List<WorkoutSessionModel>>;
+String _$workoutHistoryHash() => r'ab6188575ed9627477f6a414f90ea61fa8d8b956';
+
+/// 운동 기록 히스토리 Provider (월별 그룹화)
+///
+/// Copied from [workoutHistory].
+@ProviderFor(workoutHistory)
+const workoutHistoryProvider = WorkoutHistoryFamily();
+
+/// 운동 기록 히스토리 Provider (월별 그룹화)
+///
+/// Copied from [workoutHistory].
+class WorkoutHistoryFamily
+    extends Family<AsyncValue<List<WorkoutSessionModel>>> {
+  /// 운동 기록 히스토리 Provider (월별 그룹화)
+  ///
+  /// Copied from [workoutHistory].
+  const WorkoutHistoryFamily();
+
+  /// 운동 기록 히스토리 Provider (월별 그룹화)
+  ///
+  /// Copied from [workoutHistory].
+  WorkoutHistoryProvider call({int limit = 20, int offset = 0}) {
+    return WorkoutHistoryProvider(limit: limit, offset: offset);
+  }
+
+  @override
+  WorkoutHistoryProvider getProviderOverride(
+    covariant WorkoutHistoryProvider provider,
+  ) {
+    return call(limit: provider.limit, offset: provider.offset);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'workoutHistoryProvider';
+}
+
+/// 운동 기록 히스토리 Provider (월별 그룹화)
+///
+/// Copied from [workoutHistory].
+class WorkoutHistoryProvider
+    extends AutoDisposeFutureProvider<List<WorkoutSessionModel>> {
+  /// 운동 기록 히스토리 Provider (월별 그룹화)
+  ///
+  /// Copied from [workoutHistory].
+  WorkoutHistoryProvider({int limit = 20, int offset = 0})
+    : this._internal(
+        (ref) => workoutHistory(
+          ref as WorkoutHistoryRef,
+          limit: limit,
+          offset: offset,
+        ),
+        from: workoutHistoryProvider,
+        name: r'workoutHistoryProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$workoutHistoryHash,
+        dependencies: WorkoutHistoryFamily._dependencies,
+        allTransitiveDependencies:
+            WorkoutHistoryFamily._allTransitiveDependencies,
+        limit: limit,
+        offset: offset,
+      );
+
+  WorkoutHistoryProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.limit,
+    required this.offset,
+  }) : super.internal();
+
+  final int limit;
+  final int offset;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<WorkoutSessionModel>> Function(WorkoutHistoryRef provider)
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: WorkoutHistoryProvider._internal(
+        (ref) => create(ref as WorkoutHistoryRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        limit: limit,
+        offset: offset,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<WorkoutSessionModel>> createElement() {
+    return _WorkoutHistoryProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkoutHistoryProvider &&
+        other.limit == limit &&
+        other.offset == offset;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, limit.hashCode);
+    hash = _SystemHash.combine(hash, offset.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin WorkoutHistoryRef
+    on AutoDisposeFutureProviderRef<List<WorkoutSessionModel>> {
+  /// The parameter `limit` of this provider.
+  int get limit;
+
+  /// The parameter `offset` of this provider.
+  int get offset;
+}
+
+class _WorkoutHistoryProviderElement
+    extends AutoDisposeFutureProviderElement<List<WorkoutSessionModel>>
+    with WorkoutHistoryRef {
+  _WorkoutHistoryProviderElement(super.provider);
+
+  @override
+  int get limit => (origin as WorkoutHistoryProvider).limit;
+  @override
+  int get offset => (origin as WorkoutHistoryProvider).offset;
+}
+
+String _$activeWorkoutHash() => r'30c2810eeb1512c1eeb457a842c76a7f19d44f0f';
 
 /// 활성 운동 세션 Provider
 ///
@@ -370,5 +565,45 @@ final activeWorkoutProvider =
     );
 
 typedef _$ActiveWorkout = Notifier<WorkoutSessionModel?>;
+String _$routineExercisesHash() => r'5b0ff5d5aa50dd4d1af6659283631a760ef8d290';
+
+/// 현재 루틴 운동 목록 Provider (프리셋 루틴 모드일 때)
+///
+/// Copied from [RoutineExercises].
+@ProviderFor(RoutineExercises)
+final routineExercisesProvider =
+    NotifierProvider<
+      RoutineExercises,
+      List<PresetRoutineExerciseModel>
+    >.internal(
+      RoutineExercises.new,
+      name: r'routineExercisesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$routineExercisesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$RoutineExercises = Notifier<List<PresetRoutineExerciseModel>>;
+String _$currentExerciseIndexHash() =>
+    r'5f88e73819f24a3d4eedf94d23ccd07809ccb2a1';
+
+/// 현재 운동 인덱스 Provider
+///
+/// Copied from [CurrentExerciseIndex].
+@ProviderFor(CurrentExerciseIndex)
+final currentExerciseIndexProvider =
+    NotifierProvider<CurrentExerciseIndex, int>.internal(
+      CurrentExerciseIndex.new,
+      name: r'currentExerciseIndexProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$currentExerciseIndexHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$CurrentExerciseIndex = Notifier<int>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

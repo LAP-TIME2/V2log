@@ -44,6 +44,25 @@ final userStatsProvider = AutoDisposeFutureProvider<UserStats>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserStatsRef = AutoDisposeFutureProviderRef<UserStats>;
+String _$weeklyStatsHash() => r'078c3b56a5134e9826df8a0b35a2854fde8d8696';
+
+/// 이번 주 통계 Provider
+///
+/// Copied from [weeklyStats].
+@ProviderFor(weeklyStats)
+final weeklyStatsProvider = AutoDisposeFutureProvider<WeeklyStats>.internal(
+  weeklyStats,
+  name: r'weeklyStatsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$weeklyStatsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef WeeklyStatsRef = AutoDisposeFutureProviderRef<WeeklyStats>;
 String _$userProfileHash() => r'ec764767cecaaaf97fba916f43ba1b95a7c6fd0d';
 
 /// 사용자 프로필 업데이트 Provider

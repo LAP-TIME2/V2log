@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../presentation/screens/auth/login_screen.dart';
+import '../../presentation/screens/auth/register_screen.dart';
+import '../../presentation/screens/history/history_screen.dart';
 import '../../presentation/screens/home/home_screen.dart';
 import '../../presentation/screens/onboarding/onboarding_screen.dart';
+import '../../presentation/screens/routine/routine_library_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
+import '../../presentation/screens/stats/stats_screen.dart';
 import '../../presentation/screens/workout/workout_screen.dart';
 
 /// V2log 앱 라우터
@@ -54,8 +58,7 @@ class AppRouter {
           GoRoute(
             path: 'register',
             name: 'register',
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Register'),
+            builder: (context, state) => const RegisterScreen(),
           ),
         ],
       ),
@@ -78,16 +81,14 @@ class AppRouter {
           GoRoute(
             path: '/history',
             name: 'history',
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: '기록'),
+            builder: (context, state) => const HistoryScreen(),
           ),
 
           // Stats
           GoRoute(
             path: '/stats',
             name: 'stats',
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: '통계'),
+            builder: (context, state) => const StatsScreen(),
           ),
 
           // Profile
@@ -136,9 +137,18 @@ class AppRouter {
       GoRoute(
         path: '/routine',
         name: 'routine',
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: '루틴'),
+        redirect: (context, state) {
+          if (state.fullPath == '/routine') {
+            return '/routine/library';
+          }
+          return null;
+        },
         routes: [
+          GoRoute(
+            path: 'library',
+            name: 'routine-library',
+            builder: (context, state) => const RoutineLibraryScreen(),
+          ),
           GoRoute(
             path: 'create',
             name: 'routine-create',

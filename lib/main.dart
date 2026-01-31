@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -28,32 +29,40 @@ Future<void> main() async {
     ]);
   }
 
-  // Supabase 초기화 (환경 변수가 설정된 경우에만)
-  const supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: '',
-  );
-  const supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: '',
-  );
+  // .env 파일 로드 (존재하는 경우에만)
+  try {
+    await dotenv.load(fileName: '.env');
+    debugPrint('✅ .env 파일 로드 성공');
+  } catch (e) {
+    debugPrint('⚠️ .env 파일 없음 - 데모 모드로 실행');
+  }
+
+  // Supabase 초기화
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-    await Supabase.initialize(
-      url: supabaseUrl,
-      anonKey: supabaseAnonKey,
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
-      ),
-    );
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey,
+        authOptions: const FlutterAuthClientOptions(
+          authFlowType: AuthFlowType.pkce,
+        ),
+      );
+      debugPrint('✅ Supabase 초기화 성공');
+    } catch (e) {
+      debugPrint('⚠️ Supabase 초기화 실패: $e');
+    }
   } else {
-    debugPrint('⚠️ Supabase not initialized - running in demo mode');
+    debugPrint('⚠️ Supabase 환경 변수 없음 - 데모 모드로 실행');
   }
 
   // Hive 초기화 (로컬 캐싱)
   await Hive.initFlutter();
   await Hive.openBox('settings');
   await Hive.openBox('cache');
+  await Hive.openBox('workout');
 
   runApp(
     const ProviderScope(

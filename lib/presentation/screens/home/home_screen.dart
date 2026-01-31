@@ -11,6 +11,18 @@ import '../../../domain/providers/user_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_card.dart';
 
+// 운동 이름 추출 헬퍼 함수
+String _getWorkoutName(WorkoutSessionModel session) {
+  if (session.notes != null && session.notes!.isNotEmpty) {
+    return session.notes!;
+  }
+  if (session.mode == WorkoutMode.preset) {
+    return '전문가 루틴';
+  }
+  final setCount = session.totalSets ?? session.sets.length;
+  return '자유 운동 ($setCount세트)';
+}
+
 /// 홈 화면 (듀얼 모드 선택)
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -166,14 +178,14 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildModeSelector(BuildContext context, WidgetRef ref) {
     return Row(
       children: [
-        // AI 모드 카드
+        // 전문가 루틴 모드 카드
         Expanded(
           child: _ModeCard(
-            icon: Icons.smart_toy_outlined,
-            title: 'AI 추천',
-            description: 'AI가 오늘의\n루틴을 추천해요',
+            icon: Icons.menu_book_outlined,
+            title: '전문가 루틴',
+            description: '검증된 프로그램으로\n체계적으로 시작해요',
             gradient: [AppColors.primary600, AppColors.primary700],
-            onTap: () => _startWorkout(context, ref, WorkoutMode.ai),
+            onTap: () => context.push('/routine/library'),
           ),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -240,7 +252,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildWeeklySummary(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(userStatsProvider);
+    final statsAsync = ref.watch(weeklyStatsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +271,7 @@ class HomeScreen extends ConsumerWidget {
                 child: _StatCard(
                   icon: Icons.fitness_center,
                   label: '운동 횟수',
-                  value: '${stats.totalWorkouts}회',
+                  value: '${stats.workoutCount}회',
                   color: AppColors.primary500,
                 ),
               ),
@@ -294,27 +306,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildRecentWorkouts(BuildContext context, WidgetRef ref) {
-    // TODO: 실제 데이터로 교체
-    final recentWorkouts = <_RecentWorkoutData>[
-      _RecentWorkoutData(
-        date: DateTime.now().subtract(const Duration(days: 1)),
-        name: '등 & 이두',
-        duration: const Duration(minutes: 52),
-        volume: 8500,
-      ),
-      _RecentWorkoutData(
-        date: DateTime.now().subtract(const Duration(days: 2)),
-        name: '가슴 & 삼두',
-        duration: const Duration(minutes: 48),
-        volume: 7200,
-      ),
-      _RecentWorkoutData(
-        date: DateTime.now().subtract(const Duration(days: 4)),
-        name: '하체',
-        duration: const Duration(minutes: 65),
-        volume: 12000,
-      ),
-    ];
+    final recentWorkoutsAsync = ref.watch(recentWorkoutsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,40 +332,71 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        if (recentWorkouts.isEmpty)
-          V2Card(
+        recentWorkoutsAsync.when(
+          data: (recentWorkouts) {
+            if (recentWorkouts.isEmpty) {
+              return V2Card(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.fitness_center,
+                        size: 48,
+                        color: AppColors.darkTextTertiary,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        '아직 운동 기록이 없어요',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.darkTextSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        '첫 운동을 시작해보세요!',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.darkTextTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: recentWorkouts.map((session) {
+                final workout = _RecentWorkoutData(
+                  date: session.startedAt,
+                  name: _getWorkoutName(session),
+                  duration: Duration(seconds: session.totalDurationSeconds ?? 0),
+                  volume: session.totalVolume ?? session.calculatedVolume,
+                );
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: _RecentWorkoutCard(workout: workout),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.xxl),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (_, __) => V2Card(
             padding: const EdgeInsets.all(AppSpacing.xxl),
             child: Center(
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.fitness_center,
-                    size: 48,
-                    color: AppColors.darkTextTertiary,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    '아직 운동 기록이 없어요',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.darkTextSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    '첫 운동을 시작해보세요!',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.darkTextTertiary,
-                    ),
-                  ),
-                ],
+              child: Text(
+                '기록을 불러오는데 실패했어요',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
               ),
             ),
-          )
-        else
-          ...recentWorkouts.map((workout) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _RecentWorkoutCard(workout: workout),
-              )),
+          ),
+        ),
       ],
     );
   }

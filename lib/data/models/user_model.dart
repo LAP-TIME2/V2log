@@ -71,7 +71,7 @@ enum FitnessGoal {
 /// 선호 모드
 @JsonEnum(valueField: 'value')
 enum PreferredMode {
-  ai('AI', 'AI 추천'),
+  preset('PRESET', '전문가 루틴'),
   free('FREE', '자유 기록'),
   hybrid('HYBRID', '혼합');
 

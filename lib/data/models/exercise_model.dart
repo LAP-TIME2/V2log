@@ -54,8 +54,10 @@ enum MuscleGroup {
   biceps('BICEPS', '이두', AppColors.muscleBiceps),
   triceps('TRICEPS', '삼두', AppColors.muscleTriceps),
   forearms('FOREARMS', '전완', AppColors.muscleForearms),
+  core('CORE', '코어', AppColors.muscleAbs),
   abs('ABS', '복근', AppColors.muscleAbs),
   obliques('OBLIQUES', '옆구리', AppColors.muscleAbs),
+  quadriceps('QUADRICEPS', '대퇴사두', AppColors.muscleLegs),
   quads('QUADS', '대퇴사두', AppColors.muscleLegs),
   hamstrings('HAMSTRINGS', '햄스트링', AppColors.muscleLegs),
   glutes('GLUTES', '둔근', AppColors.muscleGlutes),
@@ -63,6 +65,8 @@ enum MuscleGroup {
   traps('TRAPS', '승모근', AppColors.muscleTraps),
   lats('LATS', '광배근', AppColors.muscleBack),
   lowerBack('LOWER_BACK', '하부 등', AppColors.muscleBack),
+  rearDelts('REAR_DELTS', '후면 삼각근', AppColors.muscleShoulders),
+  hipFlexors('HIP_FLEXORS', '고관절 굴곡근', AppColors.muscleLegs),
   fullBody('FULL_BODY', '전신', AppColors.primary500);
 
   final String value;

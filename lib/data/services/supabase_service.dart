@@ -150,6 +150,8 @@ class SupabaseService {
 abstract class SupabaseTables {
   static const String users = 'users';
   static const String exercises = 'exercises';
+  static const String presetRoutines = 'preset_routines';
+  static const String presetRoutineExercises = 'preset_routine_exercises';
   static const String routines = 'routines';
   static const String routineExercises = 'routine_exercises';
   static const String workoutSessions = 'workout_sessions';
