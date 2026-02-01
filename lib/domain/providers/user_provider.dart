@@ -116,7 +116,12 @@ class UserProfile extends _$UserProfile {
 @riverpod
 Future<UserStats> userStats(UserStatsRef ref) async {
   final userId = ref.watch(currentUserIdProvider);
+
+  print('=== FETCH USER STATS: userId=$userId ===');
+
+  // 로그인하지 않은 경우 빈 통계 반환
   if (userId == null) {
+    print('=== FETCH USER STATS: not logged in ===');
     return const UserStats(
       totalWorkouts: 0,
       totalVolume: 0,
@@ -126,37 +131,51 @@ Future<UserStats> userStats(UserStatsRef ref) async {
     );
   }
 
-  final supabase = ref.read(supabaseServiceProvider);
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
 
-  // 총 운동 횟수
-  final sessionsResponse = await supabase
-      .from(SupabaseTables.workoutSessions)
-      .select('id, total_volume, total_duration_seconds')
-      .eq('user_id', userId)
-      .eq('is_cancelled', false)
-      .not('finished_at', 'is', null);
+    // 총 운동 횟수
+    final sessionsResponse = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('id, total_volume, total_duration_seconds')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null);
 
-  final sessions = sessionsResponse as List;
+    final sessions = sessionsResponse as List;
 
-  final totalWorkouts = sessions.length;
-  final totalVolume = sessions.fold<double>(
-    0,
-    (sum, s) => sum + (s['total_volume'] as num? ?? 0).toDouble(),
-  );
-  final totalDurationSeconds = sessions.fold<int>(
-    0,
-    (sum, s) => sum + (s['total_duration_seconds'] as int? ?? 0),
-  );
+    final totalWorkouts = sessions.length;
+    final totalVolume = sessions.fold<double>(
+      0,
+      (sum, s) => sum + (s['total_volume'] as num? ?? 0).toDouble(),
+    );
+    final totalDurationSeconds = sessions.fold<int>(
+      0,
+      (sum, s) => sum + (s['total_duration_seconds'] as int? ?? 0),
+    );
 
-  // TODO: 연속 운동 일수 계산 (스트릭)
+    print('=== FETCH USER STATS SUCCESS: userId=$userId, 운동=${totalWorkouts}회, 볼륨=${totalVolume}kg ===');
 
-  return UserStats(
-    totalWorkouts: totalWorkouts,
-    totalVolume: totalVolume,
-    totalDuration: Duration(seconds: totalDurationSeconds),
-    currentStreak: 0,
-    longestStreak: 0,
-  );
+    // TODO: 연속 운동 일수 계산 (스트릭)
+
+    return UserStats(
+      totalWorkouts: totalWorkouts,
+      totalVolume: totalVolume,
+      totalDuration: Duration(seconds: totalDurationSeconds),
+      currentStreak: 0,
+      longestStreak: 0,
+    );
+  } catch (e) {
+    print('=== FETCH USER STATS FAILED: $e ===');
+    // Supabase 연결 실패 시 빈 통계 반환
+    return const UserStats(
+      totalWorkouts: 0,
+      totalVolume: 0,
+      totalDuration: Duration.zero,
+      currentStreak: 0,
+      longestStreak: 0,
+    );
+  }
 }
 
 /// 사용자 통계 모델
@@ -180,7 +199,12 @@ class UserStats {
 @riverpod
 Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
   final userId = ref.watch(currentUserIdProvider);
+
+  print('=== FETCH WEEKLY STATS: userId=$userId ===');
+
+  // 로그인하지 않은 경우 빈 통계 반환
   if (userId == null) {
+    print('=== FETCH WEEKLY STATS: not logged in ===');
     return const WeeklyStats(
       workoutCount: 0,
       totalVolume: 0,
@@ -225,6 +249,8 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
         .toSet()
         .toList();
 
+    print('=== FETCH WEEKLY STATS SUCCESS: userId=$userId, 이번주=${workoutCount}회, 볼륨=${totalVolume}kg ===');
+
     return WeeklyStats(
       workoutCount: workoutCount,
       totalVolume: totalVolume,
@@ -232,11 +258,12 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
       workoutDates: workoutDates,
     );
   } catch (e) {
-    // 데모 모드 - 더미 데이터 반환
+    print('=== FETCH WEEKLY STATS FAILED: $e ===');
+    // Supabase 연결 실패 시 빈 통계 반환
     return const WeeklyStats(
-      workoutCount: 3,
-      totalVolume: 12500,
-      totalDuration: Duration(hours: 2, minutes: 45),
+      workoutCount: 0,
+      totalVolume: 0,
+      totalDuration: Duration.zero,
       workoutDates: [],
     );
   }

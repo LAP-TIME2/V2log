@@ -5,8 +5,12 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../data/dummy/dummy_exercises.dart';
+import '../../../data/dummy/dummy_preset_routines.dart';
 import '../../../data/models/workout_session_model.dart';
+import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/workout_provider.dart';
+import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
 
 /// 운동 기록 히스토리 화면
@@ -162,7 +166,11 @@ class _WorkoutSessionCard extends StatelessWidget {
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
       onTap: () {
-        // TODO: 세션 상세 화면으로 이동
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => WorkoutDetailScreen(sessionId: session.id),
+          ),
+        );
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,6 +357,428 @@ class _StatItem extends StatelessWidget {
           value,
           style: AppTypography.labelMedium.copyWith(
             color: AppColors.darkText,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 운동 상세 화면
+class WorkoutDetailScreen extends ConsumerWidget {
+  final String sessionId;
+
+  const WorkoutDetailScreen({required this.sessionId, super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionAsync = ref.watch(workoutSessionDetailProvider(sessionId));
+    final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.darkBg,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkBg,
+        title: Text(
+          '운동 상세',
+          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+        ),
+        elevation: 0,
+      ),
+      body: sessionAsync.when(
+        data: (session) {
+          if (session == null) {
+            return Center(
+              child: Text(
+                '운동 기록을 찾을 수 없습니다',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+            );
+          }
+
+          final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.screenPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 요약 카드
+                _buildSummaryCard(session),
+                const SizedBox(height: AppSpacing.xl),
+
+                // 운동별 세트 목록
+                Text(
+                  '운동 기록',
+                  style: AppTypography.h4.copyWith(color: AppColors.darkText),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                _buildExercisesList(session, exerciseNames),
+              ],
+            ),
+          );
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary500),
+        ),
+        error: (_, __) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                '기록을 불러오는데 실패했어요',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              V2Button.primary(
+                text: '다시 시도',
+                onPressed: () => ref.invalidate(workoutSessionDetailProvider(sessionId)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(WorkoutSessionModel session) {
+    final duration = session.totalDurationSeconds != null
+        ? Duration(seconds: session.totalDurationSeconds!)
+        : session.duration ?? Duration.zero;
+    final volume = session.totalVolume ?? session.calculatedVolume;
+    final setCount = session.totalSets ?? session.sets.length;
+
+    return V2Card(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: session.mode == WorkoutMode.preset
+                      ? AppColors.primary500.withValues(alpha: 0.15)
+                      : AppColors.secondary500.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Text(
+                  session.mode.label,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: session.mode == WorkoutMode.preset
+                        ? AppColors.primary500
+                        : AppColors.secondary500,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                Formatters.dateTime(session.startedAt),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryItem(
+                  icon: Icons.timer_outlined,
+                  label: '운동 시간',
+                  value: Formatters.duration(duration),
+                ),
+              ),
+              Expanded(
+                child: _SummaryItem(
+                  icon: Icons.fitness_center,
+                  label: '세트',
+                  value: '$setCount세트',
+                ),
+              ),
+              Expanded(
+                child: _SummaryItem(
+                  icon: Icons.local_fire_department_outlined,
+                  label: '볼륨',
+                  value: Formatters.volume(volume),
+                ),
+              ),
+            ],
+          ),
+          if (session.notes != null && session.notes!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.darkCardElevated,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: Text(
+                session.notes!,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExercisesList(
+    WorkoutSessionModel session,
+    Map<String, String> exerciseNames,
+  ) {
+    // 운동별로 세트 그룹화
+    final setsByExercise = <String, List<WorkoutSetModel>>{};
+    for (final set in session.sets) {
+      setsByExercise.putIfAbsent(set.exerciseId, () => []).add(set);
+    }
+
+    if (setsByExercise.isEmpty) {
+      return V2Card(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Center(
+          child: Text(
+            '기록된 세트가 없습니다',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: setsByExercise.entries.map((entry) {
+        final exerciseId = entry.key;
+        final sets = entry.value;
+        final exerciseName = _getExerciseName(exerciseId, exerciseNames);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: V2Card(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary500.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      ),
+                      child: const Icon(
+                        Icons.fitness_center,
+                        color: AppColors.primary500,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            exerciseName,
+                            style: AppTypography.labelLarge.copyWith(
+                              color: AppColors.darkText,
+                            ),
+                          ),
+                          Text(
+                            '${sets.length}세트',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.darkTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                // 세트 목록 헤더
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      child: Text(
+                        '세트',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.darkTextTertiary,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '무게',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.darkTextTertiary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '횟수',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.darkTextTertiary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '볼륨',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.darkTextTertiary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(color: AppColors.darkBorder, height: AppSpacing.lg),
+                // 세트 목록
+                ...sets.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final set = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 40,
+                          child: Row(
+                            children: [
+                              Text(
+                                '${index + 1}',
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.darkText,
+                                ),
+                              ),
+                              if (set.isPr)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 4),
+                                  child: Icon(
+                                    Icons.emoji_events,
+                                    size: 14,
+                                    color: AppColors.warning,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '${set.weight ?? 0}kg',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.darkText,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '${set.reps ?? 0}회',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.darkText,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            Formatters.volume(set.volume),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.primary500,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _getExerciseName(String exerciseId, Map<String, String> exerciseNames) {
+    // Supabase에서 가져온 이름 맵에서 찾기
+    if (exerciseNames.containsKey(exerciseId)) {
+      return exerciseNames[exerciseId]!;
+    }
+
+    // DummyExercises에서 찾기
+    final exercise = DummyExercises.getById(exerciseId);
+    if (exercise != null) {
+      return exercise.name;
+    }
+
+    // DummyPresetRoutines에서 찾기
+    final presetExercise = DummyPresetRoutines.getExerciseById(exerciseId);
+    if (presetExercise != null) {
+      return presetExercise.name;
+    }
+
+    // 못 찾으면 ID 일부 표시
+    if (exerciseId.length > 8 && exerciseId.contains('-')) {
+      return '운동';
+    }
+
+    return exerciseId;
+  }
+}
+
+/// 요약 항목
+class _SummaryItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _SummaryItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, size: 24, color: AppColors.darkTextSecondary),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          value,
+          style: AppTypography.labelLarge.copyWith(
+            color: AppColors.darkText,
+          ),
+        ),
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: AppColors.darkTextTertiary,
           ),
         ),
       ],

@@ -13,6 +13,7 @@ import '../../../data/models/preset_routine_model.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/timer_provider.dart';
+import '../../../domain/providers/user_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/molecules/quick_input_control.dart';
@@ -798,6 +799,12 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               // 루틴 운동 및 인덱스 초기화
               ref.read(routineExercisesProvider.notifier).clear();
               ref.read(currentExerciseIndexProvider.notifier).reset();
+
+              // 기록/통계 Provider 새로고침 (Supabase에서 다시 로드)
+              ref.invalidate(workoutHistoryProvider);
+              ref.invalidate(recentWorkoutsProvider);
+              ref.invalidate(weeklyStatsProvider);
+              ref.invalidate(userStatsProvider);
 
               if (mounted && finishedSession != null) {
                 // 요약 화면으로 이동

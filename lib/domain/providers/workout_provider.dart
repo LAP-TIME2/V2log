@@ -55,15 +55,14 @@ class ActiveWorkout extends _$ActiveWorkout {
     String? routineId,
     required WorkoutMode mode,
   }) async {
-    // 데모 모드에서는 더미 사용자 ID 사용
-    var userId = ref.read(currentUserIdProvider);
-    userId ??= 'demo-user';
+    final userId = ref.read(currentUserIdProvider);
+    final isLoggedIn = userId != null;
 
-    final sessionNumber = await _getTodaySessionNumber(userId);
+    final sessionNumber = isLoggedIn ? await _getTodaySessionNumber(userId) : 1;
 
     final session = WorkoutSessionModel(
       id: _uuid.v4(),
-      userId: userId,
+      userId: userId ?? 'anonymous',
       routineId: routineId,
       sessionNumber: sessionNumber,
       mode: mode,
@@ -71,19 +70,23 @@ class ActiveWorkout extends _$ActiveWorkout {
       createdAt: DateTime.now(),
     );
 
-    // Supabase에 세션 생성 시도 (실패해도 무시)
-    try {
-      final supabase = ref.read(supabaseServiceProvider);
-      await supabase.from(SupabaseTables.workoutSessions).insert({
-        'id': session.id,
-        'user_id': session.userId,
-        'routine_id': session.routineId,
-        'session_number': session.sessionNumber,
-        'mode': session.mode.value,
-        'started_at': session.startedAt.toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('⚠️ Supabase 세션 생성 실패 (데모 모드): $e');
+    // 로그인한 경우에만 Supabase에 세션 생성
+    if (isLoggedIn) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        // routine_id는 routines 테이블 참조 - preset 모드에서는 null로 설정
+        await supabase.from(SupabaseTables.workoutSessions).insert({
+          'id': session.id,
+          'user_id': session.userId,
+          'routine_id': null, // preset 루틴은 routines 테이블에 없으므로 null
+          'session_number': session.sessionNumber,
+          'mode': session.mode.value,
+          'started_at': session.startedAt.toIso8601String(),
+        });
+        debugPrint('✅ Supabase 세션 생성 성공: ${session.id}');
+      } catch (e) {
+        debugPrint('⚠️ Supabase 세션 생성 실패: $e');
+      }
     }
 
     // 로컬 저장소에 백업
@@ -152,24 +155,31 @@ class ActiveWorkout extends _$ActiveWorkout {
       completedAt: DateTime.now(),
     );
 
-    // Supabase에 세트 저장 시도 (실패해도 무시)
-    try {
-      final supabase = ref.read(supabaseServiceProvider);
-      await supabase.from(SupabaseTables.workoutSets).insert({
-        'id': newSet.id,
-        'session_id': newSet.sessionId,
-        'exercise_id': newSet.exerciseId,
-        'set_number': newSet.setNumber,
-        'set_type': newSet.setType.value,
-        'weight': newSet.weight,
-        'reps': newSet.reps,
-        'rpe': newSet.rpe,
-        'is_pr': newSet.isPr,
-        'notes': newSet.notes,
-        'completed_at': newSet.completedAt.toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('⚠️ Supabase 세트 저장 실패 (데모 모드): $e');
+    // 로그인한 경우에만 Supabase에 세트 저장
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      print('=== SAVE SET: userId=$userId, setId=${newSet.id} ===');
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSets).insert({
+          'id': newSet.id,
+          'session_id': newSet.sessionId,
+          'exercise_id': newSet.exerciseId,
+          'set_number': newSet.setNumber,
+          'set_type': newSet.setType.value,
+          'weight': newSet.weight,
+          'reps': newSet.reps,
+          'rpe': newSet.rpe,
+          'is_pr': newSet.isPr,
+          'notes': newSet.notes,
+          'completed_at': newSet.completedAt.toIso8601String(),
+        });
+        print('=== SAVE SET SUCCESS ===');
+      } catch (e) {
+        print('=== SAVE SET FAILED: $e ===');
+      }
+    } else {
+      print('=== SKIP SAVE SET: not logged in ===');
     }
 
     // 로컬 PR 업데이트
@@ -232,15 +242,18 @@ class ActiveWorkout extends _$ActiveWorkout {
       reps: reps ?? oldSet.reps,
     );
 
-    // Supabase 업데이트 시도 (실패해도 무시)
-    try {
-      final supabase = ref.read(supabaseServiceProvider);
-      await supabase.from(SupabaseTables.workoutSets).update({
-        'weight': updatedSet.weight,
-        'reps': updatedSet.reps,
-      }).eq('id', setId);
-    } catch (e) {
-      debugPrint('⚠️ Supabase 세트 수정 실패 (데모 모드): $e');
+    // 로그인한 경우에만 Supabase 업데이트
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSets).update({
+          'weight': updatedSet.weight,
+          'reps': updatedSet.reps,
+        }).eq('id', setId);
+      } catch (e) {
+        debugPrint('⚠️ Supabase 세트 수정 실패: $e');
+      }
     }
 
     final newSets = [...session.sets];
@@ -261,12 +274,15 @@ class ActiveWorkout extends _$ActiveWorkout {
     final session = state!;
     final setToDelete = session.sets.firstWhere((s) => s.id == setId);
 
-    // Supabase 삭제 시도 (실패해도 무시)
-    try {
-      final supabase = ref.read(supabaseServiceProvider);
-      await supabase.from(SupabaseTables.workoutSets).delete().eq('id', setId);
-    } catch (e) {
-      debugPrint('⚠️ Supabase 세트 삭제 실패 (데모 모드): $e');
+    // 로그인한 경우에만 Supabase 삭제
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSets).delete().eq('id', setId);
+      } catch (e) {
+        debugPrint('⚠️ Supabase 세트 삭제 실패: $e');
+      }
     }
 
     state = session.copyWith(
@@ -294,19 +310,23 @@ class ActiveWorkout extends _$ActiveWorkout {
       moodRating: moodRating,
     );
 
-    // Supabase 업데이트 시도 (실패해도 무시)
-    try {
-      final supabase = ref.read(supabaseServiceProvider);
-      await supabase.from(SupabaseTables.workoutSessions).update({
-        'finished_at': finishedAt.toIso8601String(),
-        'total_volume': session.calculatedVolume,
-        'total_sets': session.sets.length,
-        'total_duration_seconds': durationSeconds,
-        'notes': notes,
-        'mood_rating': moodRating,
-      }).eq('id', session.id);
-    } catch (e) {
-      debugPrint('⚠️ Supabase 세션 완료 실패 (데모 모드): $e');
+    // 로그인한 경우에만 Supabase 업데이트
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSessions).update({
+          'finished_at': finishedAt.toIso8601String(),
+          'total_volume': session.calculatedVolume,
+          'total_sets': session.sets.length,
+          'total_duration_seconds': durationSeconds,
+          'notes': notes,
+          'mood_rating': moodRating,
+        }).eq('id', session.id);
+        debugPrint('✅ Supabase 세션 완료 성공: ${session.id}');
+      } catch (e) {
+        debugPrint('⚠️ Supabase 세션 완료 실패: $e');
+      }
     }
 
     // 로컬 저장소 정리
@@ -327,15 +347,18 @@ class ActiveWorkout extends _$ActiveWorkout {
 
     final session = state!;
 
-    // Supabase 업데이트 시도 (실패해도 무시)
-    try {
-      final supabase = ref.read(supabaseServiceProvider);
-      await supabase.from(SupabaseTables.workoutSessions).update({
-        'is_cancelled': true,
-        'finished_at': DateTime.now().toIso8601String(),
-      }).eq('id', session.id);
-    } catch (e) {
-      debugPrint('⚠️ Supabase 세션 취소 실패 (데모 모드): $e');
+    // 로그인한 경우에만 Supabase 업데이트
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSessions).update({
+          'is_cancelled': true,
+          'finished_at': DateTime.now().toIso8601String(),
+        }).eq('id', session.id);
+      } catch (e) {
+        debugPrint('⚠️ Supabase 세션 취소 실패: $e');
+      }
     }
 
     // 로컬 저장소 정리
@@ -473,9 +496,10 @@ List<ExerciseModel> currentExercises(CurrentExercisesRef ref) {
 @riverpod
 Future<List<WorkoutSessionModel>> recentWorkouts(RecentWorkoutsRef ref) async {
   final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 리스트 반환
   if (userId == null) {
-    // 데모 모드 - 더미 데이터 반환
-    return _getDummyRecentWorkouts();
+    return [];
   }
 
   try {
@@ -492,7 +516,9 @@ Future<List<WorkoutSessionModel>> recentWorkouts(RecentWorkoutsRef ref) async {
         .order('started_at', ascending: false)
         .limit(5);
 
-    return (response as List).map((e) {
+    debugPrint('✅ 최근 운동 기록 로드 성공: ${(response as List).length}개');
+
+    return response.map((e) {
       final sets = (e['workout_sets'] as List?)
               ?.map((s) => WorkoutSetModel.fromJson(s))
               .toList() ??
@@ -504,50 +530,9 @@ Future<List<WorkoutSessionModel>> recentWorkouts(RecentWorkoutsRef ref) async {
       });
     }).toList();
   } catch (e) {
-    debugPrint('최근 운동 기록 로드 실패: $e');
-    return _getDummyRecentWorkouts();
+    debugPrint('❌ 최근 운동 기록 로드 실패: $e');
+    return [];
   }
-}
-
-List<WorkoutSessionModel> _getDummyRecentWorkouts() {
-  return [
-    WorkoutSessionModel(
-      id: 'demo-1',
-      userId: 'demo-user',
-      sessionNumber: 1,
-      mode: WorkoutMode.free,
-      startedAt: DateTime.now().subtract(const Duration(days: 1, hours: 10)),
-      finishedAt: DateTime.now().subtract(const Duration(days: 1, hours: 9)),
-      totalVolume: 8500,
-      totalSets: 15,
-      totalDurationSeconds: 52 * 60,
-      notes: '등 & 이두',
-    ),
-    WorkoutSessionModel(
-      id: 'demo-2',
-      userId: 'demo-user',
-      sessionNumber: 2,
-      mode: WorkoutMode.free,
-      startedAt: DateTime.now().subtract(const Duration(days: 2, hours: 14)),
-      finishedAt: DateTime.now().subtract(const Duration(days: 2, hours: 13)),
-      totalVolume: 7200,
-      totalSets: 12,
-      totalDurationSeconds: 48 * 60,
-      notes: '가슴 & 삼두',
-    ),
-    WorkoutSessionModel(
-      id: 'demo-3',
-      userId: 'demo-user',
-      sessionNumber: 3,
-      mode: WorkoutMode.free,
-      startedAt: DateTime.now().subtract(const Duration(days: 4, hours: 18)),
-      finishedAt: DateTime.now().subtract(const Duration(days: 4, hours: 17)),
-      totalVolume: 12000,
-      totalSets: 18,
-      totalDurationSeconds: 65 * 60,
-      notes: '하체',
-    ),
-  ];
 }
 
 /// 운동 기록 히스토리 Provider (월별 그룹화)
@@ -558,8 +543,13 @@ Future<List<WorkoutSessionModel>> workoutHistory(
   int offset = 0,
 }) async {
   final userId = ref.watch(currentUserIdProvider);
+
+  print('=== FETCH HISTORY: userId=$userId ===');
+
+  // 로그인하지 않은 경우 빈 리스트 반환
   if (userId == null) {
-    return _getDummyRecentWorkouts();
+    print('=== FETCH HISTORY: not logged in, returning empty ===');
+    return [];
   }
 
   try {
@@ -576,7 +566,9 @@ Future<List<WorkoutSessionModel>> workoutHistory(
         .order('started_at', ascending: false)
         .range(offset, offset + limit - 1);
 
-    return (response as List).map((e) {
+    print('=== FETCH HISTORY SUCCESS: userId=$userId, 결과: ${(response as List).length}건 ===');
+
+    return response.map((e) {
       final sets = (e['workout_sets'] as List?)
               ?.map((s) => WorkoutSetModel.fromJson(s))
               .toList() ??
@@ -588,7 +580,70 @@ Future<List<WorkoutSessionModel>> workoutHistory(
       });
     }).toList();
   } catch (e) {
-    debugPrint('운동 기록 히스토리 로드 실패: $e');
-    return _getDummyRecentWorkouts();
+    print('=== FETCH HISTORY FAILED: $e ===');
+    return [];
+  }
+}
+
+/// 특정 세션 상세 조회 Provider
+@riverpod
+Future<WorkoutSessionModel?> workoutSessionDetail(
+  WorkoutSessionDetailRef ref,
+  String sessionId,
+) async {
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          *,
+          workout_sets (*)
+        ''')
+        .eq('id', sessionId)
+        .single();
+
+    final sets = (response['workout_sets'] as List?)
+            ?.map((s) => WorkoutSetModel.fromJson(s))
+            .toList() ??
+        [];
+
+    // 세트를 set_number 순으로 정렬
+    sets.sort((a, b) => a.setNumber.compareTo(b.setNumber));
+
+    return WorkoutSessionModel.fromJson({
+      ...response,
+      'sets': sets.map((s) => s.toJson()).toList(),
+    });
+  } catch (e) {
+    debugPrint('세션 상세 조회 실패: $e');
+    return null;
+  }
+}
+
+/// 운동 이름 맵 Provider (exercise_id -> name)
+@riverpod
+Future<Map<String, String>> exerciseNamesMap(ExerciseNamesMapRef ref) async {
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.exercises)
+        .select('id, name');
+
+    final map = <String, String>{};
+    for (final e in response as List) {
+      map[e['id'] as String] = e['name'] as String;
+    }
+    return map;
+  } catch (e) {
+    debugPrint('운동 이름 조회 실패: $e');
+    // 더미 데이터에서 가져오기
+    final map = <String, String>{};
+    for (final ex in DummyExercises.exercises) {
+      map[ex.id] = ex.name;
+    }
+    for (final ex in DummyPresetRoutines.exercises) {
+      map[ex.id] = ex.name;
+    }
+    return map;
   }
 }

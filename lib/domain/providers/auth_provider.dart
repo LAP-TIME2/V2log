@@ -187,6 +187,12 @@ bool isLoggedIn(IsLoggedInRef ref) {
 /// 현재 사용자 ID Provider
 @riverpod
 String? currentUserId(CurrentUserIdRef ref) {
+  // 먼저 authProvider에서 확인
   final authState = ref.watch(authProvider);
-  return authState.valueOrNull?.id;
+  final userModelId = authState.valueOrNull?.id;
+  if (userModelId != null) return userModelId;
+
+  // authProvider가 null이면 Supabase Auth 세션에서 직접 확인
+  final supabase = ref.watch(supabaseServiceProvider);
+  return supabase.currentUser?.id;
 }

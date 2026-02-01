@@ -374,7 +374,7 @@ final currentExercisesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentExercisesRef = AutoDisposeProviderRef<List<ExerciseModel>>;
-String _$recentWorkoutsHash() => r'd7fbe6c621317d195636b4051801d2a24bd608f8';
+String _$recentWorkoutsHash() => r'154a4a2748b71f163eb1029d93e01d286110da97';
 
 /// 최근 운동 기록 Provider
 ///
@@ -395,7 +395,7 @@ final recentWorkoutsProvider =
 // ignore: unused_element
 typedef RecentWorkoutsRef =
     AutoDisposeFutureProviderRef<List<WorkoutSessionModel>>;
-String _$workoutHistoryHash() => r'ab6188575ed9627477f6a414f90ea61fa8d8b956';
+String _$workoutHistoryHash() => r'f8e5ef1d549757825420d3905172c9a77011f336';
 
 /// 운동 기록 히스토리 Provider (월별 그룹화)
 ///
@@ -547,7 +547,166 @@ class _WorkoutHistoryProviderElement
   int get offset => (origin as WorkoutHistoryProvider).offset;
 }
 
-String _$activeWorkoutHash() => r'30c2810eeb1512c1eeb457a842c76a7f19d44f0f';
+String _$workoutSessionDetailHash() =>
+    r'20a1e4d8357217404dd411eb7584a4de3eaa9cbc';
+
+/// 특정 세션 상세 조회 Provider
+///
+/// Copied from [workoutSessionDetail].
+@ProviderFor(workoutSessionDetail)
+const workoutSessionDetailProvider = WorkoutSessionDetailFamily();
+
+/// 특정 세션 상세 조회 Provider
+///
+/// Copied from [workoutSessionDetail].
+class WorkoutSessionDetailFamily
+    extends Family<AsyncValue<WorkoutSessionModel?>> {
+  /// 특정 세션 상세 조회 Provider
+  ///
+  /// Copied from [workoutSessionDetail].
+  const WorkoutSessionDetailFamily();
+
+  /// 특정 세션 상세 조회 Provider
+  ///
+  /// Copied from [workoutSessionDetail].
+  WorkoutSessionDetailProvider call(String sessionId) {
+    return WorkoutSessionDetailProvider(sessionId);
+  }
+
+  @override
+  WorkoutSessionDetailProvider getProviderOverride(
+    covariant WorkoutSessionDetailProvider provider,
+  ) {
+    return call(provider.sessionId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'workoutSessionDetailProvider';
+}
+
+/// 특정 세션 상세 조회 Provider
+///
+/// Copied from [workoutSessionDetail].
+class WorkoutSessionDetailProvider
+    extends AutoDisposeFutureProvider<WorkoutSessionModel?> {
+  /// 특정 세션 상세 조회 Provider
+  ///
+  /// Copied from [workoutSessionDetail].
+  WorkoutSessionDetailProvider(String sessionId)
+    : this._internal(
+        (ref) =>
+            workoutSessionDetail(ref as WorkoutSessionDetailRef, sessionId),
+        from: workoutSessionDetailProvider,
+        name: r'workoutSessionDetailProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$workoutSessionDetailHash,
+        dependencies: WorkoutSessionDetailFamily._dependencies,
+        allTransitiveDependencies:
+            WorkoutSessionDetailFamily._allTransitiveDependencies,
+        sessionId: sessionId,
+      );
+
+  WorkoutSessionDetailProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.sessionId,
+  }) : super.internal();
+
+  final String sessionId;
+
+  @override
+  Override overrideWith(
+    FutureOr<WorkoutSessionModel?> Function(WorkoutSessionDetailRef provider)
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: WorkoutSessionDetailProvider._internal(
+        (ref) => create(ref as WorkoutSessionDetailRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        sessionId: sessionId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<WorkoutSessionModel?> createElement() {
+    return _WorkoutSessionDetailProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkoutSessionDetailProvider &&
+        other.sessionId == sessionId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, sessionId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin WorkoutSessionDetailRef
+    on AutoDisposeFutureProviderRef<WorkoutSessionModel?> {
+  /// The parameter `sessionId` of this provider.
+  String get sessionId;
+}
+
+class _WorkoutSessionDetailProviderElement
+    extends AutoDisposeFutureProviderElement<WorkoutSessionModel?>
+    with WorkoutSessionDetailRef {
+  _WorkoutSessionDetailProviderElement(super.provider);
+
+  @override
+  String get sessionId => (origin as WorkoutSessionDetailProvider).sessionId;
+}
+
+String _$exerciseNamesMapHash() => r'7ae7f27e044aac73f3e9b3bb56e9a4c99259b440';
+
+/// 운동 이름 맵 Provider (exercise_id -> name)
+///
+/// Copied from [exerciseNamesMap].
+@ProviderFor(exerciseNamesMap)
+final exerciseNamesMapProvider =
+    AutoDisposeFutureProvider<Map<String, String>>.internal(
+      exerciseNamesMap,
+      name: r'exerciseNamesMapProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$exerciseNamesMapHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ExerciseNamesMapRef = AutoDisposeFutureProviderRef<Map<String, String>>;
+String _$activeWorkoutHash() => r'335518839880636c2d35f47dbcb6863018adeda3';
 
 /// 활성 운동 세션 Provider
 ///

@@ -6,8 +6,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../data/dummy/dummy_exercises.dart';
+import '../../../data/dummy/dummy_preset_routines.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../data/models/workout_set_model.dart';
+import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
 
@@ -22,6 +25,9 @@ class WorkoutSummaryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
+    final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
+
     final duration = session.duration ?? Duration.zero;
     final totalVolume = session.calculatedVolume;
     final totalSets = session.sets.length;
@@ -65,12 +71,12 @@ class WorkoutSummaryScreen extends ConsumerWidget {
 
               // PR 달성 (있는 경우)
               if (prSets.isNotEmpty) ...[
-                _buildPrSection(prSets),
+                _buildPrSection(prSets, exerciseNames),
                 const SizedBox(height: AppSpacing.xl),
               ],
 
               // 운동별 요약
-              _buildExerciseSummary(),
+              _buildExerciseSummary(exerciseNames),
               const SizedBox(height: AppSpacing.xxl),
 
               // 버튼들
@@ -156,7 +162,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrSection(List<WorkoutSetModel> prSets) {
+  Widget _buildPrSection(List<WorkoutSetModel> prSets, Map<String, String> exerciseNames) {
     return V2Card(
       backgroundColor: AppColors.warning.withValues(alpha: 0.1),
       borderColor: AppColors.warning,
@@ -202,7 +208,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        '${set.exerciseId}: ${set.weight}kg x ${set.reps}회',
+                        '${_getExerciseName(set.exerciseId, exerciseNames)}: ${set.weight}kg x ${set.reps}회',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.darkText,
                         ),
@@ -216,7 +222,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildExerciseSummary() {
+  Widget _buildExerciseSummary(Map<String, String> exerciseNames) {
     final exerciseGroups = session.setsByExercise;
 
     return V2Card(
@@ -263,7 +269,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _getExerciseName(exerciseId),
+                          _getExerciseName(exerciseId, exerciseNames),
                           style: AppTypography.labelLarge.copyWith(
                             color: AppColors.darkText,
                           ),
@@ -303,19 +309,30 @@ class WorkoutSummaryScreen extends ConsumerWidget {
     );
   }
 
-  String _getExerciseName(String exerciseId) {
-    // 간단한 매핑 (실제로는 Provider에서 가져옴)
-    final names = {
-      'ex-001': '벤치프레스',
-      'ex-002': '인클라인 덤벨 프레스',
-      'ex-010': '데드리프트',
-      'ex-011': '랫풀다운',
-      'ex-040': '스쿼트',
-      'bench_press': '벤치 프레스',
-      'squat': '스쿼트',
-      'deadlift': '데드리프트',
-    };
-    return names[exerciseId] ?? exerciseId;
+  String _getExerciseName(String exerciseId, Map<String, String> exerciseNames) {
+    // 전달받은 exerciseNames 맵에서 먼저 찾기 (Supabase 데이터)
+    if (exerciseNames.containsKey(exerciseId)) {
+      return exerciseNames[exerciseId]!;
+    }
+
+    // DummyExercises에서 찾기
+    final exercise = DummyExercises.getById(exerciseId);
+    if (exercise != null) {
+      return exercise.name;
+    }
+
+    // DummyPresetRoutines에서 찾기
+    final presetExercise = DummyPresetRoutines.getExerciseById(exerciseId);
+    if (presetExercise != null) {
+      return presetExercise.name;
+    }
+
+    // 못 찾으면 ID의 앞 8자리만 표시 (UUID인 경우)
+    if (exerciseId.length > 8 && exerciseId.contains('-')) {
+      return '운동 ${exerciseId.substring(0, 8)}';
+    }
+
+    return exerciseId;
   }
 
   Widget _buildActionButtons(BuildContext context) {

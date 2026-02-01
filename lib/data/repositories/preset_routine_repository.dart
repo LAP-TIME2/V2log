@@ -150,8 +150,8 @@ class PresetRoutineRepository {
             exercise:exercises(*)
           ''')
           .eq('preset_routine_id', routineId)
-          .order('day_number')
-          .order('order_index');
+          .order('day_number', ascending: true)
+          .order('order_index', ascending: true);
 
       // 3. 운동 데이터 파싱
       final exercises = (exercisesResponse as List).map((json) {
@@ -186,7 +186,7 @@ class PresetRoutineRepository {
           ''')
           .eq('preset_routine_id', routineId)
           .eq('day_number', dayNumber)
-          .order('order_index');
+          .order('order_index', ascending: true);
 
       return (response as List).map((json) {
         final exerciseJson = json['exercise'] as Map<String, dynamic>?;
