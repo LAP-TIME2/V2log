@@ -214,6 +214,8 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
     final startOfWeek = DateTime(now.year, now.month, now.day - (weekday - 1));
     final endOfWeek = startOfWeek.add(const Duration(days: 7));
 
+    print('=== weeklyStats 조회: userId=$userId, 기간=${startOfWeek.toIso8601String()} ~ ${endOfWeek.toIso8601String()} ===');
+
     final response = await supabase
         .from(SupabaseTables.workoutSessions)
         .select('id, total_volume, total_duration_seconds, started_at')
@@ -224,6 +226,7 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
         .lt('started_at', endOfWeek.toIso8601String());
 
     final sessions = response as List;
+    print('=== weeklyStats 결과: ${sessions.length}건 ===');
 
     final workoutCount = sessions.length;
     final totalVolume = sessions.fold<double>(
@@ -249,7 +252,7 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
     );
   } catch (e) {
     // Supabase 연결 실패 시 빈 통계 반환
-    debugPrint('weeklyStats 조회 실패: $e');
+    print('=== weeklyStats 조회 실패: $e ===');
     return const WeeklyStats(
       workoutCount: 0,
       totalVolume: 0,

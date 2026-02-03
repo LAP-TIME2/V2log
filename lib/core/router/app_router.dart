@@ -6,6 +6,7 @@ import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/history/history_screen.dart';
 import '../../presentation/screens/home/home_screen.dart';
 import '../../presentation/screens/onboarding/onboarding_screen.dart';
+import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/routine/routine_library_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/screens/stats/stats_screen.dart';
@@ -82,6 +83,16 @@ class AppRouter {
             path: '/history',
             name: 'history',
             builder: (context, state) => const HistoryScreen(),
+            routes: [
+              GoRoute(
+                path: ':sessionId',
+                name: 'history-detail',
+                builder: (context, state) {
+                  final sessionId = state.pathParameters['sessionId']!;
+                  return HistoryDetailScreen(sessionId: sessionId);
+                },
+              ),
+            ],
           ),
 
           // Stats
@@ -95,8 +106,7 @@ class AppRouter {
           GoRoute(
             path: '/profile',
             name: 'profile',
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: '프로필'),
+            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),

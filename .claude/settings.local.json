@@ -5,7 +5,20 @@
       "Bash(flutter analyze:*)",
       "Bash(dart run build_runner:*)",
       "Bash(flutter run:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(powershell -Command \"Get-ChildItem -Path \\([Environment]::GetFolderPath\\(''Desktop''\\)\\) -File | Select-Object Name, Extension, Length | Format-Table -AutoSize\")",
+      "Bash(powershell:*)",
+      "Bash(cmd.exe /c \"chcp 65001 & dir /b C:\\\\Users\\\\stark\\\\Desktop\")",
+      "Bash(echo:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(flutter pub add:*)",
+      "Bash(flutter attach:*)",
+      "Bash(taskkill:*)",
+      "Bash(git commit:*)",
+      "Bash(dart analyze:*)",
+      "Bash(git push)",
+      "Bash(git reset:*)"
     ]
   }
 }

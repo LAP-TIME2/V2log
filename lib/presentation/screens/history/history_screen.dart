@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -165,13 +166,7 @@ class _WorkoutSessionCard extends StatelessWidget {
 
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => WorkoutDetailScreen(sessionId: session.id),
-          ),
-        );
-      },
+      onTap: () => context.push('/history/${session.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -365,10 +360,10 @@ class _StatItem extends StatelessWidget {
 }
 
 /// 운동 상세 화면
-class WorkoutDetailScreen extends ConsumerWidget {
+class HistoryDetailScreen extends ConsumerWidget {
   final String sessionId;
 
-  const WorkoutDetailScreen({required this.sessionId, super.key});
+  const HistoryDetailScreen({required this.sessionId, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
