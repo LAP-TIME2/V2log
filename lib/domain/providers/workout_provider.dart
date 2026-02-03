@@ -158,7 +158,6 @@ class ActiveWorkout extends _$ActiveWorkout {
     // 로그인한 경우에만 Supabase에 세트 저장
     final userId = ref.read(currentUserIdProvider);
     if (userId != null) {
-      print('=== SAVE SET: userId=$userId, setId=${newSet.id} ===');
       try {
         final supabase = ref.read(supabaseServiceProvider);
         await supabase.from(SupabaseTables.workoutSets).insert({
@@ -174,12 +173,9 @@ class ActiveWorkout extends _$ActiveWorkout {
           'notes': newSet.notes,
           'completed_at': newSet.completedAt.toIso8601String(),
         });
-        print('=== SAVE SET SUCCESS ===');
       } catch (e) {
-        print('=== SAVE SET FAILED: $e ===');
+        debugPrint('Supabase 세트 저장 실패: $e');
       }
-    } else {
-      print('=== SKIP SAVE SET: not logged in ===');
     }
 
     // 로컬 PR 업데이트
@@ -544,11 +540,8 @@ Future<List<WorkoutSessionModel>> workoutHistory(
 }) async {
   final userId = ref.watch(currentUserIdProvider);
 
-  print('=== FETCH HISTORY: userId=$userId ===');
-
   // 로그인하지 않은 경우 빈 리스트 반환
   if (userId == null) {
-    print('=== FETCH HISTORY: not logged in, returning empty ===');
     return [];
   }
 
@@ -566,9 +559,7 @@ Future<List<WorkoutSessionModel>> workoutHistory(
         .order('started_at', ascending: false)
         .range(offset, offset + limit - 1);
 
-    print('=== FETCH HISTORY SUCCESS: userId=$userId, 결과: ${(response as List).length}건 ===');
-
-    return response.map((e) {
+    return (response as List).map((e) {
       final sets = (e['workout_sets'] as List?)
               ?.map((s) => WorkoutSetModel.fromJson(s))
               .toList() ??
@@ -580,7 +571,7 @@ Future<List<WorkoutSessionModel>> workoutHistory(
       });
     }).toList();
   } catch (e) {
-    print('=== FETCH HISTORY FAILED: $e ===');
+    debugPrint('운동 기록 조회 실패: $e');
     return [];
   }
 }

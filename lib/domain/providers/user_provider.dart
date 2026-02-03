@@ -117,11 +117,8 @@ class UserProfile extends _$UserProfile {
 Future<UserStats> userStats(UserStatsRef ref) async {
   final userId = ref.watch(currentUserIdProvider);
 
-  print('=== FETCH USER STATS: userId=$userId ===');
-
   // 로그인하지 않은 경우 빈 통계 반환
   if (userId == null) {
-    print('=== FETCH USER STATS: not logged in ===');
     return const UserStats(
       totalWorkouts: 0,
       totalVolume: 0,
@@ -154,8 +151,6 @@ Future<UserStats> userStats(UserStatsRef ref) async {
       (sum, s) => sum + (s['total_duration_seconds'] as int? ?? 0),
     );
 
-    print('=== FETCH USER STATS SUCCESS: userId=$userId, 운동=${totalWorkouts}회, 볼륨=${totalVolume}kg ===');
-
     // TODO: 연속 운동 일수 계산 (스트릭)
 
     return UserStats(
@@ -166,7 +161,6 @@ Future<UserStats> userStats(UserStatsRef ref) async {
       longestStreak: 0,
     );
   } catch (e) {
-    print('=== FETCH USER STATS FAILED: $e ===');
     // Supabase 연결 실패 시 빈 통계 반환
     return const UserStats(
       totalWorkouts: 0,
@@ -200,11 +194,8 @@ class UserStats {
 Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
   final userId = ref.watch(currentUserIdProvider);
 
-  print('=== FETCH WEEKLY STATS: userId=$userId ===');
-
   // 로그인하지 않은 경우 빈 통계 반환
   if (userId == null) {
-    print('=== FETCH WEEKLY STATS: not logged in ===');
     return const WeeklyStats(
       workoutCount: 0,
       totalVolume: 0,
@@ -249,8 +240,6 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
         .toSet()
         .toList();
 
-    print('=== FETCH WEEKLY STATS SUCCESS: userId=$userId, 이번주=${workoutCount}회, 볼륨=${totalVolume}kg ===');
-
     return WeeklyStats(
       workoutCount: workoutCount,
       totalVolume: totalVolume,
@@ -258,7 +247,6 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
       workoutDates: workoutDates,
     );
   } catch (e) {
-    print('=== FETCH WEEKLY STATS FAILED: $e ===');
     // Supabase 연결 실패 시 빈 통계 반환
     return const WeeklyStats(
       workoutCount: 0,
