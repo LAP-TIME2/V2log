@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/user_model.dart';
@@ -248,6 +249,7 @@ Future<WeeklyStats> weeklyStats(WeeklyStatsRef ref) async {
     );
   } catch (e) {
     // Supabase 연결 실패 시 빈 통계 반환
+    debugPrint('weeklyStats 조회 실패: $e');
     return const WeeklyStats(
       workoutCount: 0,
       totalVolume: 0,

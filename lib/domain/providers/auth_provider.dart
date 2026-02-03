@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -115,17 +116,28 @@ class Auth extends _$Auth {
         throw Exception('회원가입에 실패했습니다');
       }
 
-      // 2. Users 테이블에 프로필 생성
-      final now = DateTime.now().toIso8601String();
-      await supabase.from(SupabaseTables.users).insert({
-        'id': response.user!.id,
-        'email': email,
-        'nickname': nickname,
-        'created_at': now,
-        'updated_at': now,
-      });
+      // 2. Users 테이블에 프로필 생성 (실패해도 Auth 가입은 유지)
+      try {
+        final now = DateTime.now().toIso8601String();
+        await supabase.from(SupabaseTables.users).insert({
+          'id': response.user!.id,
+          'email': email,
+          'nickname': nickname,
+          'fitness_goal': 'HYPERTROPHY',
+          'preferred_mode': 'HYBRID',
+          'experience_level': 'BEGINNER',
+          'created_at': now,
+          'updated_at': now,
+        });
+      } catch (e) {
+        // INSERT 실패 시 로그만 남기고 계속 진행
+        print('=== users INSERT 실패: $e ===');
+      }
 
-      // 3. 프로필 조회
+      // 3. 로컬 저장소에 사용자 ID 저장
+      ref.read(localStorageServiceProvider).lastUserId = response.user!.id;
+
+      // 4. 프로필 조회
       return await _fetchUserProfile(response.user!.id);
     });
   }
