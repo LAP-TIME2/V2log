@@ -17,8 +17,11 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
+    final authState = ref.watch(authProvider);
     final userStatsAsync = ref.watch(userStatsProvider);
+
+    // 디버그 로그
+    print('=== ProfileScreen: authState=$authState ===');
 
     return Scaffold(
       backgroundColor: AppColors.darkBg,
@@ -30,46 +33,66 @@ class ProfileScreen extends ConsumerWidget {
         ),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.screenPadding),
-        child: Column(
-          children: [
-            // 프로필 카드
-            _buildProfileCard(user),
-            const SizedBox(height: AppSpacing.xl),
+      body: authState.when(
+        data: (user) {
+          print('=== ProfileScreen: user=$user, nickname=${user?.nickname} ===');
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.screenPadding),
+            child: Column(
+              children: [
+                // 프로필 카드
+                _buildProfileCard(user),
+                const SizedBox(height: AppSpacing.xl),
 
-            // 통계 카드
-            userStatsAsync.when(
-              data: (stats) => _buildStatsCard(stats),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary500),
-              ),
-              error: (_, __) => const SizedBox.shrink(),
+                // 통계 카드
+                userStatsAsync.when(
+                  data: (stats) => _buildStatsCard(stats),
+                  loading: () => const Center(
+                    child:
+                        CircularProgressIndicator(color: AppColors.primary500),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // 설정 섹션
+                _buildSettingsSection(context, ref),
+                const SizedBox(height: AppSpacing.xxl),
+
+                // 로그아웃 버튼
+                V2Button.secondary(
+                  text: '로그아웃',
+                  icon: Icons.logout,
+                  onPressed: () => _handleLogout(context, ref),
+                  fullWidth: true,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // 앱 버전
+                Text(
+                  'V2log v1.0.0',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.darkTextTertiary,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // 설정 섹션
-            _buildSettingsSection(context, ref),
-            const SizedBox(height: AppSpacing.xxl),
-
-            // 로그아웃 버튼
-            V2Button.secondary(
-              text: '로그아웃',
-              icon: Icons.logout,
-              onPressed: () => _handleLogout(context, ref),
-              fullWidth: true,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // 앱 버전
-            Text(
-              'V2log v1.0.0',
-              style: AppTypography.caption.copyWith(
-                color: AppColors.darkTextTertiary,
-              ),
-            ),
-          ],
+          );
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary500),
         ),
+        error: (error, _) {
+          print('=== ProfileScreen: 에러=$error ===');
+          return Center(
+            child: Text(
+              '프로필을 불러오는데 실패했습니다',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
+          );
+        },
       ),
     );
   }

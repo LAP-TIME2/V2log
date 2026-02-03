@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/dummy/dummy_exercises.dart';
@@ -15,7 +14,7 @@ Future<List<ExerciseModel>> exercises(ExercisesRef ref) async {
     final repository = ref.watch(exerciseRepositoryProvider);
     return await repository.getAllExercises();
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
     return DummyExercises.exercises;
   }
 }
@@ -30,7 +29,7 @@ Future<List<ExerciseModel>> exercisesByMuscle(
     final repository = ref.watch(exerciseRepositoryProvider);
     return await repository.getExercisesByMuscle(muscle);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
     return DummyExercises.getByMuscle(muscle);
   }
 }
@@ -45,7 +44,7 @@ Future<List<ExerciseModel>> exercisesByCategory(
     final repository = ref.watch(exerciseRepositoryProvider);
     return await repository.getExercisesByCategory(category);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
     return DummyExercises.getByCategory(category);
   }
 }
@@ -60,7 +59,7 @@ Future<List<ExerciseModel>> exercisesByDifficulty(
     final repository = ref.watch(exerciseRepositoryProvider);
     return await repository.getExercisesByDifficulty(difficulty);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
     return DummyExercises.getByDifficulty(difficulty);
   }
 }
@@ -75,7 +74,7 @@ Future<ExerciseModel?> exerciseDetail(
     final repository = ref.watch(exerciseRepositoryProvider);
     return await repository.getExerciseById(exerciseId);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
     return DummyExercises.getById(exerciseId);
   }
 }
@@ -92,7 +91,7 @@ Future<List<ExerciseModel>> searchExercises(
     final repository = ref.watch(exerciseRepositoryProvider);
     return await repository.searchExercises(query);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
     return DummyExercises.search(query);
   }
 }
@@ -143,7 +142,7 @@ Future<List<ExerciseModel>> filteredExercises(FilteredExercisesRef ref) async {
       searchQuery: filter.searchQuery,
     );
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
     return DummyExercises.getFiltered(filter);
   }
 }

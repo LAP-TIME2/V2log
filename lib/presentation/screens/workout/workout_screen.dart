@@ -12,6 +12,7 @@ import '../../../data/models/exercise_model.dart';
 import '../../../data/models/preset_routine_model.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../data/models/workout_set_model.dart';
+import '../../../domain/providers/exercise_provider.dart';
 import '../../../domain/providers/timer_provider.dart';
 import '../../../domain/providers/user_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
@@ -314,85 +315,13 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.darkCard,
-        border: Border(
-          bottom: BorderSide(color: AppColors.darkBorder, width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          // 운동 애니메이션/이미지 자리
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: exercise.primaryMuscle.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: Icon(
-              Icons.fitness_center,
-              color: exercise.primaryMuscle.color,
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-
-          // 운동 정보
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  exercise.name,
-                  style: AppTypography.h4.copyWith(
-                    color: AppColors.darkText,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    _buildTag(exercise.primaryMuscle.label, exercise.primaryMuscle.color),
-                    if (exercise.secondaryMuscles.isNotEmpty) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      _buildTag(
-                        exercise.secondaryMuscles.first.label,
-                        exercise.secondaryMuscles.first.color,
-                      ),
-                    ],
-                  ],
-                ),
-                // 프리셋 모드면 목표 세트/반복 표시
-                if (session.mode == WorkoutMode.preset) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Builder(builder: (context) {
-                    final routineExercise = ref.watch(currentRoutineExerciseProvider);
-                    if (routineExercise != null) {
-                      return Text(
-                        '목표: ${routineExercise.setsRepsText}',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.primary500,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }),
-                ],
-              ],
-            ),
-          ),
-
-          // 운동 변경 버튼 (자유 모드에서만)
-          if (session.mode == WorkoutMode.free)
-            IconButton(
-              icon: const Icon(Icons.swap_horiz),
-              onPressed: _showExerciseSelector,
-              color: AppColors.darkTextSecondary,
-            ),
-        ],
-      ),
+    return _ExerciseGuideCard(
+      exercise: exercise,
+      session: session,
+      onChangeExercise: session.mode == WorkoutMode.free ? _showExerciseSelector : null,
+      routineExercise: session.mode == WorkoutMode.preset
+          ? ref.watch(currentRoutineExerciseProvider)
+          : null,
     );
   }
 
@@ -830,8 +759,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 }
 
-/// 운동 선택 시트
-class _ExerciseSelectorSheet extends StatefulWidget {
+/// 운동 선택 시트 (Supabase 검색 연동)
+class _ExerciseSelectorSheet extends ConsumerStatefulWidget {
   final ScrollController scrollController;
   final Function(ExerciseModel exercise) onSelect;
 
@@ -841,35 +770,39 @@ class _ExerciseSelectorSheet extends StatefulWidget {
   });
 
   @override
-  State<_ExerciseSelectorSheet> createState() => _ExerciseSelectorSheetState();
+  ConsumerState<_ExerciseSelectorSheet> createState() => _ExerciseSelectorSheetState();
 }
 
-class _ExerciseSelectorSheetState extends State<_ExerciseSelectorSheet> {
+class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> {
   MuscleGroup? _selectedMuscle;
-  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
-  List<ExerciseModel> get _filteredExercises {
-    var exercises = DummyExercises.exercises;
+  @override
+  void initState() {
+    super.initState();
+    // 검색어 변경 시 Provider 업데이트
+    _searchController.addListener(() {
+      ref.read(exerciseFilterStateProvider.notifier).setSearchQuery(
+        _searchController.text.isEmpty ? null : _searchController.text,
+      );
+    });
+  }
 
-    if (_selectedMuscle != null) {
-      exercises = exercises
-          .where((e) => e.primaryMuscle == _selectedMuscle)
-          .toList();
-    }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
-    if (_searchQuery.isNotEmpty) {
-      exercises = exercises
-          .where((e) =>
-              e.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              (e.nameEn?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false))
-          .toList();
-    }
-
-    return exercises;
+  void _updateMuscleFilter(MuscleGroup? muscle) {
+    setState(() => _selectedMuscle = muscle);
+    ref.read(exerciseFilterStateProvider.notifier).setMuscle(muscle);
   }
 
   @override
   Widget build(BuildContext context) {
+    final exercisesAsync = ref.watch(filteredExercisesProvider);
+
     return Column(
       children: [
         // 헤더
@@ -893,7 +826,11 @@ class _ExerciseSelectorSheetState extends State<_ExerciseSelectorSheet> {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      // 필터 초기화
+                      ref.read(exerciseFilterStateProvider.notifier).clearFilters();
+                      Navigator.pop(context);
+                    },
                     color: AppColors.darkTextSecondary,
                   ),
                 ],
@@ -901,12 +838,12 @@ class _ExerciseSelectorSheetState extends State<_ExerciseSelectorSheet> {
               const SizedBox(height: AppSpacing.md),
               // 검색바
               TextField(
-                onChanged: (value) => setState(() => _searchQuery = value),
+                controller: _searchController,
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.darkText,
                 ),
                 decoration: InputDecoration(
-                  hintText: '운동 검색',
+                  hintText: '운동 검색 (예: 벤치프레스, 스쿼트)',
                   hintStyle: AppTypography.bodyMedium.copyWith(
                     color: AppColors.darkTextTertiary,
                   ),
@@ -914,6 +851,15 @@ class _ExerciseSelectorSheetState extends State<_ExerciseSelectorSheet> {
                     Icons.search,
                     color: AppColors.darkTextSecondary,
                   ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                          color: AppColors.darkTextSecondary,
+                        )
+                      : null,
                   filled: true,
                   fillColor: AppColors.darkCardElevated,
                   border: OutlineInputBorder(
@@ -943,12 +889,12 @@ class _ExerciseSelectorSheetState extends State<_ExerciseSelectorSheet> {
               _FilterChip(
                 label: '전체',
                 isSelected: _selectedMuscle == null,
-                onTap: () => setState(() => _selectedMuscle = null),
+                onTap: () => _updateMuscleFilter(null),
               ),
               ...MuscleGroup.values.take(8).map((muscle) => _FilterChip(
                     label: muscle.label,
                     isSelected: _selectedMuscle == muscle,
-                    onTap: () => setState(() => _selectedMuscle = muscle),
+                    onTap: () => _updateMuscleFilter(muscle),
                     color: muscle.color,
                   )),
             ],
@@ -957,40 +903,102 @@ class _ExerciseSelectorSheetState extends State<_ExerciseSelectorSheet> {
 
         // 운동 목록
         Expanded(
-          child: ListView.builder(
-            controller: widget.scrollController,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            itemCount: _filteredExercises.length,
-            itemBuilder: (context, index) {
-              final exercise = _filteredExercises[index];
-              return ListTile(
-                leading: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: exercise.primaryMuscle.color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          child: exercisesAsync.when(
+            data: (exercises) {
+              if (exercises.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.search_off,
+                        size: 48,
+                        color: AppColors.darkTextTertiary,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        '검색 결과가 없습니다',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.darkTextSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Icon(
-                    Icons.fitness_center,
-                    color: exercise.primaryMuscle.color,
-                  ),
-                ),
-                title: Text(
-                  exercise.name,
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: AppColors.darkText,
-                  ),
-                ),
-                subtitle: Text(
-                  exercise.primaryMuscle.label,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.darkTextSecondary,
-                  ),
-                ),
-                onTap: () => widget.onSelect(exercise),
+                );
+              }
+              return ListView.builder(
+                controller: widget.scrollController,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: exercises.length,
+                itemBuilder: (context, index) {
+                  final exercise = exercises[index];
+                  return ListTile(
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: exercise.primaryMuscle.color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                      ),
+                      child: Icon(
+                        Icons.fitness_center,
+                        color: exercise.primaryMuscle.color,
+                      ),
+                    ),
+                    title: Text(
+                      exercise.name,
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: AppColors.darkText,
+                      ),
+                    ),
+                    subtitle: Text(
+                      exercise.primaryMuscle.label,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.darkTextSecondary,
+                      ),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(
+                        Icons.info_outline,
+                        color: AppColors.darkTextSecondary,
+                      ),
+                      onPressed: () {
+                        // 상세 화면으로 이동
+                        context.push('/exercise/${exercise.id}');
+                      },
+                      tooltip: '상세 정보',
+                    ),
+                    onTap: () {
+                      // 필터 초기화
+                      ref.read(exerciseFilterStateProvider.notifier).clearFilters();
+                      widget.onSelect(exercise);
+                    },
+                  );
+                },
               );
             },
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.primary500),
+            ),
+            error: (error, _) => Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    '운동 목록을 불러오는데 실패했습니다',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.darkTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -1030,6 +1038,283 @@ class _FilterChip extends StatelessWidget {
         checkmarkColor: Colors.white,
         side: BorderSide(
           color: isSelected ? Colors.transparent : (color?.withValues(alpha: 0.3) ?? AppColors.darkBorder),
+        ),
+      ),
+    );
+  }
+}
+
+/// 운동 가이드 카드 (펼치기/접기 기능)
+class _ExerciseGuideCard extends StatefulWidget {
+  final ExerciseModel exercise;
+  final WorkoutSessionModel session;
+  final VoidCallback? onChangeExercise;
+  final dynamic routineExercise;
+
+  const _ExerciseGuideCard({
+    required this.exercise,
+    required this.session,
+    this.onChangeExercise,
+    this.routineExercise,
+  });
+
+  @override
+  State<_ExerciseGuideCard> createState() => _ExerciseGuideCardState();
+}
+
+class _ExerciseGuideCardState extends State<_ExerciseGuideCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.darkCard,
+        border: Border(
+          bottom: BorderSide(color: AppColors.darkBorder, width: 1),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 헤더 (항상 표시)
+          _buildHeader(),
+
+          // 상세 정보 (펼쳐진 상태)
+          if (_isExpanded) _buildExpandedContent(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    final exercise = widget.exercise;
+
+    return InkWell(
+      onTap: () => setState(() => _isExpanded = !_isExpanded),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Row(
+          children: [
+            // 운동 아이콘
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: exercise.primaryMuscle.color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Icon(
+                Icons.fitness_center,
+                color: exercise.primaryMuscle.color,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+
+            // 운동 이름 + 근육
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    exercise.name,
+                    style: AppTypography.h4.copyWith(color: AppColors.darkText),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Row(
+                    children: [
+                      _buildMuscleTag(exercise.primaryMuscle.label, exercise.primaryMuscle.color),
+                      if (exercise.secondaryMuscles.isNotEmpty) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        ...exercise.secondaryMuscles.take(2).map((m) => Padding(
+                          padding: const EdgeInsets.only(right: AppSpacing.xs),
+                          child: _buildMuscleTag(m.label, m.color),
+                        )),
+                      ],
+                    ],
+                  ),
+                  // 프리셋 모드 목표
+                  if (widget.routineExercise != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '목표: ${widget.routineExercise.setsRepsText}',
+                      style: AppTypography.bodySmall.copyWith(color: AppColors.primary500),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // 버튼들
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 펼치기/접기 버튼
+                IconButton(
+                  icon: Icon(
+                    _isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: AppColors.darkTextSecondary,
+                  ),
+                  onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                  tooltip: _isExpanded ? '접기' : '운동 가이드 보기',
+                ),
+                // 운동 변경 버튼
+                if (widget.onChangeExercise != null)
+                  IconButton(
+                    icon: const Icon(Icons.swap_horiz),
+                    onPressed: widget.onChangeExercise,
+                    color: AppColors.darkTextSecondary,
+                    tooltip: '운동 변경',
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandedContent() {
+    final exercise = widget.exercise;
+
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 300),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(color: AppColors.darkBorder),
+            const SizedBox(height: AppSpacing.md),
+
+            // 운동 방법 (instructions)
+            if (exercise.instructions.isNotEmpty) ...[
+              _buildSectionTitle('운동 방법', Icons.format_list_numbered),
+              const SizedBox(height: AppSpacing.sm),
+              ...exercise.instructions.asMap().entries.map((entry) {
+                final index = entry.key;
+                final instruction = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary500.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.primary500,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          instruction,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.darkText,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: AppSpacing.md),
+            ],
+
+            // 팁 (tips)
+            if (exercise.tips.isNotEmpty) ...[
+              _buildSectionTitle('팁', Icons.lightbulb_outline),
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary500.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  border: Border.all(
+                    color: AppColors.secondary500.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: exercise.tips.map((tip) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline,
+                            size: 16,
+                            color: AppColors.secondary500,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: Text(
+                              tip,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.darkText,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary500),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          title,
+          style: AppTypography.labelLarge.copyWith(color: AppColors.darkText),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMuscleTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.labelSmall.copyWith(
+          color: color,
+          fontSize: 11,
         ),
       ),
     );

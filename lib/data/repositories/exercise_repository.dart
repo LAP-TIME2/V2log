@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/exercise_model.dart';
@@ -33,7 +32,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('운동 목록을 불러오는데 실패했습니다: $e');
+      print('=== 운동 목록을 불러오는데 실패했습니다: $e ===');
       rethrow;
     }
   }
@@ -49,7 +48,7 @@ class ExerciseRepository {
 
       return ExerciseModel.fromJson(response);
     } catch (e) {
-      debugPrint('운동 정보를 불러오는데 실패했습니다: $e');
+      print('=== 운동 정보를 불러오는데 실패했습니다: $e ===');
       return null;
     }
   }
@@ -67,7 +66,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('근육 부위별 운동 목록을 불러오는데 실패했습니다: $e');
+      print('=== 근육 부위별 운동 목록을 불러오는데 실패했습니다: $e ===');
       rethrow;
     }
   }
@@ -85,7 +84,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('카테고리별 운동 목록을 불러오는데 실패했습니다: $e');
+      print('=== 카테고리별 운동 목록을 불러오는데 실패했습니다: $e ===');
       rethrow;
     }
   }
@@ -103,7 +102,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('난이도별 운동 목록을 불러오는데 실패했습니다: $e');
+      print('=== 난이도별 운동 목록을 불러오는데 실패했습니다: $e ===');
       rethrow;
     }
   }
@@ -121,7 +120,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('장비별 운동 목록을 불러오는데 실패했습니다: $e');
+      print('=== 장비별 운동 목록을 불러오는데 실패했습니다: $e ===');
       rethrow;
     }
   }
@@ -139,7 +138,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('운동 검색에 실패했습니다: $e');
+      print('=== 운동 검색에 실패했습니다: $e ===');
       rethrow;
     }
   }
@@ -158,7 +157,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('운동 목록을 불러오는데 실패했습니다: $e');
+      print('=== 운동 목록을 불러오는데 실패했습니다: $e ===');
       rethrow;
     }
   }
@@ -200,7 +199,7 @@ class ExerciseRepository {
           .map((e) => ExerciseModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('필터링된 운동 목록을 불러오는데 실패했습니다: $e');
+      print('=== 필터링된 운동 목록을 불러오는데 실패했습니다: $e ===');
       rethrow;
     }
   }

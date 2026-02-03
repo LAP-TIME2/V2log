@@ -25,7 +25,7 @@ final isLoggedInProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsLoggedInRef = AutoDisposeProviderRef<bool>;
-String _$currentUserIdHash() => r'7bc8e1edf9d3a734c48133543814ab145801278a';
+String _$currentUserIdHash() => r'30fe78b30a581c4b94a7fc31b991eae4aef08daa';
 
 /// 현재 사용자 ID Provider
 ///
@@ -44,7 +44,7 @@ final currentUserIdProvider = AutoDisposeProvider<String?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentUserIdRef = AutoDisposeProviderRef<String?>;
-String _$authHash() => r'3088e4657dde3623fb7c39cb53e8c1983e337975';
+String _$authHash() => r'd53c52b13b44afb32427be750ba1bc8dec83c304';
 
 /// 현재 인증 상태 Provider
 ///

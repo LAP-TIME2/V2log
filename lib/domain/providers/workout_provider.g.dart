@@ -395,7 +395,7 @@ final recentWorkoutsProvider =
 // ignore: unused_element
 typedef RecentWorkoutsRef =
     AutoDisposeFutureProviderRef<List<WorkoutSessionModel>>;
-String _$workoutHistoryHash() => r'f8e5ef1d549757825420d3905172c9a77011f336';
+String _$workoutHistoryHash() => r'00831635c9d3363fd02e83fa00702f562c78a55b';
 
 /// 운동 기록 히스토리 Provider (월별 그룹화)
 ///
@@ -706,7 +706,7 @@ final exerciseNamesMapProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ExerciseNamesMapRef = AutoDisposeFutureProviderRef<Map<String, String>>;
-String _$activeWorkoutHash() => r'335518839880636c2d35f47dbcb6863018adeda3';
+String _$activeWorkoutHash() => r'c35db5e382ad1e516670c80efc78523baffadf1c';
 
 /// 활성 운동 세션 Provider
 ///

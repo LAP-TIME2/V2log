@@ -6,7 +6,7 @@ part of 'exercise_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$exercisesHash() => r'6b31cc3551025ba4584ec9ef8e09affd990faa33';
+String _$exercisesHash() => r'12c3dc7f645f92406e1c5f8dd5b752c6c6c4cb26';
 
 /// 모든 운동 목록 Provider
 ///
@@ -26,7 +26,7 @@ final exercisesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ExercisesRef = AutoDisposeFutureProviderRef<List<ExerciseModel>>;
-String _$exercisesByMuscleHash() => r'8c23095334428de45e72e07c5920ffa1ba991c40';
+String _$exercisesByMuscleHash() => r'71d7b11609a0aec8d17d3e04c23e7ea3c76f41d0';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -183,7 +183,7 @@ class _ExercisesByMuscleProviderElement
 }
 
 String _$exercisesByCategoryHash() =>
-    r'02cdfd808fdde807443a547d9d639138562de1a9';
+    r'9fa09e13fd7037dc964821fd398ed99410ba96eb';
 
 /// 카테고리별 운동 목록 Provider
 ///
@@ -321,7 +321,7 @@ class _ExercisesByCategoryProviderElement
 }
 
 String _$exercisesByDifficultyHash() =>
-    r'f191ffb8848f834b6c62d517e23d25acaa54ffc6';
+    r'0bfa31e6890ee9d6bc4e77d725b38b37dd2e7e3f';
 
 /// 난이도별 운동 목록 Provider
 ///
@@ -460,7 +460,7 @@ class _ExercisesByDifficultyProviderElement
       (origin as ExercisesByDifficultyProvider).difficulty;
 }
 
-String _$exerciseDetailHash() => r'df38708077f8ae39aa3aa10465966f6dab3bbbc0';
+String _$exerciseDetailHash() => r'7611c465630a84f44df5d4e763f65280ce6a9827';
 
 /// 운동 상세 Provider
 ///
@@ -592,7 +592,7 @@ class _ExerciseDetailProviderElement
   String get exerciseId => (origin as ExerciseDetailProvider).exerciseId;
 }
 
-String _$searchExercisesHash() => r'28b6e153582340db30848b1e17f17f9f4bff1e79';
+String _$searchExercisesHash() => r'ac6c8e6d0fac6e033fccf2e3a57b4c7fe9779d66';
 
 /// 운동 검색 Provider
 ///
@@ -725,7 +725,7 @@ class _SearchExercisesProviderElement
   String get query => (origin as SearchExercisesProvider).query;
 }
 
-String _$filteredExercisesHash() => r'c6c8c2cf301f76ef45ec93e3dc9bf5fe9de03a5e';
+String _$filteredExercisesHash() => r'543726890372628e5e50c7f67164e0179f995b1e';
 
 /// 필터링된 운동 목록 Provider
 ///

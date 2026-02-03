@@ -10,6 +10,7 @@ import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/routine/routine_library_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/screens/stats/stats_screen.dart';
+import '../../presentation/screens/exercise/exercise_detail_screen.dart';
 import '../../presentation/screens/workout/workout_screen.dart';
 
 /// V2log 앱 라우터
@@ -182,7 +183,7 @@ class AppRouter {
         name: 'exercise-detail',
         builder: (context, state) {
           final exerciseId = state.pathParameters['exerciseId']!;
-          return _PlaceholderScreen(title: '운동: $exerciseId');
+          return ExerciseDetailScreen(exerciseId: exerciseId);
         },
       ),
     ],

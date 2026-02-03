@@ -25,7 +25,7 @@ final currentUserProvider = AutoDisposeProvider<UserModel?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentUserRef = AutoDisposeProviderRef<UserModel?>;
-String _$userStatsHash() => r'cc1e78a91928136bc0aa8b48c4f16b3a71442ef9';
+String _$userStatsHash() => r'b157ba20ea2e96745971180640e451a30ffc4bf6';
 
 /// 사용자 통계 Provider
 ///
@@ -44,7 +44,7 @@ final userStatsProvider = AutoDisposeFutureProvider<UserStats>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserStatsRef = AutoDisposeFutureProviderRef<UserStats>;
-String _$weeklyStatsHash() => r'42a5d27d3f86ffd06b2f7318607b1c92bc67925b';
+String _$weeklyStatsHash() => r'fb84d8bc3f219669085fce790721217ff42a7f84';
 
 /// 이번 주 통계 Provider
 ///

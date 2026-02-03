@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -37,24 +36,29 @@ class Auth extends _$Auth {
 
   void _onAuthStateChange(AuthState authState) {
     final event = authState.event;
+    print('=== _onAuthStateChange: event=$event, hasValue=${state.valueOrNull != null} ===');
 
     switch (event) {
+      case AuthChangeEvent.signedOut:
+        // 로그아웃 시에만 상태 초기화
+        state = const AsyncData(null);
+        break;
       case AuthChangeEvent.signedIn:
       case AuthChangeEvent.tokenRefreshed:
       case AuthChangeEvent.userUpdated:
-        ref.invalidateSelf();
-        break;
-      case AuthChangeEvent.signedOut:
-        state = const AsyncData(null);
+      case AuthChangeEvent.initialSession:
+        // 이미 프로필이 로드되어 있으면 무시 (무한 루프 방지)
+        // build()에서 이미 프로필을 로드하므로 여기서는 처리하지 않음
         break;
       default:
         break;
     }
   }
 
-  /// 사용자 프로필 조회
+  /// 사용자 프로필 조회 (없으면 자동 생성)
   Future<UserModel?> _fetchUserProfile(String userId) async {
     try {
+      print('=== _fetchUserProfile 시작: userId=$userId ===');
       final supabase = ref.read(supabaseServiceProvider);
       final response = await supabase
           .from(SupabaseTables.users)
@@ -62,9 +66,57 @@ class Auth extends _$Auth {
           .eq('id', userId)
           .maybeSingle();
 
-      if (response == null) return null;
-      return UserModel.fromJson(response);
+      print('=== _fetchUserProfile 응답: $response ===');
+      if (response == null) {
+        print('=== _fetchUserProfile: users 테이블에 레코드 없음, 자동 생성 시도 ===');
+
+        // Supabase Auth에서 현재 사용자 정보 가져오기
+        final authUser = supabase.currentUser;
+        if (authUser == null) {
+          print('=== _fetchUserProfile: Auth 사용자도 없음 ===');
+          return null;
+        }
+
+        // users 테이블에 레코드 생성
+        final now = DateTime.now().toIso8601String();
+        final email = authUser.email ?? '';
+        final nickname = authUser.userMetadata?['nickname'] as String? ??
+                        authUser.userMetadata?['name'] as String? ??
+                        email.split('@').first;
+
+        await supabase.from(SupabaseTables.users).insert({
+          'id': userId,
+          'email': email,
+          'nickname': nickname,
+          'fitness_goal': 'HYPERTROPHY',
+          'preferred_mode': 'HYBRID',
+          'experience_level': 'BEGINNER',
+          'created_at': now,
+          'updated_at': now,
+        });
+        print('=== _fetchUserProfile: users 레코드 자동 생성 완료 (nickname=$nickname) ===');
+
+        // 다시 조회
+        final newResponse = await supabase
+            .from(SupabaseTables.users)
+            .select()
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (newResponse == null) {
+          print('=== _fetchUserProfile: 자동 생성 후에도 조회 실패 ===');
+          return null;
+        }
+
+        final user = UserModel.fromJson(newResponse);
+        print('=== _fetchUserProfile 자동 생성 후 성공: nickname=${user.nickname} ===');
+        return user;
+      }
+      final user = UserModel.fromJson(response);
+      print('=== _fetchUserProfile 성공: nickname=${user.nickname}, email=${user.email} ===');
+      return user;
     } catch (e) {
+      print('=== _fetchUserProfile 에러: $e ===');
       return null;
     }
   }
@@ -129,6 +181,7 @@ class Auth extends _$Auth {
           'created_at': now,
           'updated_at': now,
         });
+        print('=== users INSERT 성공: ${response.user!.id} ===');
       } catch (e) {
         // INSERT 실패 시 로그만 남기고 계속 진행
         print('=== users INSERT 실패: $e ===');
