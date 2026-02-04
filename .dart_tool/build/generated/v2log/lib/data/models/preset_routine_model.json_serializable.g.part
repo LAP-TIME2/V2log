@@ -1,0 +1,120 @@
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$PresetRoutineModelImpl _$$PresetRoutineModelImplFromJson(
+  Map<String, dynamic> json,
+) => _$PresetRoutineModelImpl(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  nameEn: json['name_en'] as String?,
+  description: json['description'] as String?,
+  difficulty: $enumDecode(_$ExperienceLevelEnumMap, json['difficulty']),
+  targetGoal: $enumDecode(_$FitnessGoalEnumMap, json['target_goal']),
+  daysPerWeek: (json['days_per_week'] as num).toInt(),
+  estimatedDurationMinutes: (json['estimated_duration_minutes'] as num?)
+      ?.toInt(),
+  targetMuscles:
+      (json['target_muscles'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  equipmentRequired:
+      (json['equipment_required'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  thumbnailUrl: json['thumbnail_url'] as String?,
+  popularityScore: (json['popularity_score'] as num?)?.toInt() ?? 0,
+  isFeatured: json['is_featured'] as bool? ?? false,
+  isActive: json['is_active'] as bool? ?? true,
+  createdBy: json['created_by'] as String?,
+  createdAt: json['created_at'] == null
+      ? null
+      : DateTime.parse(json['created_at'] as String),
+  updatedAt: json['updated_at'] == null
+      ? null
+      : DateTime.parse(json['updated_at'] as String),
+  exercises:
+      (json['exercises'] as List<dynamic>?)
+          ?.map(
+            (e) =>
+                PresetRoutineExerciseModel.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$$PresetRoutineModelImplToJson(
+  _$PresetRoutineModelImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'name_en': instance.nameEn,
+  'description': instance.description,
+  'difficulty': _$ExperienceLevelEnumMap[instance.difficulty]!,
+  'target_goal': _$FitnessGoalEnumMap[instance.targetGoal]!,
+  'days_per_week': instance.daysPerWeek,
+  'estimated_duration_minutes': instance.estimatedDurationMinutes,
+  'target_muscles': instance.targetMuscles,
+  'equipment_required': instance.equipmentRequired,
+  'thumbnail_url': instance.thumbnailUrl,
+  'popularity_score': instance.popularityScore,
+  'is_featured': instance.isFeatured,
+  'is_active': instance.isActive,
+  'created_by': instance.createdBy,
+  'created_at': instance.createdAt?.toIso8601String(),
+  'updated_at': instance.updatedAt?.toIso8601String(),
+  'exercises': instance.exercises.map((e) => e.toJson()).toList(),
+};
+
+const _$ExperienceLevelEnumMap = {
+  ExperienceLevel.beginner: 'BEGINNER',
+  ExperienceLevel.intermediate: 'INTERMEDIATE',
+  ExperienceLevel.advanced: 'ADVANCED',
+};
+
+const _$FitnessGoalEnumMap = {
+  FitnessGoal.strength: 'STRENGTH',
+  FitnessGoal.hypertrophy: 'HYPERTROPHY',
+  FitnessGoal.endurance: 'ENDURANCE',
+  FitnessGoal.weightLoss: 'WEIGHT_LOSS',
+};
+
+_$PresetRoutineExerciseModelImpl _$$PresetRoutineExerciseModelImplFromJson(
+  Map<String, dynamic> json,
+) => _$PresetRoutineExerciseModelImpl(
+  id: json['id'] as String,
+  presetRoutineId: json['preset_routine_id'] as String,
+  exerciseId: json['exercise_id'] as String,
+  dayNumber: (json['day_number'] as num).toInt(),
+  dayName: json['day_name'] as String?,
+  orderIndex: (json['order_index'] as num).toInt(),
+  targetSets: (json['target_sets'] as num?)?.toInt() ?? 3,
+  targetReps: json['target_reps'] as String? ?? '10-12',
+  restSeconds: (json['rest_seconds'] as num?)?.toInt() ?? 90,
+  notes: json['notes'] as String?,
+  createdAt: json['created_at'] == null
+      ? null
+      : DateTime.parse(json['created_at'] as String),
+  exercise: json['exercise'] == null
+      ? null
+      : ExerciseModel.fromJson(json['exercise'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$$PresetRoutineExerciseModelImplToJson(
+  _$PresetRoutineExerciseModelImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'preset_routine_id': instance.presetRoutineId,
+  'exercise_id': instance.exerciseId,
+  'day_number': instance.dayNumber,
+  'day_name': instance.dayName,
+  'order_index': instance.orderIndex,
+  'target_sets': instance.targetSets,
+  'target_reps': instance.targetReps,
+  'rest_seconds': instance.restSeconds,
+  'notes': instance.notes,
+  'created_at': instance.createdAt?.toIso8601String(),
+  'exercise': instance.exercise?.toJson(),
+};

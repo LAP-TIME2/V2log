@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/user_model.dart';
+import '../../data/models/exercise_model.dart';
 import '../../data/services/supabase_service.dart';
 import 'auth_provider.dart';
 
@@ -275,4 +276,381 @@ class WeeklyStats {
     required this.totalDuration,
     required this.workoutDates,
   });
+}
+
+/// 일별 볼륨 데이터 모델
+class DailyVolume {
+  final DateTime date;
+  final double volume;
+
+  const DailyVolume({
+    required this.date,
+    required this.volume,
+  });
+}
+
+/// 일별 볼륨 Provider (최근 7일)
+@riverpod
+Future<List<DailyVolume>> dailyVolumes(DailyVolumesRef ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 데이터 반환
+  if (userId == null) {
+    return const [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    // 최근 7일 시작일 계산
+    final now = DateTime.now();
+    final sevenDaysAgo = DateTime(now.year, now.month, now.day - 6);
+
+    print('=== dailyVolumes 조회: userId=$userId, 기간=${sevenDaysAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('id, total_volume, started_at')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', sevenDaysAgo.toIso8601String());
+
+    final sessions = response as List;
+    print('=== dailyVolumes 결과: ${sessions.length}건 ===');
+
+    // 날짜별 볼륨 집계
+    final Map<DateTime, double> volumeByDate = {};
+    for (int i = 0; i < 7; i++) {
+      final date = DateTime(now.year, now.month, now.day - i);
+      volumeByDate[date] = 0.0;
+    }
+
+    for (final session in sessions) {
+      final startedAt = DateTime.parse(session['started_at'] as String);
+      final date = DateTime(startedAt.year, startedAt.month, startedAt.day);
+      final volume = (session['total_volume'] as num? ?? 0).toDouble();
+      volumeByDate[date] = (volumeByDate[date] ?? 0) + volume;
+    }
+
+    // 최근 7일 데이터 정렬
+    final result = volumeByDate.entries
+        .map((e) => DailyVolume(date: e.key, volume: e.value))
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    return result;
+  } catch (e) {
+    print('=== dailyVolumes 조회 실패: $e ===');
+    return const [];
+  }
+}
+
+/// 월별 볼륨 데이터 모델
+class MonthlyVolume {
+  final String monthLabel; // e.g., "12월", "1월", "2월"
+  final double volume;
+
+  const MonthlyVolume({
+    required this.monthLabel,
+    required this.volume,
+  });
+}
+
+/// 월간 볼륨 Provider (최근 3개월)
+@riverpod
+Future<List<MonthlyVolume>> monthlyVolumes(MonthlyVolumesRef ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 데이터 반환
+  if (userId == null) {
+    return const [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    // 최근 3개월 시작일 계산 (현재월 포함)
+    final now = DateTime.now();
+    final threeMonthsAgo = DateTime(now.year, now.month - 2, 1);
+
+    print('=== monthlyVolumes 조회: userId=$userId, 기간=${threeMonthsAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('id, total_volume, started_at')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', threeMonthsAgo.toIso8601String());
+
+    final sessions = response as List;
+    print('=== monthlyVolumes 결과: ${sessions.length}건 ===');
+
+    // 월별 볼륨 집계
+    final Map<String, double> volumeByMonth = {};
+
+    // 최근 3개월 (이번 달, 지난달, 지난지난달)
+    for (int i = 0; i < 3; i++) {
+      final month = DateTime(now.year, now.month - i, 1);
+      final monthLabel = '${month.month}월';
+      volumeByMonth[monthLabel] = 0.0;
+    }
+
+    for (final session in sessions) {
+      final startedAt = DateTime.parse(session['started_at'] as String);
+      final month = DateTime(startedAt.year, startedAt.month, 1);
+      final monthLabel = '${month.month}월';
+      final volume = (session['total_volume'] as num? ?? 0).toDouble();
+
+      if (volumeByMonth.containsKey(monthLabel)) {
+        volumeByMonth[monthLabel] = (volumeByMonth[monthLabel] ?? 0) + volume;
+      }
+    }
+
+    // 월별 순서 정렬 (오래순: 12월, 1월, 2월)
+    final sortedMonths = volumeByMonth.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    final result = sortedMonths
+        .map((e) => MonthlyVolume(monthLabel: e.key, volume: e.value))
+        .toList();
+
+    return result;
+  } catch (e) {
+    print('=== monthlyVolumes 조회 실패: $e ===');
+    return const [];
+  }
+}
+
+/// 부위별 일별 볼륨 데이터 모델
+class MuscleDailyVolume {
+  final DateTime date;
+  final Map<MuscleGroup, double> volumeByMuscle;
+
+  const MuscleDailyVolume({
+    required this.date,
+    required this.volumeByMuscle,
+  });
+}
+
+/// 부위별 일별 볼륨 Provider (최근 7일)
+/// workout_sets와 exercises를 JOIN해서 primary_muscle로 부위 구분
+@riverpod
+Future<List<MuscleDailyVolume>> muscleDailyVolumes(MuscleDailyVolumesRef ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 데이터 반환
+  if (userId == null) {
+    return const [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    // 최근 7일 시작일 계산
+    final now = DateTime.now();
+    final sevenDaysAgo = DateTime(now.year, now.month, now.day - 6);
+
+    print('=== muscleDailyVolumes 조회: userId=$userId, 기간=${sevenDaysAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    // workout_sessions + workout_sets + exercises JOIN
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          id,
+          started_at,
+          workout_sets (
+            weight,
+            reps,
+            exercises (
+              primary_muscle
+            )
+          )
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', sevenDaysAgo.toIso8601String())
+        .order('started_at');
+
+    final sessions = response as List;
+    print('=== muscleDailyVolumes 결과: ${sessions.length}건 ===');
+
+    // 날짜별 부위별 볼륨 집계
+    final Map<DateTime, Map<MuscleGroup, double>> volumeByDateAndMuscle = {};
+
+    // 최근 7일 빈 데이터 생성
+    for (int i = 0; i < 7; i++) {
+      final date = DateTime(now.year, now.month, now.day - i);
+      volumeByDateAndMuscle[date] = {
+        MuscleGroup.chest: 0.0,
+        MuscleGroup.back: 0.0,
+        MuscleGroup.shoulders: 0.0,
+        MuscleGroup.quadriceps: 0.0,
+        MuscleGroup.biceps: 0.0,
+        MuscleGroup.triceps: 0.0,
+        MuscleGroup.core: 0.0,
+      };
+    }
+
+    // 세트 데이터 집계
+    for (final session in sessions) {
+      final startedAt = DateTime.parse(session['started_at'] as String);
+      final date = DateTime(startedAt.year, startedAt.month, startedAt.day);
+      final sets = session['workout_sets'] as List? ?? [];
+
+      for (final set in sets) {
+        final weight = (set['weight'] as num?)?.toDouble() ?? 0.0;
+        final reps = (set['reps'] as num?)?.toInt() ?? 0;
+        final exercise = set['exercises'] as Map?;
+        final primaryMuscleStr = exercise?['primary_muscle'] as String?;
+
+        if (primaryMuscleStr != null) {
+          final muscle = MuscleGroup.values.firstWhere(
+            (m) => m.value == primaryMuscleStr,
+            orElse: () => MuscleGroup.fullBody,
+          );
+
+          // 볼륨 계산 (무게 x 반복)
+          final volume = weight * reps;
+          volumeByDateAndMuscle[date]?[muscle] =
+              (volumeByDateAndMuscle[date]?[muscle] ?? 0.0) + volume;
+        }
+      }
+    }
+
+    // 결과 변환 및 정렬
+    final result = volumeByDateAndMuscle.entries
+        .map((e) => MuscleDailyVolume(
+              date: e.key,
+              volumeByMuscle: e.value,
+            ))
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    return result;
+  } catch (e) {
+    print('=== muscleDailyVolumes 조회 실패: $e ===');
+    return const [];
+  }
+}
+
+/// 부위별 월별 볼륨 데이터 모델
+class MuscleMonthlyVolume {
+  final String monthLabel;
+  final Map<MuscleGroup, double> volumeByMuscle;
+
+  const MuscleMonthlyVolume({
+    required this.monthLabel,
+    required this.volumeByMuscle,
+  });
+}
+
+/// 부위별 월간 볼륨 Provider (최근 3개월)
+@riverpod
+Future<List<MuscleMonthlyVolume>> muscleMonthlyVolumes(MuscleMonthlyVolumesRef ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 데이터 반환
+  if (userId == null) {
+    return const [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    // 최근 3개월 시작일 계산
+    final now = DateTime.now();
+    final threeMonthsAgo = DateTime(now.year, now.month - 2, 1);
+
+    print('=== muscleMonthlyVolumes 조회: userId=$userId, 기간=${threeMonthsAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    // workout_sessions + workout_sets + exercises JOIN
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          id,
+          started_at,
+          workout_sets (
+            weight,
+            reps,
+            exercises (
+              primary_muscle
+            )
+          )
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', threeMonthsAgo.toIso8601String())
+        .order('started_at');
+
+    final sessions = response as List;
+    print('=== muscleMonthlyVolumes 결과: ${sessions.length}건 ===');
+
+    // 월별 부위별 볼륨 집계
+    final Map<String, Map<MuscleGroup, double>> volumeByMonthAndMuscle = {};
+
+    // 최근 3개월 빈 데이터 생성
+    for (int i = 0; i < 3; i++) {
+      final month = DateTime(now.year, now.month - i, 1);
+      final monthLabel = '${month.month}월';
+      volumeByMonthAndMuscle[monthLabel] = {
+        MuscleGroup.chest: 0.0,
+        MuscleGroup.back: 0.0,
+        MuscleGroup.shoulders: 0.0,
+        MuscleGroup.quadriceps: 0.0,
+        MuscleGroup.biceps: 0.0,
+        MuscleGroup.triceps: 0.0,
+        MuscleGroup.core: 0.0,
+      };
+    }
+
+    // 세트 데이터 집계
+    for (final session in sessions) {
+      final startedAt = DateTime.parse(session['started_at'] as String);
+      final month = DateTime(startedAt.year, startedAt.month, 1);
+      final monthLabel = '${month.month}월';
+      final sets = session['workout_sets'] as List? ?? [];
+
+      for (final set in sets) {
+        final weight = (set['weight'] as num?)?.toDouble() ?? 0.0;
+        final reps = (set['reps'] as num?)?.toInt() ?? 0;
+        final exercise = set['exercises'] as Map?;
+        final primaryMuscleStr = exercise?['primary_muscle'] as String?;
+
+        if (primaryMuscleStr != null) {
+          final muscle = MuscleGroup.values.firstWhere(
+            (m) => m.value == primaryMuscleStr,
+            orElse: () => MuscleGroup.fullBody,
+          );
+
+          // 볼륨 계산 (무게 x 반복)
+          final volume = weight * reps;
+
+          if (volumeByMonthAndMuscle.containsKey(monthLabel)) {
+            volumeByMonthAndMuscle[monthLabel]?[muscle] =
+                (volumeByMonthAndMuscle[monthLabel]?[muscle] ?? 0.0) + volume;
+          }
+        }
+      }
+    }
+
+    // 결과 변환 및 정렬
+    final sortedMonths = volumeByMonthAndMuscle.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    final result = sortedMonths
+        .map((e) => MuscleMonthlyVolume(
+              monthLabel: e.key,
+              volumeByMuscle: e.value,
+            ))
+        .toList();
+
+    return result;
+  } catch (e) {
+    print('=== muscleMonthlyVolumes 조회 실패: $e ===');
+    return const [];
+  }
 }

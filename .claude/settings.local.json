@@ -20,5 +20,20 @@
       "Bash(git push)",
       "Bash(git reset:*)"
     ]
+  },
+  "mcpServers": {
+    "supabase": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase@latest"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://eqmlpiritytxtyxofgol.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxbWxwcmlydHl0eHR5eG9mZ29sIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTU4MTQyMiwiZXhwIjoyMDg1MTU3NDIyfQ.Xz_jy2XR-ywTgpF-14xnYVtZiLHpjGFwruUaYRi3fiI"
+      }
+    }
   }
 }

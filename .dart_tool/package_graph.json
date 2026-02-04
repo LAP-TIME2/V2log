@@ -11,6 +11,7 @@
         "cupertino_icons",
         "fl_chart",
         "flutter",
+        "flutter_dotenv",
         "flutter_localizations",
         "flutter_riverpod",
         "flutter_svg",
@@ -151,6 +152,13 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "flutter_dotenv",
+      "version": "6.0.0",
+      "dependencies": [
+        "flutter"
       ]
     },
     {

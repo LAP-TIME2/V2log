@@ -7,28 +7,28 @@ _$UserModelImpl _$$UserModelImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       email: json['email'] as String,
       nickname: json['nickname'] as String,
-      profileImageUrl: json['profileImageUrl'] as String?,
+      profileImageUrl: json['profile_image_url'] as String?,
       gender: $enumDecodeNullable(_$GenderEnumMap, json['gender']),
-      birthDate: json['birthDate'] == null
+      birthDate: json['birth_date'] == null
           ? null
-          : DateTime.parse(json['birthDate'] as String),
+          : DateTime.parse(json['birth_date'] as String),
       height: (json['height'] as num?)?.toDouble(),
       weight: (json['weight'] as num?)?.toDouble(),
       experienceLevel:
           $enumDecodeNullable(
             _$ExperienceLevelEnumMap,
-            json['experienceLevel'],
+            json['experience_level'],
           ) ??
           ExperienceLevel.beginner,
       fitnessGoal:
-          $enumDecodeNullable(_$FitnessGoalEnumMap, json['fitnessGoal']) ??
+          $enumDecodeNullable(_$FitnessGoalEnumMap, json['fitness_goal']) ??
           FitnessGoal.hypertrophy,
       preferredMode:
-          $enumDecodeNullable(_$PreferredModeEnumMap, json['preferredMode']) ??
+          $enumDecodeNullable(_$PreferredModeEnumMap, json['preferred_mode']) ??
           PreferredMode.hybrid,
-      gymId: json['gymId'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      gymId: json['gym_id'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$$UserModelImplToJson(_$UserModelImpl instance) =>
@@ -36,17 +36,17 @@ Map<String, dynamic> _$$UserModelImplToJson(_$UserModelImpl instance) =>
       'id': instance.id,
       'email': instance.email,
       'nickname': instance.nickname,
-      'profileImageUrl': instance.profileImageUrl,
+      'profile_image_url': instance.profileImageUrl,
       'gender': _$GenderEnumMap[instance.gender],
-      'birthDate': instance.birthDate?.toIso8601String(),
+      'birth_date': instance.birthDate?.toIso8601String(),
       'height': instance.height,
       'weight': instance.weight,
-      'experienceLevel': _$ExperienceLevelEnumMap[instance.experienceLevel]!,
-      'fitnessGoal': _$FitnessGoalEnumMap[instance.fitnessGoal]!,
-      'preferredMode': _$PreferredModeEnumMap[instance.preferredMode]!,
-      'gymId': instance.gymId,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt.toIso8601String(),
+      'experience_level': _$ExperienceLevelEnumMap[instance.experienceLevel]!,
+      'fitness_goal': _$FitnessGoalEnumMap[instance.fitnessGoal]!,
+      'preferred_mode': _$PreferredModeEnumMap[instance.preferredMode]!,
+      'gym_id': instance.gymId,
+      'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt.toIso8601String(),
     };
 
 const _$GenderEnumMap = {
@@ -69,7 +69,7 @@ const _$FitnessGoalEnumMap = {
 };
 
 const _$PreferredModeEnumMap = {
-  PreferredMode.ai: 'AI',
+  PreferredMode.preset: 'PRESET',
   PreferredMode.free: 'FREE',
   PreferredMode.hybrid: 'HYBRID',
 };
