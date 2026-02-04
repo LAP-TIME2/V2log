@@ -654,3 +654,113 @@ Future<List<MuscleMonthlyVolume>> muscleMonthlyVolumes(MuscleMonthlyVolumesRef r
     return const [];
   }
 }
+
+/// 1RM 추이 데이터 모델
+class Exercise1RMRecord {
+  final DateTime date;
+  final double estimated1RM;
+
+  const Exercise1RMRecord({
+    required this.date,
+    required this.estimated1RM,
+  });
+}
+
+/// 운동별 1RM 추이 Provider (최근 6개월, 월간)
+@riverpod
+Future<List<Exercise1RMRecord>> exercise1RMHistory(
+  Exercise1RMHistoryRef ref,
+  String exerciseName,
+) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 데이터 반환
+  if (userId == null) {
+    return const [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    // 최근 6개월 시작일 계산
+    final now = DateTime.now();
+    final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+
+    print('=== exercise1RMHistory 조회: userId=$userId, exercise=$exerciseName, 기간=${sixMonthsAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    // workout_sessions + workout_sets + exercises JOIN
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          id,
+          started_at,
+          workout_sets (
+            weight,
+            reps,
+            exercises (
+              name
+            )
+          )
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', sixMonthsAgo.toIso8601String())
+        .order('started_at');
+
+    final sessions = response as List;
+    print('=== exercise1RMHistory 결과: ${sessions.length}건 ===');
+
+    // 월별 최대 1RM 추적
+    final Map<DateTime, double> max1RMByMonth = {};
+
+    // 최근 6개월 빈 데이터 생성
+    for (int i = 0; i < 6; i++) {
+      final month = DateTime(now.year, now.month - i, 1);
+      max1RMByMonth[month] = 0.0;
+    }
+
+    for (final session in sessions) {
+      final startedAt = DateTime.parse(session['started_at'] as String);
+      final month = DateTime(startedAt.year, startedAt.month, 1);
+      final sets = session['workout_sets'] as List? ?? [];
+
+      for (final set in sets) {
+        final exercise = set['exercises'] as Map?;
+        final name = exercise?['name'] as String?;
+
+        // 운동명 필터링 (부분 일치)
+        if (name != null && name.contains(exerciseName)) {
+          final weight = (set['weight'] as num?)?.toDouble() ?? 0.0;
+          final reps = (set['reps'] as num?)?.toInt() ?? 0;
+
+          if (weight > 0 && reps > 0) {
+            // 1RM 계산 (Epley 공식: weight * (1 + reps / 30))
+            final estimated1RM = weight * (1 + reps / 30);
+
+            // 해당 월의 최대 1RM 갱신
+            if (!max1RMByMonth.containsKey(month) ||
+                max1RMByMonth[month]! < estimated1RM) {
+              max1RMByMonth[month] = estimated1RM;
+            }
+          }
+        }
+      }
+    }
+
+    // 결과 변환 및 정렬
+    final result = max1RMByMonth.entries
+        .map((e) => Exercise1RMRecord(
+              date: e.key,
+              estimated1RM: e.value,
+            ))
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    print('=== exercise1RMHistory 최종 결과: ${result.length}건 ===');
+    return result;
+  } catch (e) {
+    print('=== exercise1RMHistory 조회 실패: $e ===');
+    return const [];
+  }
+}

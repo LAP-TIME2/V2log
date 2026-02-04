@@ -1,14 +1,18 @@
-2026/02/04-23:53:51.702 7600 Reusing MANIFEST C:\Users\mal03\AppData\Local\Temp\flutter_tools.bf306892\flutter_tools_chrome_device.40914b50\Default\shared_proto_db/MANIFEST-000001
-2026/02/04-23:53:51.702 7600 Recovering log #23
-2026/02/04-23:53:51.703 7600 Reusing old log C:\Users\mal03\AppData\Local\Temp\flutter_tools.bf306892\flutter_tools_chrome_device.40914b50\Default\shared_proto_db/000023.log 
-2026/02/04-23:53:51.704 7600 Delete type=0 #3
-2026/02/04-23:53:51.704 7600 Delete type=0 #4
-2026/02/04-23:53:51.704 7600 Delete type=0 #7
-2026/02/04-23:53:51.704 7600 Delete type=2 #8
-2026/02/04-23:53:51.704 7600 Delete type=0 #10
-2026/02/04-23:53:51.704 7600 Delete type=2 #11
-2026/02/04-23:53:51.704 7600 Delete type=0 #13
-2026/02/04-23:53:51.704 7600 Delete type=2 #14
-2026/02/04-23:53:51.704 7600 Delete type=0 #16
-2026/02/04-23:53:51.704 7600 Delete type=2 #17
-2026/02/04-23:53:51.704 7600 Delete type=0 #19
+2026/02/05-01:37:16.019 7194 Reusing MANIFEST C:\Users\mal03\AppData\Local\Temp\flutter_tools.82b049fc\flutter_tools_chrome_device.9327ac77\Default\shared_proto_db/MANIFEST-000001
+2026/02/05-01:37:16.019 7194 Recovering log #26
+2026/02/05-01:37:16.021 7194 Reusing old log C:\Users\mal03\AppData\Local\Temp\flutter_tools.82b049fc\flutter_tools_chrome_device.9327ac77\Default\shared_proto_db/000026.log 
+2026/02/05-01:37:16.022 7194 Delete type=0 #3
+2026/02/05-01:37:16.022 7194 Delete type=0 #4
+2026/02/05-01:37:16.022 7194 Delete type=0 #7
+2026/02/05-01:37:16.022 7194 Delete type=2 #8
+2026/02/05-01:37:16.022 7194 Delete type=0 #10
+2026/02/05-01:37:16.022 7194 Delete type=2 #11
+2026/02/05-01:37:16.022 7194 Delete type=0 #13
+2026/02/05-01:37:16.022 7194 Delete type=2 #14
+2026/02/05-01:37:16.023 7194 Delete type=0 #16
+2026/02/05-01:37:16.023 7194 Delete type=2 #17
+2026/02/05-01:37:16.023 7194 Delete type=0 #19
+2026/02/05-01:37:16.023 7194 Delete type=0 #23
+2026/02/05-01:37:29.657 a18 Level-0 table #30: started
+2026/02/05-01:37:29.659 a18 Level-0 table #30: 133324 bytes OK
+2026/02/05-01:37:29.659 a18 Delete type=0 #26

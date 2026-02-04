@@ -25,6 +25,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   /// 선택된 월간 볼륨 데이터 (팝업 표시용)
   MuscleMonthlyVolume? _selectedMonthlyVolume;
 
+  /// 선택된 운동 (1RM 추이용)
+  String _selectedExercise = '벤치프레스';
+
   @override
   Widget build(BuildContext context) {
     final weeklyStatsAsync = ref.watch(weeklyStatsProvider);
@@ -109,6 +112,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   ),
                   error: (_, __) => _buildErrorCard(),
                 ),
+
+                const SizedBox(height: AppSpacing.xxxl),
+
+                // 1RM 추이
+                _buildSectionTitle('1RM 추이 (최근 6개월)'),
+                const SizedBox(height: AppSpacing.lg),
+                _buildExercise1RMSection(context),
               ],
             ),
           ),
@@ -980,6 +990,217 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       return '$hours시간 $minutes분';
     }
     return '$minutes분';
+  }
+
+  /// 운동별 1RM 추이 섹션
+  Widget _buildExercise1RMSection(BuildContext context) {
+    // 운동 선택 드롭다운
+    final exercises = ['벤치프레스', '스쿼트', '데드리프트', '오버헤드프레스', '바벨로우'];
+    final exercise1RMHistoryAsync = ref.watch(exercise1RMHistoryProvider(_selectedExercise));
+
+    return Column(
+      children: [
+        // 운동 선택 드롭다운
+        V2Card(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedExercise,
+              isExpanded: true,
+              dropdownColor: AppColors.darkCard,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.darkText,
+              ),
+              items: exercises.map((exercise) {
+                return DropdownMenuItem<String>(
+                  value: exercise,
+                  child: Text(exercise),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedExercise = value;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // 1RM 라인 차트
+        exercise1RMHistoryAsync.when(
+          data: (records) => _buildExercise1RMChart(context, records),
+          loading: () => const SizedBox(
+            height: 200,
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary500),
+            ),
+          ),
+          error: (_, __) => _buildErrorCard(),
+        ),
+      ],
+    );
+  }
+
+  /// 운동별 1RM 라인 차트 (월간, 최근 6개월)
+  Widget _buildExercise1RMChart(BuildContext context, List<Exercise1RMRecord> records) {
+    // 0값 필터링 (기록이 없는 월 제외)
+    final validRecords = records.where((r) => r.estimated1RM > 0).toList();
+
+    if (validRecords.isEmpty) {
+      return V2Card(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Center(
+          child: Text(
+            '$_selectedExercise 기록이 없어요',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 최대 1RM 계산
+    final max1RM = validRecords.map((r) => r.estimated1RM).fold<double>(
+        0, (max, value) => value > max ? value : max);
+
+    return V2Card(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: SizedBox(
+        height: 200,
+        child: LineChart(
+          LineChartData(
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              getDrawingHorizontalLine: (value) {
+                return FlLine(
+                  color: AppColors.darkBorder,
+                  strokeWidth: 1,
+                );
+              },
+            ),
+            titlesData: FlTitlesData(
+              show: true,
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 40,
+                  interval: 1,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index < 0 || index >= validRecords.length) {
+                      return const SizedBox.shrink();
+                    }
+                    if (value != index.toDouble()) {
+                      return const SizedBox.shrink();
+                    }
+                    final date = validRecords[index].date;
+                    final label = '${date.month}월';
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        label,
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.darkTextTertiary,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 50,
+                  getTitlesWidget: (value, meta) {
+                    if (value == meta.max || value == meta.min) {
+                      return const SizedBox.shrink();
+                    }
+                    return Text(
+                      Formatters.number(value, decimals: 0),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.darkTextTertiary,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+            ),
+            borderData: FlBorderData(show: false),
+            minX: 0,
+            maxX: (validRecords.length - 1).toDouble(),
+            minY: 0,
+            maxY: max1RM > 0 ? max1RM * 1.2 : 100,
+            lineBarsData: [
+              LineChartBarData(
+                spots: List.generate(
+                  validRecords.length,
+                  (index) => FlSpot(
+                    index.toDouble(),
+                    validRecords[index].estimated1RM,
+                  ),
+                ),
+                isCurved: true,
+                color: AppColors.primary500,
+                barWidth: 3,
+                dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, percent, barData, index) {
+                    return FlDotCirclePainter(
+                      radius: 4,
+                      color: AppColors.primary500,
+                      strokeWidth: 2,
+                      strokeColor: AppColors.darkCard,
+                    );
+                  },
+                ),
+                belowBarData: BarAreaData(
+                  show: true,
+                  color: AppColors.primary500.withValues(alpha: 0.1),
+                ),
+              ),
+            ],
+            lineTouchData: LineTouchData(
+              enabled: true,
+              touchTooltipData: LineTouchTooltipData(
+                tooltipPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                tooltipMargin: 8,
+                getTooltipColor: (_) => AppColors.darkCard,
+                getTooltipItems: (touchedSpots) {
+                  return touchedSpots.map((spot) {
+                    final index = spot.x.toInt();
+                    if (index < 0 || index >= validRecords.length) {
+                      return null;
+                    }
+                    final record = validRecords[index];
+                    final value = Formatters.number(record.estimated1RM, decimals: 1);
+                    // 호버 시 무게만 표시 (날짜 없음)
+                    return LineTooltipItem(
+                      '${value}kg',
+                      const TextStyle(
+                        color: AppColors.darkText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

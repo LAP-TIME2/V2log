@@ -148,6 +148,166 @@ final muscleMonthlyVolumesProvider =
 // ignore: unused_element
 typedef MuscleMonthlyVolumesRef =
     AutoDisposeFutureProviderRef<List<MuscleMonthlyVolume>>;
+String _$exercise1RMHistoryHash() =>
+    r'0af0c8c1924f6055be952c2d58ba5acf545887be';
+
+/// Copied from Dart SDK
+class _SystemHash {
+  _SystemHash._();
+
+  static int combine(int hash, int value) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + value);
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+    return hash ^ (hash >> 6);
+  }
+
+  static int finish(int hash) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    // ignore: parameter_assignments
+    hash = hash ^ (hash >> 11);
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+}
+
+/// 운동별 1RM 추이 Provider (최근 6개월, 월간)
+///
+/// Copied from [exercise1RMHistory].
+@ProviderFor(exercise1RMHistory)
+const exercise1RMHistoryProvider = Exercise1RMHistoryFamily();
+
+/// 운동별 1RM 추이 Provider (최근 6개월, 월간)
+///
+/// Copied from [exercise1RMHistory].
+class Exercise1RMHistoryFamily
+    extends Family<AsyncValue<List<Exercise1RMRecord>>> {
+  /// 운동별 1RM 추이 Provider (최근 6개월, 월간)
+  ///
+  /// Copied from [exercise1RMHistory].
+  const Exercise1RMHistoryFamily();
+
+  /// 운동별 1RM 추이 Provider (최근 6개월, 월간)
+  ///
+  /// Copied from [exercise1RMHistory].
+  Exercise1RMHistoryProvider call(String exerciseName) {
+    return Exercise1RMHistoryProvider(exerciseName);
+  }
+
+  @override
+  Exercise1RMHistoryProvider getProviderOverride(
+    covariant Exercise1RMHistoryProvider provider,
+  ) {
+    return call(provider.exerciseName);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'exercise1RMHistoryProvider';
+}
+
+/// 운동별 1RM 추이 Provider (최근 6개월, 월간)
+///
+/// Copied from [exercise1RMHistory].
+class Exercise1RMHistoryProvider
+    extends AutoDisposeFutureProvider<List<Exercise1RMRecord>> {
+  /// 운동별 1RM 추이 Provider (최근 6개월, 월간)
+  ///
+  /// Copied from [exercise1RMHistory].
+  Exercise1RMHistoryProvider(String exerciseName)
+    : this._internal(
+        (ref) => exercise1RMHistory(ref as Exercise1RMHistoryRef, exerciseName),
+        from: exercise1RMHistoryProvider,
+        name: r'exercise1RMHistoryProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$exercise1RMHistoryHash,
+        dependencies: Exercise1RMHistoryFamily._dependencies,
+        allTransitiveDependencies:
+            Exercise1RMHistoryFamily._allTransitiveDependencies,
+        exerciseName: exerciseName,
+      );
+
+  Exercise1RMHistoryProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.exerciseName,
+  }) : super.internal();
+
+  final String exerciseName;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<Exercise1RMRecord>> Function(Exercise1RMHistoryRef provider)
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: Exercise1RMHistoryProvider._internal(
+        (ref) => create(ref as Exercise1RMHistoryRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        exerciseName: exerciseName,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<Exercise1RMRecord>> createElement() {
+    return _Exercise1RMHistoryProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is Exercise1RMHistoryProvider &&
+        other.exerciseName == exerciseName;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, exerciseName.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin Exercise1RMHistoryRef
+    on AutoDisposeFutureProviderRef<List<Exercise1RMRecord>> {
+  /// The parameter `exerciseName` of this provider.
+  String get exerciseName;
+}
+
+class _Exercise1RMHistoryProviderElement
+    extends AutoDisposeFutureProviderElement<List<Exercise1RMRecord>>
+    with Exercise1RMHistoryRef {
+  _Exercise1RMHistoryProviderElement(super.provider);
+
+  @override
+  String get exerciseName =>
+      (origin as Exercise1RMHistoryProvider).exerciseName;
+}
+
 String _$userProfileHash() => r'ec764767cecaaaf97fba916f43ba1b95a7c6fd0d';
 
 /// 사용자 프로필 업데이트 Provider
