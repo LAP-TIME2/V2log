@@ -706,7 +706,7 @@ final exerciseNamesMapProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ExerciseNamesMapRef = AutoDisposeFutureProviderRef<Map<String, String>>;
-String _$activeWorkoutHash() => r'c35db5e382ad1e516670c80efc78523baffadf1c';
+String _$activeWorkoutHash() => r'1ce148157f693458eee1d1393d18d829221152b9';
 
 /// 활성 운동 세션 Provider
 ///

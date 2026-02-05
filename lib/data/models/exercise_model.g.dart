@@ -88,6 +88,7 @@ const _$MuscleGroupEnumMap = {
   MuscleGroup.lowerBack: 'LOWER_BACK',
   MuscleGroup.rearDelts: 'REAR_DELTS',
   MuscleGroup.hipFlexors: 'HIP_FLEXORS',
+  MuscleGroup.legs: 'LEGS',
   MuscleGroup.fullBody: 'FULL_BODY',
 };
 

@@ -245,61 +245,90 @@ class WorkoutSummaryScreen extends ConsumerWidget {
             final maxWeight = sets
                 .map((s) => s.weight ?? 0)
                 .fold<double>(0, (a, b) => a > b ? a : b);
+            final isFirstExercise = exerciseGroups.keys.first == exerciseId;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary500.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    ),
-                    child: const Icon(
-                      Icons.fitness_center,
-                      color: AppColors.primary500,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _getExerciseName(exerciseId, exerciseNames),
-                          style: AppTypography.labelLarge.copyWith(
-                            color: AppColors.darkText,
-                          ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary500.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                         ),
-                        Text(
-                          '${sets.length}세트 • 최고 ${maxWeight}kg',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.darkTextSecondary,
+                        child: const Icon(
+                          Icons.fitness_center,
+                          color: AppColors.primary500,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getExerciseName(exerciseId, exerciseNames),
+                              style: AppTypography.labelLarge.copyWith(
+                                color: AppColors.darkText,
+                              ),
+                            ),
+                            Text(
+                              '${sets.length}세트 • 최고 ${maxWeight}kg',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.darkTextSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            Formatters.volume(totalVolume),
+                            style: AppTypography.labelLarge.copyWith(
+                              color: AppColors.primary500,
+                            ),
+                          ),
+                          Text(
+                            '볼륨',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.darkTextTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  // 첫 번째 운동 바로 아래에 메모 표시
+                  if (isFirstExercise && session.notes != null && session.notes!.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        const SizedBox(width: 40),
+                        Icon(
+                          Icons.edit_note,
+                          size: 16,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            '📝 ${sets.length}세트: ${session.notes!}',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.darkTextSecondary,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        Formatters.volume(totalVolume),
-                        style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.primary500,
-                        ),
-                      ),
-                      Text(
-                        '볼륨',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.darkTextTertiary,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ],
               ),
             );

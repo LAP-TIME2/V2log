@@ -337,6 +337,37 @@ class ActiveWorkout extends _$ActiveWorkout {
     return finishedSession;
   }
 
+  /// 세션 메모 업데이트
+  Future<void> updateSessionNotes(String notes) async {
+    if (state == null) return;
+
+    final session = state!;
+    final updatedSession = session.copyWith(notes: notes);
+
+    // 로그인한 경우에만 Supabase 업데이트
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSessions).update({
+          'notes': notes,
+        }).eq('id', session.id);
+      } catch (e) {
+        debugPrint('⚠️ Supabase 메모 업데이트 실패: $e');
+      }
+    }
+
+    state = updatedSession;
+
+    // 로컬 백업
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.saveWorkoutSession(updatedSession.toJson());
+    } catch (e) {
+      debugPrint('세션 백업 실패: $e');
+    }
+  }
+
   /// 운동 취소
   Future<void> cancelWorkout() async {
     if (state == null) return;

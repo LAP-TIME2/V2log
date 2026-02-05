@@ -25,7 +25,7 @@ final pendingSyncCountProvider = AutoDisposeFutureProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PendingSyncCountRef = AutoDisposeFutureProviderRef<int>;
-String _$syncSummaryHash() => r'27f5bd597de965a8cbe8d37ad050bde16de634c3';
+String _$syncSummaryHash() => r'd68722ea03239716a39693e43d3dc0617027cbe0';
 
 /// 동기화 상태 요약 Provider
 ///
