@@ -8,6 +8,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/haptic_feedback.dart';
 import '../../../data/dummy/dummy_exercises.dart';
+import '../../../data/dummy/dummy_preset_routines.dart';
 import '../../../data/models/exercise_model.dart';
 import '../../../data/models/preset_routine_model.dart';
 import '../../../data/models/workout_session_model.dart';
@@ -44,8 +45,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   // 현재 운동 (자유 모드용)
   ExerciseModel? _freeExercise;
 
-  // 세션 메모
-  String _sessionNotes = '';
+  // 운동별 메모 (운동 ID: 메모)
+  final Map<String, String> _exerciseNotes = {};
 
   @override
   void initState() {
@@ -54,10 +55,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final session = ref.read(activeWorkoutProvider);
       if (session != null) {
-        // 세션 메모 로드
-        setState(() {
-          _sessionNotes = session.notes ?? '';
-        });
+        // 세션 메모 로드 (운동별 메모를 위해 session.notes를 사용하지 않음)
+        // 운동별 메모는 _exerciseNotes Map으로 관리
 
         // 세션 타이머 시작
         ref.read(workoutTimerProvider.notifier).startFrom(session.startedAt);
@@ -338,7 +337,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     return _ExerciseGuideCard(
       exercise: exercise,
       session: session,
-      notes: _sessionNotes,
+      notes: _getCurrentExerciseNotes(),
       onEditNotes: _showMemoDialog,
       onChangeExercise: session.mode == WorkoutMode.free ? _showExerciseSelector : null,
       routineExercise: session.mode == WorkoutMode.preset
@@ -381,39 +380,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   itemBuilder: (context, index) {
                     if (index < sets.length) {
                       final set = sets[index];
-                      return Dismissible(
-                        key: Key(set.id),
-                        direction: DismissDirection.endToStart,
-                        dismissThresholds: const {
-                          DismissDirection.endToStart: 0.65,
-                        },
-                        confirmDismiss: (direction) async {
-                          // 거리가 65% 이상일 때만 삭제 (속도 무시)
-                          return true;
-                        },
-                        background: Container(
-                          color: AppColors.error,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: AppSpacing.xl),
-                          child: const Icon(
-                            Icons.delete,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                        onDismissed: (direction) async {
-                          AppHaptics.mediumImpact();
-                          await ref.read(activeWorkoutProvider.notifier).deleteSet(set.id);
-                        },
-                        child: SetRow(
-                          setNumber: set.setNumber,
-                          setType: set.setType,
-                          weight: set.weight,
-                          reps: set.reps,
-                          isCompleted: true,
-                          isPr: set.isPr,
-                          onLongPress: () => _showSetOptions(set),
-                        ),
+                      return SetRow(
+                        setNumber: set.setNumber,
+                        setType: set.setType,
+                        weight: set.weight,
+                        reps: set.reps,
+                        isCompleted: true,
+                        isPr: set.isPr,
+                        onLongPress: () => _showDeleteConfirmDialog(set),
                       );
                     }
                     // 현재 입력 중인 세트
@@ -616,52 +590,47 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     );
   }
 
-  void _showSetOptions(WorkoutSetModel set) {
-    showModalBottomSheet(
+  /// 세트 삭제 확인 다이얼로그
+  void _showDeleteConfirmDialog(WorkoutSetModel set) {
+    showDialog(
       context: context,
-      backgroundColor: AppColors.darkCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppSpacing.radiusXl),
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.darkCard,
+        title: Text(
+          '세트 삭제',
+          style: AppTypography.h4.copyWith(color: AppColors.darkText),
         ),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.edit, color: AppColors.darkText),
-                title: Text(
-                  '수정',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: AppColors.darkText,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  // TODO: 수정 다이얼로그
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: AppColors.error),
-                title: Text(
-                  '삭제',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: AppColors.error,
-                  ),
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await ref
-                      .read(activeWorkoutProvider.notifier)
-                      .deleteSet(set.id);
-                },
-              ),
-            ],
+        content: Text(
+          '${set.setNumber}세트를 삭제하시겠습니까?',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.darkTextSecondary,
           ),
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              '취소',
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              AppHaptics.mediumImpact();
+              await ref.read(activeWorkoutProvider.notifier).deleteSet(set.id);
+            },
+            child: Text(
+              '삭제',
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -695,6 +664,17 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         );
       },
     );
+  }
+
+  /// 운동 ID로 이름 찾기
+  String _getExerciseNameById(String exerciseId) {
+    final exercise = DummyExercises.getById(exerciseId);
+    if (exercise != null) return exercise.name;
+
+    final presetExercise = DummyPresetRoutines.getExerciseById(exerciseId);
+    if (presetExercise != null) return presetExercise.name;
+
+    return '운동 $exerciseId';
   }
 
   void _showCancelDialog(BuildContext context) {
@@ -739,10 +719,35 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     );
   }
 
+  /// 현재 운동의 메모 가져오기
+  String _getCurrentExerciseNotes() {
+    final session = ref.read(activeWorkoutProvider);
+    if (session == null) return '';
+    final exerciseId = _getCurrentExerciseId(session);
+    if (exerciseId == null) return '';
+    return _exerciseNotes[exerciseId] ?? '';
+  }
+
+  /// 현재 운동의 메모 저장
+  void _setCurrentExerciseNotes(String notes) {
+    final session = ref.read(activeWorkoutProvider);
+    if (session == null) return;
+    final exerciseId = _getCurrentExerciseId(session);
+    if (exerciseId == null) return;
+    setState(() {
+      if (notes.isEmpty) {
+        _exerciseNotes.remove(exerciseId);
+      } else {
+        _exerciseNotes[exerciseId] = notes;
+      }
+    });
+  }
+
   /// 메모 입력 다이얼로그
   Future<void> _showMemoDialog() async {
-    final controller = TextEditingController(text: _sessionNotes);
-    final hasMemo = _sessionNotes.isNotEmpty;
+    final currentNotes = _getCurrentExerciseNotes();
+    final controller = TextEditingController(text: currentNotes);
+    final hasMemo = currentNotes.isNotEmpty;
 
     return showDialog(
       context: context,
@@ -799,10 +804,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           TextButton(
             onPressed: () async {
               final newNotes = controller.text.trim();
-              setState(() {
-                _sessionNotes = newNotes;
-              });
-              await ref.read(activeWorkoutProvider.notifier).updateSessionNotes(newNotes);
+              _setCurrentExerciseNotes(newNotes);
               if (mounted) Navigator.pop(context);
             },
             child: Text(
@@ -849,9 +851,17 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
+              // 운동별 메모를 "운동명: 메모 / 운동명: 메모" 형식으로 변환
+              final notesList = _exerciseNotes.entries.map((e) {
+                final exerciseId = e.key;
+                final note = e.value;
+                final exerciseName = _getExerciseNameById(exerciseId);
+                return '$exerciseName: $note';
+              }).toList();
+              final formattedNotes = notesList.isEmpty ? null : notesList.join(' / ');
               final finishedSession = await ref
                   .read(activeWorkoutProvider.notifier)
-                  .finishWorkout(notes: _sessionNotes);
+                  .finishWorkout(notes: formattedNotes);
               ref.read(workoutTimerProvider.notifier).stop();
 
               // 루틴 운동 및 인덱스 초기화

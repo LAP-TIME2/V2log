@@ -222,8 +222,29 @@ class WorkoutSummaryScreen extends ConsumerWidget {
     );
   }
 
+  /// session.notes에서 운동별 메모를 추출하는 헬퍼 함수
+  Map<String, String> _parseExerciseNotes() {
+    final Map<String, String> exerciseNotes = {};
+    if (session.notes == null || session.notes!.isEmpty) {
+      return exerciseNotes;
+    }
+
+    // "운동명: 메모 / 운동명: 메모" 형식 파싱
+    final parts = session.notes!.split(' / ');
+    for (final part in parts) {
+      final colonIndex = part.indexOf(':');
+      if (colonIndex > 0) {
+        final exerciseName = part.substring(0, colonIndex).trim();
+        final note = part.substring(colonIndex + 1).trim();
+        exerciseNotes[exerciseName] = note;
+      }
+    }
+    return exerciseNotes;
+  }
+
   Widget _buildExerciseSummary(Map<String, String> exerciseNames) {
     final exerciseGroups = session.setsByExercise;
+    final parsedNotes = _parseExerciseNotes();
 
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -245,7 +266,8 @@ class WorkoutSummaryScreen extends ConsumerWidget {
             final maxWeight = sets
                 .map((s) => s.weight ?? 0)
                 .fold<double>(0, (a, b) => a > b ? a : b);
-            final isFirstExercise = exerciseGroups.keys.first == exerciseId;
+            final exerciseName = _getExerciseName(exerciseId, exerciseNames);
+            final exerciseNote = parsedNotes[exerciseName];
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -273,16 +295,18 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _getExerciseName(exerciseId, exerciseNames),
+                              exerciseName,
                               style: AppTypography.labelLarge.copyWith(
                                 color: AppColors.darkText,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               '${sets.length}세트 • 최고 ${maxWeight}kg',
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.darkTextSecondary,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -295,6 +319,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                             style: AppTypography.labelLarge.copyWith(
                               color: AppColors.primary500,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             '볼륨',
@@ -306,29 +331,31 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  // 첫 번째 운동 바로 아래에 메모 표시
-                  if (isFirstExercise && session.notes != null && session.notes!.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      children: [
-                        const SizedBox(width: 40),
-                        Icon(
-                          Icons.edit_note,
-                          size: 16,
-                          color: AppColors.warning,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            '📝 ${sets.length}세트: ${session.notes!}',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.darkTextSecondary,
+                  // 해당 운동의 메모 표시
+                  if (exerciseNote != null && exerciseNote.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm, left: 52),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit_note,
+                            size: 14,
+                            color: AppColors.warning,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: Text(
+                              '📝 $exerciseNote',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.darkTextSecondary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ],
                 ],
               ),
             );
