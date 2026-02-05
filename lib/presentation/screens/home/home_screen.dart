@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/session_notes_formatter.dart';
 import '../../../data/models/sync_queue_model.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../domain/providers/sync_provider.dart';
@@ -14,9 +15,12 @@ import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_card.dart';
 
 // 운동 이름 추출 헬퍼 함수
-String _getWorkoutName(WorkoutSessionModel session) {
+String _getWorkoutName(WorkoutSessionModel session, Map<String, String> exerciseNames) {
   if (session.notes != null && session.notes!.isNotEmpty) {
-    return session.notes!;
+    final formattedNotes = formatSessionNotes(session.notes, exerciseNames);
+    if (formattedNotes.isNotEmpty) {
+      return formattedNotes;
+    }
   }
   if (session.mode == WorkoutMode.preset) {
     return '전문가 루틴';
@@ -315,6 +319,8 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildRecentWorkouts(BuildContext context, WidgetRef ref) {
     final recentWorkoutsAsync = ref.watch(recentWorkoutsProvider);
+    final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
+    final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +382,7 @@ class HomeScreen extends ConsumerWidget {
               children: recentWorkouts.map((session) {
                 final workout = _RecentWorkoutData(
                   date: session.startedAt,
-                  name: _getWorkoutName(session),
+                  name: _getWorkoutName(session, exerciseNames),
                   duration: Duration(seconds: session.totalDurationSeconds ?? 0),
                   volume: session.totalVolume ?? session.calculatedVolume,
                 );

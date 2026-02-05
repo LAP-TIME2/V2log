@@ -6,8 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../data/dummy/dummy_exercises.dart';
-import '../../../data/dummy/dummy_preset_routines.dart';
+import '../../../core/utils/session_notes_formatter.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/workout_provider.dart';
@@ -150,19 +149,26 @@ class HistoryScreen extends ConsumerWidget {
 }
 
 /// 운동 세션 카드
-class _WorkoutSessionCard extends StatelessWidget {
+class _WorkoutSessionCard extends ConsumerWidget {
   final WorkoutSessionModel session;
 
   const _WorkoutSessionCard({required this.session});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final duration = session.totalDurationSeconds != null
         ? Duration(seconds: session.totalDurationSeconds!)
         : session.duration ?? Duration.zero;
 
     final volume = session.totalVolume ?? session.calculatedVolume;
     final setCount = session.totalSets ?? session.sets.length;
+
+    // exercise 이름 맵 가져오기
+    final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
+    final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
+
+    // 메모 포맷팅 (exercise_id를 운동명으로 변환)
+    final formattedNotes = formatSessionNotes(session.notes, exerciseNames);
 
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -201,7 +207,7 @@ class _WorkoutSessionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getWorkoutTitle(),
+                      _getWorkoutTitle(formattedNotes),
                       style: AppTypography.labelLarge.copyWith(
                         color: AppColors.darkText,
                       ),
@@ -251,7 +257,7 @@ class _WorkoutSessionCard extends StatelessWidget {
           ),
 
           // 메모가 있으면 표시
-          if (session.notes != null && session.notes!.isNotEmpty) ...[
+          if (formattedNotes.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -269,7 +275,7 @@ class _WorkoutSessionCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      session.notes!,
+                      formattedNotes,
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.darkTextSecondary,
                       ),
@@ -302,11 +308,11 @@ class _WorkoutSessionCard extends StatelessWidget {
     );
   }
 
-  String _getWorkoutTitle() {
-    if (session.notes != null && session.notes!.isNotEmpty) {
+  String _getWorkoutTitle(String formattedNotes) {
+    if (formattedNotes.isNotEmpty) {
       // 메모가 짧으면 제목으로 사용
-      if (session.notes!.length <= 20) {
-        return session.notes!;
+      if (formattedNotes.length <= 20) {
+        return formattedNotes;
       }
     }
     return session.mode == WorkoutMode.preset ? '전문가 루틴' : '자유 운동';
@@ -395,13 +401,16 @@ class HistoryDetailScreen extends ConsumerWidget {
 
           final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
 
+          // 메모 포맷팅 (exercise_id를 운동명으로 변환)
+          final formattedNotes = formatSessionNotes(session.notes, exerciseNames);
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.screenPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 요약 카드
-                _buildSummaryCard(session),
+                _buildSummaryCard(session, formattedNotes),
                 const SizedBox(height: AppSpacing.xl),
 
                 // 운동별 세트 목록
@@ -442,7 +451,7 @@ class HistoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(WorkoutSessionModel session) {
+  Widget _buildSummaryCard(WorkoutSessionModel session, String formattedNotes) {
     final duration = session.totalDurationSeconds != null
         ? Duration(seconds: session.totalDurationSeconds!)
         : session.duration ?? Duration.zero;
@@ -511,7 +520,7 @@ class HistoryDetailScreen extends ConsumerWidget {
               ),
             ],
           ),
-          if (session.notes != null && session.notes!.isNotEmpty) ...[
+          if (formattedNotes.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
             Container(
               width: double.infinity,
@@ -521,7 +530,7 @@ class HistoryDetailScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Text(
-                session.notes!,
+                formattedNotes,
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.darkTextSecondary,
                 ),
@@ -720,29 +729,13 @@ class HistoryDetailScreen extends ConsumerWidget {
   }
 
   String _getExerciseName(String exerciseId, Map<String, String> exerciseNames) {
-    // Supabase에서 가져온 이름 맵에서 찾기
-    if (exerciseNames.containsKey(exerciseId)) {
-      return exerciseNames[exerciseId]!;
+    final exerciseName = getExerciseNameFromId(exerciseId, exerciseNames);
+    if (exerciseName != exerciseId) {
+      return exerciseName;
     }
 
-    // DummyExercises에서 찾기
-    final exercise = DummyExercises.getById(exerciseId);
-    if (exercise != null) {
-      return exercise.name;
-    }
-
-    // DummyPresetRoutines에서 찾기
-    final presetExercise = DummyPresetRoutines.getExerciseById(exerciseId);
-    if (presetExercise != null) {
-      return presetExercise.name;
-    }
-
-    // 못 찾으면 ID 일부 표시
-    if (exerciseId.length > 8 && exerciseId.contains('-')) {
-      return '운동';
-    }
-
-    return exerciseId;
+    // 못 찾으면 '운동' 반환
+    return '운동';
   }
 }
 

@@ -222,21 +222,21 @@ class WorkoutSummaryScreen extends ConsumerWidget {
     );
   }
 
-  /// session.notes에서 운동별 메모를 추출하는 헬퍼 함수
-  Map<String, String> _parseExerciseNotes() {
+  /// session.notes에서 운동별 메모를 추출하고 exercise_id를 key로 사용
+  Map<String, String> _parseExerciseNotes(Map<String, String> exerciseNames) {
     final Map<String, String> exerciseNotes = {};
     if (session.notes == null || session.notes!.isEmpty) {
       return exerciseNotes;
     }
 
-    // "운동명: 메모 / 운동명: 메모" 형식 파싱
+    // "exerciseId: 메모 / exerciseId: 메모" 형식 파싱
     final parts = session.notes!.split(' / ');
     for (final part in parts) {
       final colonIndex = part.indexOf(':');
       if (colonIndex > 0) {
-        final exerciseName = part.substring(0, colonIndex).trim();
+        final exerciseId = part.substring(0, colonIndex).trim();
         final note = part.substring(colonIndex + 1).trim();
-        exerciseNotes[exerciseName] = note;
+        exerciseNotes[exerciseId] = note;
       }
     }
     return exerciseNotes;
@@ -244,7 +244,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
 
   Widget _buildExerciseSummary(Map<String, String> exerciseNames) {
     final exerciseGroups = session.setsByExercise;
-    final parsedNotes = _parseExerciseNotes();
+    final parsedNotes = _parseExerciseNotes(exerciseNames);
 
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -267,7 +267,8 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                 .map((s) => s.weight ?? 0)
                 .fold<double>(0, (a, b) => a > b ? a : b);
             final exerciseName = _getExerciseName(exerciseId, exerciseNames);
-            final exerciseNote = parsedNotes[exerciseName];
+            // exercise_id로 메모 매칭
+            final exerciseNote = parsedNotes[exerciseId];
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),

@@ -667,14 +667,21 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   /// 운동 ID로 이름 찾기
-  String _getExerciseNameById(String exerciseId) {
+  String _getExerciseNameById(String exerciseId, Map<String, String> exerciseNames) {
+    // 1. Supabase exerciseNames 맵에서 찾기
+    if (exerciseNames.containsKey(exerciseId)) {
+      return exerciseNames[exerciseId]!;
+    }
+
+    // 2. DummyExercises에서 찾기
     final exercise = DummyExercises.getById(exerciseId);
     if (exercise != null) return exercise.name;
 
+    // 3. DummyPresetRoutines에서 찾기
     final presetExercise = DummyPresetRoutines.getExerciseById(exerciseId);
     if (presetExercise != null) return presetExercise.name;
 
-    return '운동 $exerciseId';
+    return '운동';
   }
 
   void _showCancelDialog(BuildContext context) {
@@ -831,69 +838,77 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
-        title: Text(
-          '운동 완료',
-          style: AppTypography.h4.copyWith(color: AppColors.darkText),
-        ),
-        content: Text(
-          '운동을 완료하시겠습니까?\n총 ${session.sets.length}세트, ${Formatters.volume(session.calculatedVolume)} 볼륨',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('계속하기'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              // 운동별 메모를 "운동명: 메모 / 운동명: 메모" 형식으로 변환
-              final notesList = _exerciseNotes.entries.map((e) {
-                final exerciseId = e.key;
-                final note = e.value;
-                final exerciseName = _getExerciseNameById(exerciseId);
-                return '$exerciseName: $note';
-              }).toList();
-              final formattedNotes = notesList.isEmpty ? null : notesList.join(' / ');
-              final finishedSession = await ref
-                  .read(activeWorkoutProvider.notifier)
-                  .finishWorkout(notes: formattedNotes);
-              ref.read(workoutTimerProvider.notifier).stop();
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            // exerciseNames Map 가져오기
+            final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
+            final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
 
-              // 루틴 운동 및 인덱스 초기화
-              ref.read(routineExercisesProvider.notifier).clear();
-              ref.read(currentExerciseIndexProvider.notifier).reset();
+            return AlertDialog(
+              backgroundColor: AppColors.darkCard,
+              title: Text(
+                '운동 완료',
+                style: AppTypography.h4.copyWith(color: AppColors.darkText),
+              ),
+              content: Text(
+                '운동을 완료하시겠습니까?\n총 ${session.sets.length}세트, ${Formatters.volume(session.calculatedVolume)} 볼륨',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('계속하기'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
 
-              // 기록/통계 Provider 새로고침 (Supabase에서 다시 로드)
-              ref.invalidate(workoutHistoryProvider);
-              ref.invalidate(recentWorkoutsProvider);
-              ref.invalidate(weeklyStatsProvider);
-              ref.invalidate(userStatsProvider);
+                    // 운동별 메모를 "exerciseId: 메모 / exerciseId: 메모" 형식으로 변환
+                    final notesList = _exerciseNotes.entries.map((e) {
+                      return '${e.key}: ${e.value}';
+                    }).toList();
+                    final formattedNotes = notesList.isEmpty ? null : notesList.join(' / ');
+                    final finishedSession = await ref
+                        .read(activeWorkoutProvider.notifier)
+                        .finishWorkout(notes: formattedNotes);
+                    ref.read(workoutTimerProvider.notifier).stop();
 
-              if (mounted && finishedSession != null) {
-                // 요약 화면으로 이동
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => WorkoutSummaryScreen(
-                      session: finishedSession,
-                    ),
+                    // 루틴 운동 및 인덱스 초기화
+                    ref.read(routineExercisesProvider.notifier).clear();
+                    ref.read(currentExerciseIndexProvider.notifier).reset();
+
+                    // 기록/통계 Provider 새로고침 (Supabase에서 다시 로드)
+                    ref.invalidate(workoutHistoryProvider);
+                    ref.invalidate(recentWorkoutsProvider);
+                    ref.invalidate(weeklyStatsProvider);
+                    ref.invalidate(userStatsProvider);
+
+                    if (mounted && finishedSession != null) {
+                      // 요약 화면으로 이동
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => WorkoutSummaryScreen(
+                            session: finishedSession,
+                          ),
+                        ),
+                      );
+                    } else if (mounted) {
+                      context.go('/home');
+                    }
+                  },
+                  child: Text(
+                    '완료하기',
+                    style: TextStyle(color: AppColors.success),
                   ),
-                );
-              } else if (mounted) {
-                context.go('/home');
-              }
-            },
-            child: Text(
-              '완료하기',
-              style: TextStyle(color: AppColors.success),
-            ),
-          ),
-        ],
-      ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
