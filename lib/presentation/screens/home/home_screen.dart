@@ -6,7 +6,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../data/models/sync_queue_model.dart';
 import '../../../data/models/workout_session_model.dart';
+import '../../../domain/providers/sync_provider.dart';
 import '../../../domain/providers/user_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_card.dart';
@@ -88,24 +90,30 @@ class HomeScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  greeting,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.darkTextSecondary,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    greeting,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.darkTextSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  nickname ?? '운동하러 오셨군요!',
-                  style: AppTypography.h2.copyWith(
-                    color: AppColors.darkText,
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    nickname ?? '운동하러 오셨군요!',
+                    style: AppTypography.h2.copyWith(
+                      color: AppColors.darkText,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: AppSpacing.md),
+            // 동기화 상태 아이콘
+            _SyncStatusIndicator(),
+            const SizedBox(width: AppSpacing.sm),
             // 프로필 아이콘
             CircleAvatar(
               radius: 24,
@@ -280,7 +288,7 @@ class HomeScreen extends ConsumerWidget {
                 child: _StatCard(
                   icon: Icons.local_fire_department,
                   label: '총 볼륨',
-                  value: Formatters.number(stats.totalVolume, decimals: 0),
+                  value: Formatters.number(stats.totalVolume, decimals: 0, round: true),
                   unit: 'kg',
                   color: AppColors.secondary500,
                 ),
@@ -290,7 +298,7 @@ class HomeScreen extends ConsumerWidget {
                 child: _StatCard(
                   icon: Icons.timer,
                   label: '운동 시간',
-                  value: Formatters.duration(stats.totalDuration),
+                  value: Formatters.durationCompact(stats.totalDuration),
                   color: AppColors.success,
                 ),
               ),
@@ -511,11 +519,16 @@ class _StatCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                value,
-                style: AppTypography.h4.copyWith(
-                  color: AppColors.darkText,
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: Text(
+                  value,
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppColors.darkText,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (unit != null) ...[
@@ -621,5 +634,213 @@ class _RecentWorkoutCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// 동기화 상태 표시기
+class _SyncStatusIndicator extends ConsumerWidget {
+  const _SyncStatusIndicator();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connection = ref.watch(connectionStateProvider);
+    final syncStatus = ref.watch(syncStateProvider);
+    final pendingCount = ref.watch(pendingSyncCountProvider);
+
+    return GestureDetector(
+      onTap: () => _showSyncStatusDialog(context, ref),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.darkCard,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // 메인 아이콘
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _buildIcon(connection, syncStatus),
+            ),
+            // 대기 중인 작업 수 뱃지
+            if ((pendingCount.value ?? 0) > 0)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${pendingCount.value ?? 0}',
+                      style: AppTypography.caption.copyWith(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIcon(ConnectionStatus connection, SyncStatus syncStatus) {
+    final status = syncStatus;
+
+    // 오프라인
+    if (connection == ConnectionStatus.offline) {
+      return const Icon(
+        Icons.cloud_off,
+        key: ValueKey('offline'),
+        color: AppColors.darkTextTertiary,
+        size: 20,
+      );
+    }
+
+    // 동기화 중
+    if (status == SyncStatus.syncing) {
+      return const SizedBox(
+        key: ValueKey('syncing'),
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary500),
+        ),
+      );
+    }
+
+    // 동기화 완료
+    if (status == SyncStatus.completed) {
+      return const Icon(
+        Icons.cloud_done,
+        key: ValueKey('completed'),
+        color: AppColors.success,
+        size: 20,
+      );
+    }
+
+    // 동기화 에러
+    if (status == SyncStatus.error) {
+      return const Icon(
+        Icons.cloud_sync,
+        key: ValueKey('error'),
+        color: AppColors.error,
+        size: 20,
+      );
+    }
+
+    // 온라인 (기본)
+    return const Icon(
+      Icons.cloud,
+      key: ValueKey('online'),
+      color: AppColors.success,
+      size: 20,
+    );
+  }
+
+  void _showSyncStatusDialog(BuildContext context, WidgetRef ref) {
+    final connection = ref.read(connectionStateProvider);
+    final syncStatus = ref.read(syncStateProvider);
+    final pendingCount = ref.read(pendingSyncCountProvider);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.darkCard,
+        title: const Text('동기화 상태'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStatusRow('연결 상태', _getConnectionLabel(connection)),
+            const SizedBox(height: AppSpacing.sm),
+            _buildStatusRow('동기화 상태', _getSyncStatusLabel(syncStatus)),
+            const SizedBox(height: AppSpacing.sm),
+            _buildStatusRow('대기 중인 작업', '${pendingCount.value ?? 0}건'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('닫기'),
+          ),
+          if (connection == ConnectionStatus.offline)
+            TextButton(
+              onPressed: () {
+                ref.read(syncControllerProvider.notifier).refreshConnection();
+                Navigator.of(context).pop();
+              },
+              child: const Text('재연결'),
+            )
+          else if ((pendingCount.value ?? 0) > 0)
+            TextButton(
+              onPressed: () {
+                ref.read(syncControllerProvider.notifier).syncNow();
+                Navigator.of(context).pop();
+              },
+              child: const Text('지금 동기화'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.darkTextSecondary,
+          ),
+        ),
+        Text(
+          value,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.darkText,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getConnectionLabel(ConnectionStatus status) {
+    switch (status) {
+      case ConnectionStatus.online:
+        return '온라인';
+      case ConnectionStatus.offline:
+        return '오프라인';
+      case ConnectionStatus.unknown:
+        return '알 수 없음';
+    }
+  }
+
+  String _getSyncStatusLabel(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.idle:
+        return '대기 중';
+      case SyncStatus.syncing:
+        return '동기화 중...';
+      case SyncStatus.completed:
+        return '완료';
+      case SyncStatus.error:
+        return '오류 발생';
+    }
   }
 }

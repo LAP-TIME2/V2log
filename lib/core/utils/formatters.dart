@@ -62,6 +62,20 @@ class Formatters {
     }
   }
 
+  /// 운동 시간 포맷 (컴팩트: 4h 32m)
+  static String durationCompact(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+
+    if (hours > 0 && minutes > 0) {
+      return '${hours}h ${minutes}m';
+    } else if (hours > 0) {
+      return '${hours}h';
+    } else {
+      return '${minutes}m';
+    }
+  }
+
   /// 타이머 포맷 (MM:SS)
   static String timer(int seconds) {
     final minutes = seconds ~/ 60;
@@ -133,12 +147,13 @@ class Formatters {
     return '${kg.toStringAsFixed(1)}kg';
   }
 
-  /// 숫자 포맷 (천 단위 쉼표)
-  static String number(num value, {int decimals = 0}) {
+  /// 숫자 포맷 (천 단위 쉼표, 반올림 지원)
+  static String number(num value, {int decimals = 0, bool round = false}) {
+    final num workingValue = round ? value.round().toDouble() : value;
     final formatter = decimals > 0
         ? NumberFormat('#,###.${'0' * decimals}')
         : NumberFormat('#,###');
-    return formatter.format(value);
+    return formatter.format(workingValue);
   }
 
   /// 운동 회차 포맷 (N회차)

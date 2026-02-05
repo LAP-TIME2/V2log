@@ -139,36 +139,48 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       appBar: _buildAppBar(context, session, workoutTimer),
       body: Column(
         children: [
-          // 운동 진행 상태 표시 (프리셋 모드)
-          if (session.mode == WorkoutMode.preset && routineExercises.isNotEmpty)
-            _buildExerciseProgress(routineExercises, currentExerciseIndex),
+          // 상단 고정 영역 (스크롤 안 됨)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 운동 진행 상태 표시 (프리셋 모드)
+              if (session.mode == WorkoutMode.preset && routineExercises.isNotEmpty)
+                _buildExerciseProgress(routineExercises, currentExerciseIndex),
 
-          // 운동 가이드 영역
-          _buildExerciseHeader(session, currentExercise),
+              // 운동 가이드 영역
+              _buildExerciseHeader(session, currentExercise),
+            ],
+          ),
 
-          // 세트 기록 리스트
+          // 세트 기록 리스트 (스크롤 가능)
           Expanded(
             child: _buildSetList(currentSets),
           ),
 
-          // 휴식 타이머 (컴팩트)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: RestTimerWidget(expanded: false),
-          ),
+          // 하단 고정 영역 (스크롤 안 됨)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 휴식 타이머 (컴팩트)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: RestTimerWidget(expanded: false),
+              ),
 
-          // 빠른 입력 컨트롤
-          QuickInputControl(
-            weight: _currentWeight,
-            reps: _currentReps,
-            previousWeight: currentSets.isNotEmpty ? currentSets.last.weight : null,
-            previousReps: currentSets.isNotEmpty ? currentSets.last.reps : null,
-            onWeightChanged: (value) => setState(() => _currentWeight = value),
-            onRepsChanged: (value) => setState(() => _currentReps = value),
-          ),
+              // 빠른 입력 컨트롤
+              QuickInputControl(
+                weight: _currentWeight,
+                reps: _currentReps,
+                previousWeight: currentSets.isNotEmpty ? currentSets.last.weight : null,
+                previousReps: currentSets.isNotEmpty ? currentSets.last.reps : null,
+                onWeightChanged: (value) => setState(() => _currentWeight = value),
+                onRepsChanged: (value) => setState(() => _currentReps = value),
+              ),
 
-          // 세트 완료 버튼 + 다음 운동 버튼
-          _buildBottomButtons(session, routineExercises, currentExerciseIndex, currentSets),
+              // 세트 완료 버튼 + 다음 운동 버튼
+              _buildBottomButtons(session, routineExercises, currentExerciseIndex, currentSets),
+            ],
+          ),
         ],
       ),
     );
@@ -425,7 +437,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     final isTargetReached = completedSets >= targetSets;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: AppColors.darkCard,
         border: Border(
@@ -438,7 +453,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           children: [
             // 세트 완료 버튼
             V2Button.primary(
-              text: '세트 완료 ($completedSets${isPresetMode ? '/$targetSets' : ''})',
+              text: isPresetMode ? '완료 $completedSets/$targetSets' : '세트 완료',
               icon: Icons.check_circle,
               onPressed: _completeSet,
               fullWidth: true,
@@ -446,32 +461,32 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
             // 프리셋 모드에서 다음 운동 버튼
             if (isPresetMode && routineExercises.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   // 이전 운동 버튼
                   if (currentExerciseIndex > 0)
                     Expanded(
                       child: V2Button.outline(
-                        text: '이전 운동',
+                        text: '이전',
                         icon: Icons.arrow_back,
                         onPressed: () {
                           ref.read(currentExerciseIndexProvider.notifier).previous();
                         },
                       ),
                     ),
-                  if (currentExerciseIndex > 0) const SizedBox(width: AppSpacing.md),
+                  if (currentExerciseIndex > 0) const SizedBox(width: AppSpacing.sm),
 
                   // 다음 운동 버튼
                   Expanded(
                     child: isLastExercise
                         ? V2Button.secondary(
-                            text: '운동 완료',
+                            text: '완료',
                             icon: Icons.flag,
                             onPressed: () => _showFinishDialog(context),
                           )
                         : V2Button.secondary(
-                            text: isTargetReached ? '다음 운동' : '다음 운동으로',
+                            text: isTargetReached ? '다음' : '다음으로',
                             icon: Icons.arrow_forward,
                             onPressed: () {
                               ref.read(currentExerciseIndexProvider.notifier).next();
@@ -891,12 +906,49 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
                 isSelected: _selectedMuscle == null,
                 onTap: () => _updateMuscleFilter(null),
               ),
-              ...MuscleGroup.values.take(8).map((muscle) => _FilterChip(
-                    label: muscle.label,
-                    isSelected: _selectedMuscle == muscle,
-                    onTap: () => _updateMuscleFilter(muscle),
-                    color: muscle.color,
-                  )),
+              // 주요 근육 그룹 + 하체
+              _FilterChip(
+                label: MuscleGroup.chest.label,
+                isSelected: _selectedMuscle == MuscleGroup.chest,
+                onTap: () => _updateMuscleFilter(MuscleGroup.chest),
+                color: MuscleGroup.chest.color,
+              ),
+              _FilterChip(
+                label: MuscleGroup.back.label,
+                isSelected: _selectedMuscle == MuscleGroup.back,
+                onTap: () => _updateMuscleFilter(MuscleGroup.back),
+                color: MuscleGroup.back.color,
+              ),
+              _FilterChip(
+                label: MuscleGroup.shoulders.label,
+                isSelected: _selectedMuscle == MuscleGroup.shoulders,
+                onTap: () => _updateMuscleFilter(MuscleGroup.shoulders),
+                color: MuscleGroup.shoulders.color,
+              ),
+              _FilterChip(
+                label: MuscleGroup.legs.label,
+                isSelected: _selectedMuscle == MuscleGroup.legs,
+                onTap: () => _updateMuscleFilter(MuscleGroup.legs),
+                color: MuscleGroup.legs.color,
+              ),
+              _FilterChip(
+                label: MuscleGroup.biceps.label,
+                isSelected: _selectedMuscle == MuscleGroup.biceps,
+                onTap: () => _updateMuscleFilter(MuscleGroup.biceps),
+                color: MuscleGroup.biceps.color,
+              ),
+              _FilterChip(
+                label: MuscleGroup.triceps.label,
+                isSelected: _selectedMuscle == MuscleGroup.triceps,
+                onTap: () => _updateMuscleFilter(MuscleGroup.triceps),
+                color: MuscleGroup.triceps.color,
+              ),
+              _FilterChip(
+                label: MuscleGroup.core.label,
+                isSelected: _selectedMuscle == MuscleGroup.core,
+                onTap: () => _updateMuscleFilter(MuscleGroup.core),
+                color: MuscleGroup.core.color,
+              ),
             ],
           ),
         ),
@@ -1044,7 +1096,7 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// 운동 가이드 카드 (항상 운동 방법/팁 표시)
+/// 운동 가이드 카드 (간결 버전)
 class _ExerciseGuideCard extends StatelessWidget {
   final ExerciseModel exercise;
   final WorkoutSessionModel session;
@@ -1060,8 +1112,17 @@ class _ExerciseGuideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 근육 태그 텍스트 생성
+    final muscleTags = [
+      exercise.primaryMuscle.label,
+      ...exercise.secondaryMuscles.take(1).map((m) => m.label),
+    ].join(' + ');
+
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: AppColors.darkCard,
         border: Border(
@@ -1069,62 +1130,69 @@ class _ExerciseGuideCard extends StatelessWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 운동 아이콘
           Container(
-            width: 56,
-            height: 56,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: exercise.primaryMuscle.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
             child: Icon(
               Icons.fitness_center,
               color: exercise.primaryMuscle.color,
-              size: 28,
+              size: 20,
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: AppSpacing.sm),
 
-          // 운동 이름 + 근육 + 목표
-          SizedBox(
-            width: 120,
+          // 운동 정보
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   exercise.name,
-                  style: AppTypography.h4.copyWith(color: AppColors.darkText),
+                  style: AppTypography.h4.copyWith(
+                    color: AppColors.darkText,
+                    fontSize: 16,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
+                const SizedBox(height: 2),
+                Row(
                   children: [
-                    _buildMuscleTag(exercise.primaryMuscle.label, exercise.primaryMuscle.color),
-                    if (exercise.secondaryMuscles.isNotEmpty)
-                      ...exercise.secondaryMuscles.take(2).map((m) =>
-                        _buildMuscleTag(m.label, m.color)),
+                    Text(
+                      muscleTags,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: exercise.primaryMuscle.color,
+                        fontSize: 11,
+                      ),
+                    ),
+                    if (routineExercise != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary500.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          routineExercise.setsRepsText,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.primary500,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-                // 프리셋 모드 목표
-                if (routineExercise != null) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    '목표: ${routineExercise.setsRepsText}',
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.primary500),
-                  ),
-                ],
               ],
             ),
-          ),
-
-          const SizedBox(width: AppSpacing.md),
-
-          // 운동 방법 + 팁 (항상 표시)
-          Expanded(
-            child: _buildExerciseGuide(),
           ),
 
           // 운동 변경 버튼
@@ -1134,130 +1202,10 @@ class _ExerciseGuideCard extends StatelessWidget {
               onPressed: onChangeExercise,
               color: AppColors.darkTextSecondary,
               tooltip: '운동 변경',
+              iconSize: 20,
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExerciseGuide() {
-    final exercise = this.exercise;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 운동 방법 (instructions) - 2~3줄
-          if (exercise.instructions.isNotEmpty) ...[
-            Row(
-              children: [
-                Icon(Icons.format_list_numbered, size: 14, color: AppColors.primary500),
-                const SizedBox(width: 4),
-                Text(
-                  '운동 방법',
-                  style: AppTypography.labelSmall.copyWith(color: AppColors.darkTextSecondary),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            ...exercise.instructions.take(3).toList().asMap().entries.map((entry) {
-              final index = entry.key;
-              final instruction = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary500.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${index + 1}',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.primary500,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        instruction,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.darkTextSecondary,
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: AppSpacing.xs),
-          ],
-
-          // 팁 (tips) - 1~2개
-          if (exercise.tips.isNotEmpty) ...[
-            Row(
-              children: [
-                Icon(Icons.lightbulb_outline, size: 14, color: AppColors.secondary500),
-                const SizedBox(width: 4),
-                Text(
-                  '팁',
-                  style: AppTypography.labelSmall.copyWith(color: AppColors.darkTextSecondary),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: AppColors.secondary500.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
-                border: Border.all(
-                  color: AppColors.secondary500.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: exercise.tips.take(2).map((tip) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 12,
-                          color: AppColors.secondary500,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            tip,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.darkTextSecondary,
-                              height: 1.3,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -1282,4 +1230,5 @@ class _ExerciseGuideCard extends StatelessWidget {
       ),
     );
   }
+
 }

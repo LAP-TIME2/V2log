@@ -11,8 +11,8 @@ class FitnessCalculator {
   static double calculate1RM(double weight, int reps) {
     if (reps <= 0) return 0;
     if (reps == 1) return weight;
-    if (reps > 30) {
-      throw ArgumentError('반복 수가 너무 많습니다 (최대 30회)');
+    if (reps > 100) {
+      throw ArgumentError('반복 수가 너무 많습니다 (최대 100회)');
     }
 
     final brzycki = weight * (36 / (37 - reps));
@@ -81,7 +81,7 @@ class FitnessCalculator {
 
     // Brzycki 공식 역산
     final reps = (37 - (36 * percentage)).round();
-    return reps.clamp(1, 30);
+    return reps.clamp(1, 100);
   }
 
   /// BMI 계산

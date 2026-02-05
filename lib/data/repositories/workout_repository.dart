@@ -2,9 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/body_record_model.dart';
+import '../models/sync_queue_model.dart';
 import '../models/workout_session_model.dart';
 import '../models/workout_set_model.dart';
 import '../services/supabase_service.dart';
+import '../services/sync_service.dart';
 
 part 'workout_repository.g.dart';
 
@@ -21,6 +23,13 @@ class WorkoutRepository {
   WorkoutRepository(this._ref);
 
   SupabaseService get _supabase => _ref.read(supabaseServiceProvider);
+  SyncService get _sync => _ref.read(syncServiceProvider);
+
+  /// 현재 연결 상태 확인
+  Future<bool> get _isOnline async {
+    final status = await _sync.checkConnection();
+    return status == ConnectionStatus.online;
+  }
 
   // ==================== Workout Sessions ====================
 
@@ -40,16 +49,38 @@ class WorkoutRepository {
 
       final sessionNumber = (countResponse as List).length + 1;
 
+      final sessionData = {
+        'user_id': userId,
+        'routine_id': routineId,
+        'session_number': sessionNumber,
+        'mode': mode.value,
+        'started_at': DateTime.now().toIso8601String(),
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      // 오프라인이면 큐에 추가
+      if (!await _isOnline) {
+        debugPrint('📦 오프라인: 세션 시작을 큐에 추가');
+        await _sync.enqueue(
+          operation: SyncOperation.insert,
+          table: 'workout_sessions',
+          data: sessionData,
+        );
+        // 로컬용 ID 생성
+        return WorkoutSessionModel(
+          id: sessionData['user_id'] + '_' + DateTime.now().millisecondsSinceEpoch.toString(),
+          userId: userId,
+          routineId: routineId,
+          sessionNumber: sessionNumber,
+          mode: mode,
+          startedAt: DateTime.now(),
+          createdAt: DateTime.now(),
+        );
+      }
+
       final response = await _supabase
           .from(SupabaseTables.workoutSessions)
-          .insert({
-            'user_id': userId,
-            'routine_id': routineId,
-            'session_number': sessionNumber,
-            'mode': mode.value,
-            'started_at': DateTime.now().toIso8601String(),
-            'created_at': DateTime.now().toIso8601String(),
-          })
+          .insert(sessionData)
           .select()
           .single();
 
@@ -81,7 +112,39 @@ class WorkoutRepository {
       final totalVolume = sets.fold(0.0, (sum, set) => sum + set.volume);
       final totalSets = sets.length;
 
-      // 세션 업데이트
+      final updateData = {
+        'id': sessionId, // update에 필요
+        'finished_at': DateTime.now().toIso8601String(),
+        'total_volume': totalVolume,
+        'total_sets': totalSets,
+        'notes': notes,
+        'mood_rating': moodRating,
+      };
+
+      // 오프라인이면 큐에 추가
+      if (!await _isOnline) {
+        debugPrint('📦 오프라인: 세션 완료를 큐에 추가');
+        await _sync.enqueue(
+          operation: SyncOperation.update,
+          table: 'workout_sessions',
+          data: updateData,
+        );
+        return WorkoutSessionModel(
+          id: sessionId,
+          userId: '',
+          sessionNumber: 1,
+          mode: WorkoutMode.free,
+          startedAt: DateTime.now(),
+          finishedAt: DateTime.now(),
+          totalVolume: totalVolume,
+          totalSets: totalSets,
+          notes: notes,
+          moodRating: moodRating,
+          createdAt: DateTime.now(),
+          sets: sets,
+        );
+      }
+
       final response = await _supabase
           .from(SupabaseTables.workoutSessions)
           .update({
@@ -108,6 +171,23 @@ class WorkoutRepository {
   /// 운동 세션 취소
   Future<void> cancelWorkoutSession(String sessionId) async {
     try {
+      final updateData = {
+        'id': sessionId,
+        'is_cancelled': true,
+        'finished_at': DateTime.now().toIso8601String(),
+      };
+
+      // 오프라인이면 큐에 추가
+      if (!await _isOnline) {
+        debugPrint('📦 오프라인: 세션 취소를 큐에 추가');
+        await _sync.enqueue(
+          operation: SyncOperation.update,
+          table: 'workout_sessions',
+          data: updateData,
+        );
+        return;
+      }
+
       await _supabase
           .from(SupabaseTables.workoutSessions)
           .update({
@@ -268,23 +348,45 @@ class WorkoutRepository {
         reps: reps,
       );
 
+      final setData = {
+        'id': sessionId + '_set_$setNumber',
+        'session_id': sessionId,
+        'exercise_id': exerciseId,
+        'set_number': setNumber,
+        'set_type': setType.value,
+        'weight': weight,
+        'reps': reps,
+        'target_weight': targetWeight,
+        'target_reps': targetReps,
+        'rpe': rpe,
+        'rest_seconds': restSeconds,
+        'is_pr': isPr,
+        'notes': notes,
+        'completed_at': DateTime.now().toIso8601String(),
+      };
+
+      // 오프라인이면 큐에 추가
+      if (!await _isOnline) {
+        debugPrint('📦 오프라인: 세트 추가를 큐에 추가');
+        await _sync.enqueue(
+          operation: SyncOperation.insert,
+          table: 'workout_sets',
+          data: setData,
+        );
+        // 운동 기록 업데이트도 큐에 추가
+        if (weight != null && reps != null) {
+          await _updateExerciseRecord(
+            exerciseId: exerciseId,
+            weight: weight,
+            reps: reps,
+          );
+        }
+        return WorkoutSetModel.fromJson(setData);
+      }
+
       final response = await _supabase
           .from(SupabaseTables.workoutSets)
-          .insert({
-            'session_id': sessionId,
-            'exercise_id': exerciseId,
-            'set_number': setNumber,
-            'set_type': setType.value,
-            'weight': weight,
-            'reps': reps,
-            'target_weight': targetWeight,
-            'target_reps': targetReps,
-            'rpe': rpe,
-            'rest_seconds': restSeconds,
-            'is_pr': isPr,
-            'notes': notes,
-            'completed_at': DateTime.now().toIso8601String(),
-          })
+          .insert(setData)
           .select()
           .single();
 
@@ -313,6 +415,35 @@ class WorkoutRepository {
     String? notes,
   }) async {
     try {
+      final updateData = {
+        'id': setId,
+        if (weight != null) 'weight': weight,
+        if (reps != null) 'reps': reps,
+        if (rpe != null) 'rpe': rpe,
+        if (notes != null) 'notes': notes,
+      };
+
+      // 오프라인이면 큐에 추가
+      if (!await _isOnline) {
+        debugPrint('📦 오프라인: 세트 수정을 큐에 추가');
+        await _sync.enqueue(
+          operation: SyncOperation.update,
+          table: 'workout_sets',
+          data: updateData,
+        );
+        return WorkoutSetModel(
+          id: setId,
+          sessionId: '',
+          exerciseId: '',
+          setNumber: 1,
+          weight: weight,
+          reps: reps,
+          rpe: rpe,
+          notes: notes,
+          completedAt: DateTime.now(),
+        );
+      }
+
       final response = await _supabase
           .from(SupabaseTables.workoutSets)
           .update({
@@ -335,6 +466,19 @@ class WorkoutRepository {
   /// 세트 기록 삭제
   Future<void> deleteSet(String setId) async {
     try {
+      final deleteData = {'id': setId};
+
+      // 오프라인이면 큐에 추가
+      if (!await _isOnline) {
+        debugPrint('📦 오프라인: 세트 삭제를 큐에 추가');
+        await _sync.enqueue(
+          operation: SyncOperation.delete,
+          table: 'workout_sets',
+          data: deleteData,
+        );
+        return;
+      }
+
       await _supabase
           .from(SupabaseTables.workoutSets)
           .delete()

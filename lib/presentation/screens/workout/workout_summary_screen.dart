@@ -390,11 +390,18 @@ class _StatBox extends StatelessWidget {
             size: 28,
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: AppTypography.h4.copyWith(
-              color: AppColors.darkText,
-              fontWeight: FontWeight.w700,
+          SizedBox(
+            height: 28,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: AppTypography.h4.copyWith(
+                  color: AppColors.darkText,
+                  fontWeight: FontWeight.w700,
+                ),
+                maxLines: 1,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.xs),

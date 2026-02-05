@@ -44,7 +44,7 @@ class NumberStepper extends StatelessWidget {
       minValue: minValue,
       maxValue: maxValue,
       onChanged: onChanged,
-      quickButtons: const [-5, -2.5, 2.5, 5],
+      quickButtons: const [-2.5, 2.5],
       decimalPlaces: 1,
       key: key,
     );
@@ -65,7 +65,7 @@ class NumberStepper extends StatelessWidget {
       minValue: minValue.toDouble(),
       maxValue: maxValue.toDouble(),
       onChanged: (v) => onChanged(v.toInt()),
-      quickButtons: const [-5, -1, 1, 5],
+      quickButtons: const [-1, 1],
       decimalPlaces: 0,
       key: key,
     );
@@ -104,7 +104,7 @@ class NumberStepper extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: quickButtons!.map((delta) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: _QuickButton(
                   label: _formatDelta(delta),
                   onTap: () => _handleChange(delta),

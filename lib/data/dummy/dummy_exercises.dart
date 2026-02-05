@@ -778,7 +778,21 @@ class DummyExercises {
     var result = exercises;
 
     if (filter.primaryMuscle != null) {
-      result = result.where((e) => e.primaryMuscle == filter.primaryMuscle).toList();
+      // "하체" 카테고리는 관련 모든 하체 부위 운동을 포함
+      if (filter.primaryMuscle == MuscleGroup.legs) {
+        const legMuscles = [
+          MuscleGroup.legs,
+          MuscleGroup.quadriceps,
+          MuscleGroup.quads,
+          MuscleGroup.hamstrings,
+          MuscleGroup.glutes,
+          MuscleGroup.calves,
+          MuscleGroup.hipFlexors,
+        ];
+        result = result.where((e) => legMuscles.contains(e.primaryMuscle)).toList();
+      } else {
+        result = result.where((e) => e.primaryMuscle == filter.primaryMuscle).toList();
+      }
     }
 
     if (filter.category != null) {

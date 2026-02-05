@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
-import '../atoms/number_stepper.dart';
 
-/// 빠른 입력 컨트롤 (무게/횟수)
+/// 빠른 입력 컨트롤 (무게/횟수) - 휠 피커 방식
 class QuickInputControl extends StatelessWidget {
   final double weight;
   final int reps;
@@ -28,8 +28,8 @@ class QuickInputControl extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.lg,
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: AppColors.darkCard,
@@ -37,223 +37,388 @@ class QuickInputControl extends StatelessWidget {
           top: BorderSide(color: AppColors.darkBorder, width: 1),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          // 이전 기록 표시
-          if (previousWeight != null || previousReps != null) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.history,
-                  size: 14,
-                  color: AppColors.darkTextTertiary,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  '이전: ${_formatPrevious()}',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.darkTextTertiary,
-                  ),
-                ),
-              ],
+          // 무게 입력
+          Expanded(
+            child: _WeightInput(
+              value: weight,
+              onChanged: onWeightChanged,
             ),
-            const SizedBox(height: AppSpacing.md),
-          ],
+          ),
+          const SizedBox(width: AppSpacing.md),
 
-          // 무게/횟수 입력
-          Row(
-            children: [
-              // 무게 입력
-              Expanded(
-                child: _InputSection(
-                  label: '무게',
-                  child: NumberStepper.weight(
-                    value: weight,
-                    onChanged: onWeightChanged,
-                  ),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 100,
-                color: AppColors.darkBorder,
-                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              ),
-              // 횟수 입력
-              Expanded(
-                child: _InputSection(
-                  label: '횟수',
-                  child: NumberStepper.reps(
-                    value: reps,
-                    onChanged: onRepsChanged,
-                  ),
-                ),
-              ),
-            ],
+          // 횟수 입력
+          Expanded(
+            child: _RepsInput(
+              value: reps,
+              onChanged: onRepsChanged,
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  String _formatPrevious() {
-    final parts = <String>[];
-    if (previousWeight != null) {
-      final w = previousWeight == previousWeight!.roundToDouble()
-          ? '${previousWeight!.toInt()}kg'
-          : '${previousWeight!.toStringAsFixed(1)}kg';
-      parts.add(w);
+/// 무게 입력 위젯 - 휠 피커 + 좌우 버튼
+class _WeightInput extends StatefulWidget {
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  const _WeightInput({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  State<_WeightInput> createState() => _WeightInputState();
+}
+
+class _WeightInputState extends State<_WeightInput> {
+  late FixedExtentScrollController _controller;
+  late int _selectedValue;
+
+  // 무게 범위: 0kg ~ 1000kg, 2.5kg 단위
+  static const double minValue = 0;
+  static const double maxValue = 1000;
+  static const double step = 2.5;
+  static const int itemCount = 401; // (1000 / 2.5) + 1
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedValue = (widget.value / step).round().clamp(0, itemCount - 1);
+    _controller = FixedExtentScrollController(initialItem: _selectedValue);
+  }
+
+  @override
+  void didUpdateWidget(_WeightInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newValue = (widget.value / step).round().clamp(0, itemCount - 1);
+    if (newValue != _selectedValue) {
+      _selectedValue = newValue;
+      _controller.animateToItem(
+        _selectedValue,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
     }
-    if (previousReps != null) {
-      parts.add('$previousReps회');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _updateValue(int delta) {
+    final newIndex = _selectedValue + delta;
+    if (newIndex >= 0 && newIndex < itemCount) {
+      setState(() {
+        _selectedValue = newIndex;
+      });
+      _controller.animateToItem(
+        _selectedValue,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+      widget.onChanged(_selectedValue * step);
+      HapticFeedback.lightImpact();
     }
-    return parts.join(' × ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 라벨
+        Text(
+          '무게',
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.darkTextSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+
+        // 휠 피커 + 좌우 버튼
+        SizedBox(
+          height: 80,
+          child: Row(
+            children: [
+              // 왼쪽 버튼 세로
+              _VerticalButtonColumn(
+                topLabel: '-20',
+                bottomLabel: '-10',
+                topOnTap: () => _updateValue(-8), // 20 / 2.5 = 8
+                bottomOnTap: () => _updateValue(-4), // 10 / 2.5 = 4
+              ),
+              const SizedBox(width: AppSpacing.sm),
+
+              // 중앙 휠 피커
+              Expanded(
+                child: ListWheelScrollView.useDelegate(
+                  controller: _controller,
+                  itemExtent: 40,
+                  perspective: 0.005,
+                  diameterRatio: 1.5,
+                  physics: const FixedExtentScrollPhysics(),
+                  onSelectedItemChanged: (index) {
+                    setState(() {
+                      _selectedValue = index;
+                    });
+                    widget.onChanged(index * step);
+                  },
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    builder: (context, index) {
+                      final value = (index * step);
+                      final isSelected = index == _selectedValue;
+                      return Center(
+                        child: Text(
+                          _formatValue(value),
+                          style: AppTypography.h3.copyWith(
+                            color: isSelected
+                                ? AppColors.darkText
+                                : AppColors.darkTextSecondary,
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w400,
+                            fontSize: isSelected ? 20 : 16,
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: itemCount,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: AppSpacing.sm),
+
+              // 오른쪽 버튼 세로
+              _VerticalButtonColumn(
+                topLabel: '+20',
+                bottomLabel: '+10',
+                topOnTap: () => _updateValue(8), // 20 / 2.5 = 8
+                bottomOnTap: () => _updateValue(4), // 10 / 2.5 = 4
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.xs),
+
+        // 단위 표시
+        Text(
+          'kg',
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.darkTextTertiary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatValue(double val) {
+    if (val == val.roundToDouble()) {
+      return val.toInt().toString();
+    }
+    return val.toStringAsFixed(1);
   }
 }
 
-class _InputSection extends StatelessWidget {
-  final String label;
-  final Widget child;
+/// 횟수 입력 위젯 - 휠 피커 + 좌우 버튼
+class _RepsInput extends StatefulWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
 
-  const _InputSection({
-    required this.label,
-    required this.child,
+  const _RepsInput({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  State<_RepsInput> createState() => _RepsInputState();
+}
+
+class _RepsInputState extends State<_RepsInput> {
+  late FixedExtentScrollController _controller;
+  late int _selectedValue;
+
+  // 횟수 범위: 1회 ~ 100회
+  static const int minValue = 1;
+  static const int maxValue = 100;
+  static const int itemCount = 100;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedValue = (widget.value - minValue).clamp(0, itemCount - 1);
+    _controller = FixedExtentScrollController(initialItem: _selectedValue);
+  }
+
+  @override
+  void didUpdateWidget(_RepsInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newValue = (widget.value - minValue).clamp(0, itemCount - 1);
+    if (newValue != _selectedValue) {
+      _selectedValue = newValue;
+      _controller.animateToItem(
+        _selectedValue,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _updateValue(int delta) {
+    final newIndex = _selectedValue + delta;
+    if (newIndex >= 0 && newIndex < itemCount) {
+      setState(() {
+        _selectedValue = newIndex;
+      });
+      _controller.animateToItem(
+        _selectedValue,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+      widget.onChanged(_selectedValue + minValue);
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 라벨
+        Text(
+          '횟수',
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.darkTextSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+
+        // 휠 피커 + 좌우 버튼
+        SizedBox(
+          height: 80,
+          child: Row(
+            children: [
+              // 왼쪽 버튼 세로
+              _VerticalButtonColumn(
+                topLabel: '-10',
+                bottomLabel: '-5',
+                topOnTap: () => _updateValue(-10),
+                bottomOnTap: () => _updateValue(-5),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+
+              // 중앙 휠 피커
+              Expanded(
+                child: ListWheelScrollView.useDelegate(
+                  controller: _controller,
+                  itemExtent: 40,
+                  perspective: 0.005,
+                  diameterRatio: 1.5,
+                  physics: const FixedExtentScrollPhysics(),
+                  onSelectedItemChanged: (index) {
+                    setState(() {
+                      _selectedValue = index;
+                    });
+                    widget.onChanged(index + minValue);
+                  },
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    builder: (context, index) {
+                      final value = index + minValue;
+                      final isSelected = index == _selectedValue;
+                      return Center(
+                        child: Text(
+                          '$value',
+                          style: AppTypography.h3.copyWith(
+                            color: isSelected
+                                ? AppColors.darkText
+                                : AppColors.darkTextSecondary,
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w400,
+                            fontSize: isSelected ? 20 : 16,
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: itemCount,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: AppSpacing.sm),
+
+              // 오른쪽 버튼 세로
+              _VerticalButtonColumn(
+                topLabel: '+10',
+                bottomLabel: '+5',
+                topOnTap: () => _updateValue(10),
+                bottomOnTap: () => _updateValue(5),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.xs),
+
+        // 단위 표시
+        Text(
+          '회',
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.darkTextTertiary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 세로 버튼 컬럼 (위아래 2개 버튼)
+class _VerticalButtonColumn extends StatelessWidget {
+  final String topLabel;
+  final String bottomLabel;
+  final VoidCallback topOnTap;
+  final VoidCallback bottomOnTap;
+
+  const _VerticalButtonColumn({
+    required this.topLabel,
+    required this.bottomLabel,
+    required this.topOnTap,
+    required this.bottomOnTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
-        Text(
-          label,
-          style: AppTypography.labelMedium.copyWith(
-            color: AppColors.darkTextSecondary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        child,
-      ],
-    );
-  }
-}
-
-/// 컴팩트 빠른 입력 (인라인)
-class CompactQuickInput extends StatelessWidget {
-  final double weight;
-  final int reps;
-  final ValueChanged<double> onWeightChanged;
-  final ValueChanged<int> onRepsChanged;
-
-  const CompactQuickInput({
-    required this.weight,
-    required this.reps,
-    required this.onWeightChanged,
-    required this.onRepsChanged,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // 무게
-        _CompactInput(
-          value: weight,
-          unit: 'kg',
-          step: 2.5,
-          onChanged: onWeightChanged,
-        ),
-        const SizedBox(width: AppSpacing.xl),
-        Text(
-          '×',
-          style: AppTypography.h3.copyWith(
-            color: AppColors.darkTextTertiary,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.xl),
-        // 횟수
-        _CompactInput(
-          value: reps.toDouble(),
-          unit: '회',
-          step: 1,
-          onChanged: (v) => onRepsChanged(v.toInt()),
-          isInteger: true,
-        ),
-      ],
-    );
-  }
-}
-
-class _CompactInput extends StatelessWidget {
-  final double value;
-  final String unit;
-  final double step;
-  final ValueChanged<double> onChanged;
-  final bool isInteger;
-
-  const _CompactInput({
-    required this.value,
-    required this.unit,
-    required this.step,
-    required this.onChanged,
-    this.isInteger = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _CompactButton(
-          icon: Icons.remove,
-          onTap: () => onChanged(value - step),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Container(
-          constraints: const BoxConstraints(minWidth: 70),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                isInteger
-                    ? value.toInt().toString()
-                    : (value == value.roundToDouble()
-                        ? value.toInt().toString()
-                        : value.toStringAsFixed(1)),
-                style: AppTypography.h2.copyWith(
-                  color: AppColors.darkText,
-                  fontWeight: FontWeight.w700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                unit,
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.darkTextSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        _CompactButton(
-          icon: Icons.add,
-          onTap: () => onChanged(value + step),
-        ),
+        _WheelButton(label: topLabel, onTap: topOnTap),
+        const SizedBox(height: AppSpacing.xs),
+        _WheelButton(label: bottomLabel, onTap: bottomOnTap),
       ],
     );
   }
 }
 
-class _CompactButton extends StatelessWidget {
-  final IconData icon;
+/// 휠 피커용 작은 버튼
+class _WheelButton extends StatelessWidget {
+  final String label;
   final VoidCallback onTap;
 
-  const _CompactButton({
-    required this.icon,
+  const _WheelButton({
+    required this.label,
     required this.onTap,
   });
 
@@ -261,17 +426,24 @@ class _CompactButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.darkCardElevated,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      borderRadius: BorderRadius.circular(6),
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        child: SizedBox(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
           width: 36,
-          height: 36,
-          child: Icon(
-            icon,
-            color: AppColors.darkText,
-            size: 20,
+          height: 32,
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.darkText,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
           ),
         ),
       ),

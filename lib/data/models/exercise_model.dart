@@ -67,6 +67,7 @@ enum MuscleGroup {
   lowerBack('LOWER_BACK', '하부 등', AppColors.muscleBack),
   rearDelts('REAR_DELTS', '후면 삼각근', AppColors.muscleShoulders),
   hipFlexors('HIP_FLEXORS', '고관절 굴곡근', AppColors.muscleLegs),
+  legs('LEGS', '하체', AppColors.muscleLegs),
   fullBody('FULL_BODY', '전신', AppColors.primary500);
 
   final String value;

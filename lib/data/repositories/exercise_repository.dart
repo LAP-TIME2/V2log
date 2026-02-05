@@ -174,7 +174,21 @@ class ExerciseRepository {
       var query = _supabase.from(SupabaseTables.exercises).select();
 
       if (primaryMuscle != null) {
-        query = query.eq('primary_muscle', primaryMuscle.value);
+        // "하체" 카테고리는 관련 모든 하체 부위 운동을 포함
+        if (primaryMuscle == MuscleGroup.legs) {
+          const legMuscles = [
+            'LEGS',
+            'QUADRICEPS',
+            'QUADS',
+            'HAMSTRINGS',
+            'GLUTES',
+            'CALVES',
+            'HIP_FLEXORS',
+          ];
+          query = query.inFilter('primary_muscle', legMuscles);
+        } else {
+          query = query.eq('primary_muscle', primaryMuscle.value);
+        }
       }
 
       if (category != null) {
