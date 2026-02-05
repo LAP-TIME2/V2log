@@ -119,6 +119,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 _buildSectionTitle('1RM 추이 (최근 6개월)'),
                 const SizedBox(height: AppSpacing.lg),
                 _buildExercise1RMSection(context),
+
+                const SizedBox(height: AppSpacing.xxxl),
+
+                // 운동 빈도
+                _buildSectionTitle('운동 빈도 (최근 6개월)'),
+                const SizedBox(height: AppSpacing.lg),
+                _buildMuscleFrequencySection(context),
               ],
             ),
           ),
@@ -310,9 +317,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       MuscleGroup.back: AppColors.muscleBack,
       MuscleGroup.shoulders: AppColors.warning,
       MuscleGroup.quadriceps: AppColors.success,
-      MuscleGroup.biceps: AppColors.muscleShoulders,
-      MuscleGroup.triceps: AppColors.muscleTriceps,
-      MuscleGroup.core: AppColors.secondary500,
+      MuscleGroup.biceps: AppColors.muscleArms,
+      MuscleGroup.triceps: AppColors.muscleArms,
+      MuscleGroup.core: AppColors.muscleCore,
     };
 
     // 근육 그룹 순서 (위에서부터 쌓이는 순서)
@@ -531,9 +538,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       MuscleGroup.back: AppColors.muscleBack,
       MuscleGroup.shoulders: AppColors.warning,
       MuscleGroup.quadriceps: AppColors.success,
-      MuscleGroup.biceps: AppColors.muscleShoulders,
-      MuscleGroup.triceps: AppColors.muscleTriceps,
-      MuscleGroup.core: AppColors.secondary500,
+      MuscleGroup.biceps: AppColors.muscleArms,
+      MuscleGroup.triceps: AppColors.muscleArms,
+      MuscleGroup.core: AppColors.muscleCore,
     };
 
     // 근육 그룹 순서 (위에서부터 쌓이는 순서)
@@ -740,9 +747,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       MuscleGroup.back: AppColors.muscleBack,
       MuscleGroup.shoulders: AppColors.warning,
       MuscleGroup.quadriceps: AppColors.success,
-      MuscleGroup.biceps: AppColors.muscleShoulders,
-      MuscleGroup.triceps: AppColors.muscleTriceps,
-      MuscleGroup.core: AppColors.secondary500,
+      MuscleGroup.biceps: AppColors.muscleArms,
+      MuscleGroup.triceps: AppColors.muscleArms,
+      MuscleGroup.core: AppColors.muscleCore,
     };
 
     // 부위별 이름 매핑
@@ -1201,6 +1208,274 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         ),
       ),
     );
+  }
+
+  /// 운동 빈도 섹션 (부위별 + 운동별 TOP 5)
+  Widget _buildMuscleFrequencySection(BuildContext context) {
+    final muscleFrequencyAsync = ref.watch(muscleFrequencyProvider);
+    final exerciseFrequencyAsync = ref.watch(exerciseFrequencyProvider);
+
+    return Column(
+      children: [
+        // 부위별 운동 빈도
+        muscleFrequencyAsync.when(
+          data: (frequencies) => _buildMuscleFrequencyCard(context, frequencies),
+          loading: () => const SizedBox(
+            height: 200,
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary500),
+            ),
+          ),
+          error: (_, __) => _buildErrorCard(),
+        ),
+
+        const SizedBox(height: AppSpacing.lg),
+
+        // 운동별 빈도 TOP 5
+        exerciseFrequencyAsync.when(
+          data: (frequencies) => _buildExerciseFrequencyCard(context, frequencies),
+          loading: () => const SizedBox(
+            height: 200,
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary500),
+            ),
+          ),
+          error: (_, __) => _buildErrorCard(),
+        ),
+      ],
+    );
+  }
+
+  /// 부위별 운동 빈도 카드
+  Widget _buildMuscleFrequencyCard(BuildContext context, List<MuscleFrequency> frequencies) {
+    if (frequencies.every((f) => f.count == 0)) {
+      return V2Card(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Center(
+          child: Text(
+            '최근 6개월 운동 기록이 없어요',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 최대 빈도 계산
+    final maxCount = frequencies.map((f) => f.count).fold<int>(0, (max, count) => count > max ? count : max);
+
+    return V2Card(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '부위별 운동 횟수',
+            style: AppTypography.labelLarge.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ...frequencies.map((frequency) {
+            final percentage = maxCount > 0 ? (frequency.count / maxCount) : 0.0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: frequency.color,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            frequency.label,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.darkText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '${frequency.count}회',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.darkText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: percentage,
+                      backgroundColor: AppColors.darkCardElevated,
+                      valueColor: AlwaysStoppedAnimation<Color>(frequency.color),
+                      minHeight: 8,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  /// 운동별 빈도 TOP 5 카드
+  Widget _buildExerciseFrequencyCard(BuildContext context, List<ExerciseFrequency> frequencies) {
+    if (frequencies.isEmpty) {
+      return V2Card(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Center(
+          child: Text(
+            '최근 6개월 운동 기록이 없어요',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final maxCount = frequencies.isNotEmpty ? frequencies.first.count : 0;
+
+    return V2Card(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '운동별 빈도 TOP 5',
+            style: AppTypography.labelLarge.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ...frequencies.asMap().entries.map((entry) {
+            final index = entry.key;
+            final frequency = entry.value;
+            final percentage = maxCount > 0 ? (frequency.count / maxCount) : 0.0;
+
+            // 부위별 색상 매핑
+            final muscleColor = _getMuscleColor(frequency.primaryMuscle);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            // 순위 뱃지 (부위별 색상 적용)
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: muscleColor,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${index + 1}',
+                                style: AppTypography.caption.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                frequency.exerciseName,
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.darkText,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: muscleColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${frequency.count}회',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.darkText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: percentage,
+                      backgroundColor: AppColors.darkCardElevated,
+                      valueColor: AlwaysStoppedAnimation<Color>(muscleColor),
+                      minHeight: 6,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  /// 부위별 색상 가져오기 (주간/월간 차트와 동일)
+  Color _getMuscleColor(String muscleLabel) {
+    switch (muscleLabel) {
+      case '가슴':
+        return AppColors.muscleChest;
+      case '등':
+      case '광배근':
+        return AppColors.muscleBack;
+      case '어깨':
+        return AppColors.warning;
+      case '하체':
+      case '대퇴사두':
+      case '햄스트링':
+      case '둔근':
+        return AppColors.success;
+      case '이두':
+      case '삼두':
+      case '팔':
+        return AppColors.muscleArms;
+      case '코어':
+      case '복근':
+        return AppColors.muscleCore;
+      default:
+        return AppColors.darkBorder;
+    }
   }
 }
 

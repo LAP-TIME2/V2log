@@ -308,6 +308,48 @@ class _Exercise1RMHistoryProviderElement
       (origin as Exercise1RMHistoryProvider).exerciseName;
 }
 
+String _$muscleFrequencyHash() => r'17b469db059b6c066a50c1c7e753462f8af71786';
+
+/// 부위별 운동 빈도 Provider (최근 6개월)
+///
+/// Copied from [muscleFrequency].
+@ProviderFor(muscleFrequency)
+final muscleFrequencyProvider =
+    AutoDisposeFutureProvider<List<MuscleFrequency>>.internal(
+      muscleFrequency,
+      name: r'muscleFrequencyProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$muscleFrequencyHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MuscleFrequencyRef =
+    AutoDisposeFutureProviderRef<List<MuscleFrequency>>;
+String _$exerciseFrequencyHash() => r'6a35d9542035434b94363e5eb5ab1c6cf8fb0c31';
+
+/// 운동별 빈도 TOP 5 Provider (최근 6개월)
+///
+/// Copied from [exerciseFrequency].
+@ProviderFor(exerciseFrequency)
+final exerciseFrequencyProvider =
+    AutoDisposeFutureProvider<List<ExerciseFrequency>>.internal(
+      exerciseFrequency,
+      name: r'exerciseFrequencyProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$exerciseFrequencyHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ExerciseFrequencyRef =
+    AutoDisposeFutureProviderRef<List<ExerciseFrequency>>;
 String _$userProfileHash() => r'ec764767cecaaaf97fba916f43ba1b95a7c6fd0d';
 
 /// 사용자 프로필 업데이트 Provider

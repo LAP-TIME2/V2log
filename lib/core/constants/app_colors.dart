@@ -77,6 +77,10 @@ abstract class AppColors {
   static const muscleCalves = Color(0xFF06B6D4);
   static const muscleTraps = Color(0xFF84CC16);
   static const muscleForearms = Color(0xFFA855F7);
+  // 팔 (이두 + 삼두) - 보라색
+  static const muscleArms = Color(0xFFA855F7);
+  // 코어 - 핑크색
+  static const muscleCore = Color(0xFFEC4899);
 
   // 세트 타입별 컬러
   static const setWarmup = Color(0xFF94A3B8);

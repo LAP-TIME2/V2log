@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/exercise_model.dart';
 import '../../data/services/supabase_service.dart';
@@ -761,6 +763,220 @@ Future<List<Exercise1RMRecord>> exercise1RMHistory(
     return result;
   } catch (e) {
     print('=== exercise1RMHistory 조회 실패: $e ===');
+    return const [];
+  }
+}
+
+/// 운동 빈도 데이터 모델 (부위별)
+class MuscleFrequency {
+  final String label; // '가슴', '등', '어깨', '하체', '팔', '코어'
+  final int count; // 세트 수
+  final Color color;
+
+  const MuscleFrequency({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+}
+
+/// 운동별 빈도 데이터 모델
+class ExerciseFrequency {
+  final String exerciseName;
+  final int count; // 세트 수
+  final String primaryMuscle; // 주요 부위
+
+  const ExerciseFrequency({
+    required this.exerciseName,
+    required this.count,
+    required this.primaryMuscle,
+  });
+}
+
+/// 부위별 운동 빈도 Provider (최근 6개월)
+@riverpod
+Future<List<MuscleFrequency>> muscleFrequency(MuscleFrequencyRef ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 데이터 반환
+  if (userId == null) {
+    return const [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    // 최근 6개월 시작일 계산
+    final now = DateTime.now();
+    final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+
+    print('=== muscleFrequency 조회: userId=$userId, 기간=${sixMonthsAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    // workout_sessions + workout_sets + exercises JOIN
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          id,
+          workout_sets (
+            exercises (
+              primary_muscle
+            )
+          )
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', sixMonthsAgo.toIso8601String());
+
+    final sessions = response as List;
+    print('=== muscleFrequency 결과: ${sessions.length}세션 ===');
+
+    // 부위별 세트 수 집계
+    final Map<MuscleGroup, int> countByMuscle = {
+      MuscleGroup.chest: 0,
+      MuscleGroup.back: 0,
+      MuscleGroup.shoulders: 0,
+      MuscleGroup.quadriceps: 0,
+      MuscleGroup.quads: 0,
+      MuscleGroup.hamstrings: 0,
+      MuscleGroup.glutes: 0,
+      MuscleGroup.biceps: 0,
+      MuscleGroup.triceps: 0,
+      MuscleGroup.abs: 0,
+      MuscleGroup.obliques: 0,
+      MuscleGroup.core: 0,
+    };
+
+    for (final session in sessions) {
+      final sets = session['workout_sets'] as List? ?? [];
+
+      for (final set in sets) {
+        final exercise = set['exercises'] as Map?;
+        final primaryMuscleStr = exercise?['primary_muscle'] as String?;
+
+        if (primaryMuscleStr != null) {
+          final muscle = MuscleGroup.values.firstWhere(
+            (m) => m.value == primaryMuscleStr,
+            orElse: () => MuscleGroup.fullBody,
+          );
+
+          if (countByMuscle.containsKey(muscle)) {
+            countByMuscle[muscle] = (countByMuscle[muscle] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    // 부위별 그룹화 (하체: quads + hamstrings + glutes, 팔: biceps + triceps, 코어: abs + obliques + core)
+    final chestCount = countByMuscle[MuscleGroup.chest] ?? 0;
+    final backCount = (countByMuscle[MuscleGroup.back] ?? 0) + (countByMuscle[MuscleGroup.lats] ?? 0);
+    final shouldersCount = countByMuscle[MuscleGroup.shoulders] ?? 0;
+    final legsCount = (countByMuscle[MuscleGroup.quadriceps] ?? 0) +
+                      (countByMuscle[MuscleGroup.quads] ?? 0) +
+                      (countByMuscle[MuscleGroup.hamstrings] ?? 0) +
+                      (countByMuscle[MuscleGroup.glutes] ?? 0) +
+                      (countByMuscle[MuscleGroup.calves] ?? 0);
+    final armsCount = (countByMuscle[MuscleGroup.biceps] ?? 0) + (countByMuscle[MuscleGroup.triceps] ?? 0);
+    final coreCount = (countByMuscle[MuscleGroup.abs] ?? 0) +
+                      (countByMuscle[MuscleGroup.obliques] ?? 0) +
+                      (countByMuscle[MuscleGroup.core] ?? 0);
+
+    final result = [
+      MuscleFrequency(label: '가슴', count: chestCount, color: AppColors.muscleChest),
+      MuscleFrequency(label: '등', count: backCount, color: AppColors.muscleBack),
+      MuscleFrequency(label: '어깨', count: shouldersCount, color: AppColors.warning),
+      MuscleFrequency(label: '하체', count: legsCount, color: AppColors.success),
+      MuscleFrequency(label: '팔', count: armsCount, color: AppColors.muscleArms),
+      MuscleFrequency(label: '코어', count: coreCount, color: AppColors.muscleCore),
+    ];
+
+    print('=== muscleFrequency 최종 결과: $result ===');
+    return result;
+  } catch (e) {
+    print('=== muscleFrequency 조회 실패: $e ===');
+    return const [];
+  }
+}
+
+/// 운동별 빈도 TOP 5 Provider (최근 6개월)
+@riverpod
+Future<List<ExerciseFrequency>> exerciseFrequency(ExerciseFrequencyRef ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 데이터 반환
+  if (userId == null) {
+    return const [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    // 최근 6개월 시작일 계산
+    final now = DateTime.now();
+    final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+
+    print('=== exerciseFrequency 조회: userId=$userId, 기간=${sixMonthsAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    // workout_sessions + workout_sets + exercises JOIN
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          id,
+          workout_sets (
+            exercises (
+              name,
+              primary_muscle
+            )
+          )
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', sixMonthsAgo.toIso8601String());
+
+    final sessions = response as List;
+    print('=== exerciseFrequency 결과: ${sessions.length}세션 ===');
+
+    // 운동별 세트 수 집계
+    final Map<String, int> countByExercise = {};
+    final Map<String, String> muscleByExercise = {};
+
+    for (final session in sessions) {
+      final sets = session['workout_sets'] as List? ?? [];
+
+      for (final set in sets) {
+        final exercise = set['exercises'] as Map?;
+        final name = exercise?['name'] as String?;
+        final primaryMuscleStr = exercise?['primary_muscle'] as String?;
+
+        if (name != null && primaryMuscleStr != null) {
+          countByExercise[name] = (countByExercise[name] ?? 0) + 1;
+          muscleByExercise[name] = primaryMuscleStr;
+        }
+      }
+    }
+
+    // 세트 수 기준 내림차순 정렬 후 TOP 5
+    final sortedEntries = countByExercise.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final top5 = sortedEntries.take(5).map((entry) {
+      final muscle = MuscleGroup.values.firstWhere(
+        (m) => m.value == muscleByExercise[entry.key],
+        orElse: () => MuscleGroup.fullBody,
+      );
+
+      return ExerciseFrequency(
+        exerciseName: entry.key,
+        count: entry.value,
+        primaryMuscle: muscle.label,
+      );
+    }).toList();
+
+    print('=== exerciseFrequency 최종 결과: ${top5.length}건 ===');
+    return top5;
+  } catch (e) {
+    print('=== exerciseFrequency 조회 실패: $e ===');
     return const [];
   }
 }
