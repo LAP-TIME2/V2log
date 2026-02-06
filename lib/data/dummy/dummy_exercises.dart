@@ -9,7 +9,7 @@ class DummyExercises {
   static final List<ExerciseModel> exercises = [
     // ==================== 가슴 운동 ====================
     const ExerciseModel(
-      id: 'ex-001',
+      id: '10000000-0001-4000-8000-000000000001',
       name: '벤치프레스',
       nameEn: 'Bench Press',
       category: ExerciseCategory.strength,
@@ -18,7 +18,7 @@ class DummyExercises {
       equipmentRequired: ['바벨', '벤치'],
       difficulty: ExperienceLevel.beginner,
       instructions: [
-        '벤치에 등을 대고 눕습니다.',
+        '벤치에 등을 대고 눕니다.',
         '바벨을 어깨 너비보다 약간 넓게 잡습니다.',
         '가슴 중앙으로 바벨을 내립니다.',
         '팔꿈치가 45도 각도를 유지하며 밀어 올립니다.',
@@ -31,7 +31,7 @@ class DummyExercises {
       caloriesPerMinute: 6.5,
     ),
     const ExerciseModel(
-      id: 'ex-002',
+      id: '10000000-0001-4000-8000-000000000002',
       name: '인클라인 덤벨 프레스',
       nameEn: 'Incline Dumbbell Press',
       category: ExerciseCategory.strength,
@@ -52,7 +52,7 @@ class DummyExercises {
       caloriesPerMinute: 5.5,
     ),
     const ExerciseModel(
-      id: 'ex-003',
+      id: '10000000-0001-4000-8000-000000000003',
       name: '케이블 크로스오버',
       nameEn: 'Cable Crossover',
       category: ExerciseCategory.strength,
@@ -73,7 +73,7 @@ class DummyExercises {
       caloriesPerMinute: 4.5,
     ),
     const ExerciseModel(
-      id: 'ex-004',
+      id: '10000000-0001-4000-8000-000000000004',
       name: '딥스',
       nameEn: 'Dips',
       category: ExerciseCategory.strength,
@@ -94,7 +94,7 @@ class DummyExercises {
       caloriesPerMinute: 7.0,
     ),
     const ExerciseModel(
-      id: 'ex-005',
+      id: '10000000-0001-4000-8000-000000000005',
       name: '펙덱 플라이',
       nameEn: 'Pec Deck Fly',
       category: ExerciseCategory.strength,
@@ -117,7 +117,7 @@ class DummyExercises {
 
     // ==================== 등 운동 ====================
     const ExerciseModel(
-      id: 'ex-010',
+      id: '10000000-0001-4000-8000-000000000010',
       name: '데드리프트',
       nameEn: 'Deadlift',
       category: ExerciseCategory.strength,
@@ -139,7 +139,7 @@ class DummyExercises {
       caloriesPerMinute: 8.0,
     ),
     const ExerciseModel(
-      id: 'ex-011',
+      id: '10000000-0001-4000-8000-000000000011',
       name: '랫풀다운',
       nameEn: 'Lat Pulldown',
       category: ExerciseCategory.strength,
@@ -160,7 +160,7 @@ class DummyExercises {
       caloriesPerMinute: 5.0,
     ),
     const ExerciseModel(
-      id: 'ex-012',
+      id: '10000000-0001-4000-8000-000000000012',
       name: '바벨 로우',
       nameEn: 'Barbell Row',
       category: ExerciseCategory.strength,
@@ -181,7 +181,7 @@ class DummyExercises {
       caloriesPerMinute: 6.0,
     ),
     const ExerciseModel(
-      id: 'ex-013',
+      id: '10000000-0001-4000-8000-000000000013',
       name: '시티드 케이블 로우',
       nameEn: 'Seated Cable Row',
       category: ExerciseCategory.strength,
@@ -202,7 +202,7 @@ class DummyExercises {
       caloriesPerMinute: 5.0,
     ),
     const ExerciseModel(
-      id: 'ex-014',
+      id: '10000000-0001-4000-8000-000000000014',
       name: '풀업',
       nameEn: 'Pull-up',
       category: ExerciseCategory.strength,
@@ -225,7 +225,7 @@ class DummyExercises {
 
     // ==================== 어깨 운동 ====================
     const ExerciseModel(
-      id: 'ex-020',
+      id: '10000000-0001-4000-8000-000000000020',
       name: '오버헤드 프레스',
       nameEn: 'Overhead Press',
       category: ExerciseCategory.strength,
@@ -245,7 +245,7 @@ class DummyExercises {
       caloriesPerMinute: 6.0,
     ),
     const ExerciseModel(
-      id: 'ex-021',
+      id: '10000000-0001-4000-8000-000000000021',
       name: '덤벨 숄더 프레스',
       nameEn: 'Dumbbell Shoulder Press',
       category: ExerciseCategory.strength,
@@ -265,7 +265,7 @@ class DummyExercises {
       caloriesPerMinute: 5.5,
     ),
     const ExerciseModel(
-      id: 'ex-022',
+      id: '10000000-0001-4000-8000-000000000022',
       name: '사이드 레터럴 레이즈',
       nameEn: 'Side Lateral Raise',
       category: ExerciseCategory.strength,
@@ -285,7 +285,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-023',
+      id: '10000000-0001-4000-8000-000000000023',
       name: '리어 델트 플라이',
       nameEn: 'Rear Delt Fly',
       category: ExerciseCategory.strength,
@@ -305,7 +305,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-024',
+      id: '10000000-0001-4000-8000-000000000024',
       name: '페이스 풀',
       nameEn: 'Face Pull',
       category: ExerciseCategory.strength,
@@ -327,7 +327,7 @@ class DummyExercises {
 
     // ==================== 팔 운동 ====================
     const ExerciseModel(
-      id: 'ex-030',
+      id: '10000000-0001-4000-8000-000000000030',
       name: '바벨 컬',
       nameEn: 'Barbell Curl',
       category: ExerciseCategory.strength,
@@ -347,7 +347,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-031',
+      id: '10000000-0001-4000-8000-000000000031',
       name: '해머 컬',
       nameEn: 'Hammer Curl',
       category: ExerciseCategory.strength,
@@ -367,7 +367,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-032',
+      id: '10000000-0001-4000-8000-000000000032',
       name: '트라이셉스 푸시다운',
       nameEn: 'Triceps Pushdown',
       category: ExerciseCategory.strength,
@@ -387,7 +387,7 @@ class DummyExercises {
       caloriesPerMinute: 3.5,
     ),
     const ExerciseModel(
-      id: 'ex-033',
+      id: '10000000-0001-4000-8000-000000000033',
       name: '오버헤드 트라이셉스 익스텐션',
       nameEn: 'Overhead Triceps Extension',
       category: ExerciseCategory.strength,
@@ -407,7 +407,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-034',
+      id: '10000000-0001-4000-8000-000000000034',
       name: '클로즈그립 벤치프레스',
       nameEn: 'Close Grip Bench Press',
       category: ExerciseCategory.strength,
@@ -429,7 +429,7 @@ class DummyExercises {
 
     // ==================== 하체 운동 ====================
     const ExerciseModel(
-      id: 'ex-040',
+      id: '10000000-0001-4000-8000-000000000040',
       name: '스쿼트',
       nameEn: 'Squat',
       category: ExerciseCategory.strength,
@@ -451,7 +451,7 @@ class DummyExercises {
       caloriesPerMinute: 8.0,
     ),
     const ExerciseModel(
-      id: 'ex-041',
+      id: '10000000-0001-4000-8000-000000000041',
       name: '레그 프레스',
       nameEn: 'Leg Press',
       category: ExerciseCategory.strength,
@@ -472,7 +472,7 @@ class DummyExercises {
       caloriesPerMinute: 6.0,
     ),
     const ExerciseModel(
-      id: 'ex-042',
+      id: '10000000-0001-4000-8000-000000000042',
       name: '레그 익스텐션',
       nameEn: 'Leg Extension',
       category: ExerciseCategory.strength,
@@ -492,7 +492,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-043',
+      id: '10000000-0001-4000-8000-000000000043',
       name: '레그 컬',
       nameEn: 'Leg Curl',
       category: ExerciseCategory.strength,
@@ -512,7 +512,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-044',
+      id: '10000000-0001-4000-8000-000000000044',
       name: '런지',
       nameEn: 'Lunge',
       category: ExerciseCategory.strength,
@@ -533,7 +533,7 @@ class DummyExercises {
       caloriesPerMinute: 6.0,
     ),
     const ExerciseModel(
-      id: 'ex-045',
+      id: '10000000-0001-4000-8000-000000000045',
       name: '힙 쓰러스트',
       nameEn: 'Hip Thrust',
       category: ExerciseCategory.strength,
@@ -554,7 +554,7 @@ class DummyExercises {
       caloriesPerMinute: 5.5,
     ),
     const ExerciseModel(
-      id: 'ex-046',
+      id: '10000000-0001-4000-8000-000000000046',
       name: '카프 레이즈',
       nameEn: 'Calf Raise',
       category: ExerciseCategory.strength,
@@ -576,7 +576,7 @@ class DummyExercises {
 
     // ==================== 복근 운동 ====================
     const ExerciseModel(
-      id: 'ex-050',
+      id: '10000000-0001-4000-8000-000000000050',
       name: '크런치',
       nameEn: 'Crunch',
       category: ExerciseCategory.strength,
@@ -597,7 +597,7 @@ class DummyExercises {
       caloriesPerMinute: 4.0,
     ),
     const ExerciseModel(
-      id: 'ex-051',
+      id: '10000000-0001-4000-8000-000000000051',
       name: '레그 레이즈',
       nameEn: 'Leg Raise',
       category: ExerciseCategory.strength,
@@ -617,7 +617,7 @@ class DummyExercises {
       caloriesPerMinute: 4.5,
     ),
     const ExerciseModel(
-      id: 'ex-052',
+      id: '10000000-0001-4000-8000-000000000052',
       name: '플랭크',
       nameEn: 'Plank',
       category: ExerciseCategory.strength,
@@ -637,7 +637,7 @@ class DummyExercises {
       caloriesPerMinute: 5.0,
     ),
     const ExerciseModel(
-      id: 'ex-053',
+      id: '10000000-0001-4000-8000-000000000053',
       name: '러시안 트위스트',
       nameEn: 'Russian Twist',
       category: ExerciseCategory.strength,
@@ -657,7 +657,7 @@ class DummyExercises {
       caloriesPerMinute: 5.0,
     ),
     const ExerciseModel(
-      id: 'ex-054',
+      id: '10000000-0001-4000-8000-000000000054',
       name: '행잉 레그 레이즈',
       nameEn: 'Hanging Leg Raise',
       category: ExerciseCategory.strength,
@@ -679,7 +679,7 @@ class DummyExercises {
 
     // ==================== 유산소 운동 ====================
     const ExerciseModel(
-      id: 'ex-060',
+      id: '10000000-0001-4000-8000-000000000060',
       name: '트레드밀 러닝',
       nameEn: 'Treadmill Running',
       category: ExerciseCategory.cardio,
@@ -699,7 +699,7 @@ class DummyExercises {
       caloriesPerMinute: 10.0,
     ),
     const ExerciseModel(
-      id: 'ex-061',
+      id: '10000000-0001-4000-8000-000000000061',
       name: '사이클',
       nameEn: 'Stationary Bike',
       category: ExerciseCategory.cardio,
@@ -719,7 +719,7 @@ class DummyExercises {
       caloriesPerMinute: 8.0,
     ),
     const ExerciseModel(
-      id: 'ex-062',
+      id: '10000000-0001-4000-8000-000000000062',
       name: '로잉 머신',
       nameEn: 'Rowing Machine',
       category: ExerciseCategory.cardio,

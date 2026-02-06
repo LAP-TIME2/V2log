@@ -13,6 +13,7 @@ import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
+import '../../widgets/molecules/set_row.dart';
 
 /// 운동 완료 요약 화면
 class WorkoutSummaryScreen extends ConsumerWidget {
@@ -261,8 +262,9 @@ class WorkoutSummaryScreen extends ConsumerWidget {
           ...exerciseGroups.entries.map((entry) {
             final exerciseId = entry.key;
             final sets = entry.value;
+            // 웜업 제외 볼륨 계산
             final totalVolume = sets.fold<double>(
-                0, (sum, s) => sum + (s.weight ?? 0) * (s.reps ?? 0));
+                0, (sum, s) => s.setType == SetType.warmup ? sum : sum + (s.weight ?? 0) * (s.reps ?? 0));
             final maxWeight = sets
                 .map((s) => s.weight ?? 0)
                 .fold<double>(0, (a, b) => a > b ? a : b);
@@ -303,7 +305,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              '${sets.length}세트 • 최고 ${maxWeight}kg',
+                              '${sets.length}세트 • 최고 ${maxWeight}kg • 볼륨 ${Formatters.volume(totalVolume)}',
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.darkTextSecondary,
                               ),
@@ -312,25 +314,13 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            Formatters.volume(totalVolume),
-                            style: AppTypography.labelLarge.copyWith(
-                              color: AppColors.primary500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            '볼륨',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.darkTextTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  // 세트 타입별 요약
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    children: _buildSetTypeBadges(sets),
                   ),
                   // 해당 운동의 메모 표시
                   if (exerciseNote != null && exerciseNote.isNotEmpty)
@@ -364,6 +354,35 @@ class WorkoutSummaryScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// 세트 타입별 뱃지 목록 생성
+  /// "웜업 1 / 본세트 2" 형식으로 표시
+  List<Widget> _buildSetTypeBadges(List<WorkoutSetModel> sets) {
+    final typeCounts = <SetType, int>{};
+    for (final set in sets) {
+      typeCounts[set.setType] = (typeCounts[set.setType] ?? 0) + 1;
+    }
+
+    // 세트 타입별 문자열 생성: "웜업 1 / 본세트 2"
+    final typeLabels = <String>[];
+    for (final entry in typeCounts.entries) {
+      typeLabels.add('${entry.key.label} ${entry.value}');
+    }
+
+    if (typeLabels.isEmpty) {
+      return [];
+    }
+
+    return [
+      Text(
+        typeLabels.join(' / '),
+        style: AppTypography.bodySmall.copyWith(
+          color: AppColors.darkTextTertiary,
+          fontSize: 11,
+        ),
+      ),
+    ];
   }
 
   String _getExerciseName(String exerciseId, Map<String, String> exerciseNames) {

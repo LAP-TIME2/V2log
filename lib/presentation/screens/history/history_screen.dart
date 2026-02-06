@@ -12,6 +12,7 @@ import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
+import '../../widgets/molecules/set_row.dart';
 
 /// 운동 기록 히스토리 화면
 class HistoryScreen extends ConsumerWidget {
@@ -629,6 +630,15 @@ class HistoryDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    SizedBox(
+                      width: 32,
+                      child: Text(
+                        '타입',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.darkTextTertiary,
+                        ),
+                      ),
+                    ),
                     Expanded(
                       child: Text(
                         '무게',
@@ -663,6 +673,8 @@ class HistoryDetailScreen extends ConsumerWidget {
                 ...sets.asMap().entries.map((entry) {
                   final index = entry.key;
                   final set = entry.value;
+                  // 웜업 세트는 볼륨 회색으로 표시
+                  final isWarmup = set.setType == SetType.warmup;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: Row(
@@ -689,11 +701,16 @@ class HistoryDetailScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
+                        // 세트 타입 뱃지
+                        SizedBox(
+                          width: 32,
+                          child: SetTypeBadge(type: set.setType, compact: true),
+                        ),
                         Expanded(
                           child: Text(
                             '${set.weight ?? 0}kg',
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.darkText,
+                              color: isWarmup ? AppColors.darkTextTertiary : AppColors.darkText,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -702,7 +719,7 @@ class HistoryDetailScreen extends ConsumerWidget {
                           child: Text(
                             '${set.reps ?? 0}회',
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.darkText,
+                              color: isWarmup ? AppColors.darkTextTertiary : AppColors.darkText,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -711,7 +728,7 @@ class HistoryDetailScreen extends ConsumerWidget {
                           child: Text(
                             Formatters.volume(set.volume),
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.primary500,
+                              color: isWarmup ? AppColors.darkTextTertiary : AppColors.primary500,
                             ),
                             textAlign: TextAlign.right,
                           ),

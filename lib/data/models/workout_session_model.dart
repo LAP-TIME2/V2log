@@ -56,11 +56,25 @@ class WorkoutSessionModel with _$WorkoutSessionModel {
     return map;
   }
 
-  /// 총 볼륨 계산
+  /// 총 볼륨 계산 (웜업 세트 제외)
   double get calculatedVolume {
+    return sets.fold(0.0, (sum, set) {
+      // 웜업 세트는 볼륨 계산에서 제외
+      if (set.setType == SetType.warmup) return sum;
+      return sum + (set.weight ?? 0) * (set.reps ?? 0);
+    });
+  }
+
+  /// 웜업을 포함한 전체 볼륨
+  double get totalVolumeWithWarmup {
     return sets.fold(0.0, (sum, set) {
       return sum + (set.weight ?? 0) * (set.reps ?? 0);
     });
+  }
+
+  /// 웜업 세트 개수
+  int get warmupSetCount {
+    return sets.where((s) => s.setType == SetType.warmup).length;
   }
 }
 
