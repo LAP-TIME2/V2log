@@ -1,11 +1,17 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/workout_share_utils.dart';
 import '../../../data/dummy/dummy_exercises.dart';
 import '../../../data/dummy/dummy_preset_routines.dart';
 import '../../../data/models/workout_session_model.dart';
@@ -14,9 +20,10 @@ import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
 import '../../widgets/molecules/set_row.dart';
+import '../../widgets/molecules/workout_share_card.dart';
 
 /// 운동 완료 요약 화면
-class WorkoutSummaryScreen extends ConsumerWidget {
+class WorkoutSummaryScreen extends ConsumerStatefulWidget {
   final WorkoutSessionModel session;
 
   const WorkoutSummaryScreen({
@@ -25,14 +32,25 @@ class WorkoutSummaryScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkoutSummaryScreen> createState() => _WorkoutSummaryScreenState();
+}
+
+class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
+  /// 공용 캡처 키 (화면 전체 캡처용)
+  final GlobalKey _shareCardKey = GlobalKey();
+
+  /// 공유 중 여부
+  bool _isSharing = false;
+
+  @override
+  Widget build(BuildContext context) {
     final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
     final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
 
-    final duration = session.duration ?? Duration.zero;
-    final totalVolume = session.calculatedVolume;
-    final totalSets = session.sets.length;
-    final prSets = session.sets.where((s) => s.isPr).toList();
+    final duration = widget.session.duration ?? Duration.zero;
+    final totalVolume = widget.session.calculatedVolume;
+    final totalSets = widget.session.sets.length;
+    final prSets = widget.session.sets.where((s) => s.isPr).toList();
 
     return Scaffold(
       backgroundColor: AppColors.darkBg,
@@ -223,15 +241,15 @@ class WorkoutSummaryScreen extends ConsumerWidget {
     );
   }
 
-  /// session.notes에서 운동별 메모를 추출하고 exercise_id를 key로 사용
+  /// widget.session.notes에서 운동별 메모를 추출하고 exercise_id를 key로 사용
   Map<String, String> _parseExerciseNotes(Map<String, String> exerciseNames) {
     final Map<String, String> exerciseNotes = {};
-    if (session.notes == null || session.notes!.isEmpty) {
+    if (widget.session.notes == null || widget.session.notes!.isEmpty) {
       return exerciseNotes;
     }
 
     // "exerciseId: 메모 / exerciseId: 메모" 형식 파싱
-    final parts = session.notes!.split(' / ');
+    final parts = widget.session.notes!.split(' / ');
     for (final part in parts) {
       final colonIndex = part.indexOf(':');
       if (colonIndex > 0) {
@@ -244,7 +262,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
   }
 
   Widget _buildExerciseSummary(Map<String, String> exerciseNames) {
-    final exerciseGroups = session.setsByExercise;
+    final exerciseGroups = widget.session.setsByExercise;
     final parsedNotes = _parseExerciseNotes(exerciseNames);
 
     return V2Card(
@@ -435,7 +453,202 @@ class WorkoutSummaryScreen extends ConsumerWidget {
           },
           fullWidth: true,
         ),
+        const SizedBox(height: AppSpacing.sm),
+        // 공유 버튼
+        TextButton.icon(
+          onPressed: _isSharing ? null : () => _showShareDialog(context),
+          icon: _isSharing
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary500,
+                  ),
+                )
+              : const Icon(Icons.share, color: AppColors.darkTextSecondary),
+          label: Text(
+            '공유하기',
+            style: AppTypography.bodyMedium.copyWith(
+              color: _isSharing ? AppColors.darkTextTertiary : AppColors.darkTextSecondary,
+            ),
+          ),
+        ),
       ],
+    );
+  }
+
+  /// 공유 다이얼로그 표시
+  void _showShareDialog(BuildContext context) async {
+    final exerciseNamesAsync = await ref.read(exerciseNamesMapProvider.future);
+    final exerciseNames = exerciseNamesAsync ?? {};
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => _SharePreviewDialog(
+        session: widget.session,
+        exerciseNames: exerciseNames,
+        onShare: () async {
+          Navigator.of(dialogContext).pop();
+          await _shareWorkout(context, exerciseNames);
+        },
+      ),
+    );
+  }
+
+  /// 운동 기록 공유
+  Future<void> _shareWorkout(BuildContext context, Map<String, String> exerciseNames) async {
+    setState(() => _isSharing = true);
+
+    try {
+      // 공유 텍스트 생성
+      final duration = widget.session.duration ?? Duration.zero;
+      final totalVolume = widget.session.calculatedVolume;
+      final totalSets = widget.session.sets.length;
+      final prSets = widget.session.sets.where((s) => s.isPr).toList();
+
+      final shareText = WorkoutShareUtils.generateShareSummary(
+        date: widget.session.startedAt,
+        duration: duration,
+        volume: totalVolume,
+        sets: totalSets,
+        prCount: prSets.isNotEmpty ? prSets.length : null,
+      );
+
+      // 이미지 캡처 (RepaintBoundary)
+      final imageBytes = await WorkoutShareUtils.captureFromRenderBox(_shareCardKey);
+
+      if (imageBytes != null) {
+        // 이미지와 함께 공유
+        await WorkoutShareUtils.shareImageFile(
+          imageBytes,
+          shareText,
+          subject: 'V2log 운동 기록',
+        );
+      } else {
+        // 이미지 캡처 실패 시 텍스트만 공유
+        await Share.share(shareText, subject: 'V2log 운동 기록');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('공유 완료!'),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('=== 공유 실패: $e ===');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('공유에 실패했어요: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSharing = false);
+      }
+    }
+  }
+}
+
+/// 공유 미리보기 다이얼로그
+class _SharePreviewDialog extends StatelessWidget {
+  final WorkoutSessionModel session;
+  final Map<String, String> exerciseNames;
+  final VoidCallback onShare;
+
+  const _SharePreviewDialog({
+    required this.session,
+    required this.exerciseNames,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 450),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 닫기 버튼
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, color: Colors.white),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.darkCardElevated,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+
+            // 제목
+            Text(
+              '운동 기록 공유',
+              style: AppTypography.h3.copyWith(
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // 공유 카드 미리보기 (캡처 대상)
+            RepaintBoundary(
+              key: WorkoutShareUtils.getCaptureKey(session.id),
+              child: WorkoutShareCard(
+                session: session,
+                exerciseNames: exerciseNames,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            // 공유 버튼
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.darkTextSecondary,
+                        side: const BorderSide(color: AppColors.darkBorder),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.md,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        ),
+                      ),
+                      child: const Text('취소'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    flex: 2,
+                    child: V2Button.primary(
+                      text: '공유하기',
+                      icon: Icons.share,
+                      onPressed: onShare,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+        ),
+      ),
     );
   }
 }

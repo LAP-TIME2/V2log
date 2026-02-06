@@ -10,6 +10,7 @@ import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/user_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
+import 'notification_settings_screen.dart';
 
 /// 프로필 화면
 class ProfileScreen extends ConsumerWidget {
@@ -292,7 +293,11 @@ class ProfileScreen extends ConsumerWidget {
             icon: Icons.notifications_outlined,
             title: '알림 설정',
             onTap: () {
-              // TODO: 알림 설정 화면
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const NotificationSettingsScreen(),
+                ),
+              );
             },
           ),
           const Divider(color: AppColors.darkBorder, height: 1),

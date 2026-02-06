@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
+import 'data/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +64,11 @@ Future<void> main() async {
   await Hive.openBox('settings');
   await Hive.openBox('cache');
   await Hive.openBox('workout');
+
+  // 알림 서비스 초기화 (비동기로 실행)
+  NotificationService().initialize().catchError(
+    (e) => debugPrint('⚠️ 알림 서비스 초기화 실패: $e'),
+  );
 
   runApp(
     const ProviderScope(

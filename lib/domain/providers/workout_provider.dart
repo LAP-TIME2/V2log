@@ -26,6 +26,9 @@ class ActiveWorkout extends _$ActiveWorkout {
   // 데모 모드용 로컬 PR 기록
   final Map<String, double> _localPrRecords = {};
 
+  // 운동 완료 중복 실행 방지 플래그
+  bool _isFinishing = false;
+
   @override
   WorkoutSessionModel? build() {
     // 앱 시작 시 로컬에 저장된 세션 복구 시도
@@ -289,68 +292,90 @@ class ActiveWorkout extends _$ActiveWorkout {
 
   /// 운동 완료 - 완료된 세션을 반환
   Future<WorkoutSessionModel?> finishWorkout({String? notes, int? moodRating}) async {
-    if (state == null) return null;
-
-    final session = state!;
-    final finishedAt = DateTime.now();
-    final durationSeconds = finishedAt.difference(session.startedAt).inSeconds;
-
-    // 세션 내 각 운동별 최고 무게 세트에만 PR 표시
-    final updatedSets = _updateSessionPRs(session.sets);
-
-    // 완료된 세션 생성
-    final finishedSession = session.copyWith(
-      finishedAt: finishedAt,
-      totalVolume: session.calculatedVolume,
-      totalSets: session.sets.length,
-      totalDurationSeconds: durationSeconds,
-      notes: notes,
-      moodRating: moodRating,
-      sets: updatedSets,
-    );
-
-    // 로그인한 경우에만 Supabase 업데이트
-    final userId = ref.read(currentUserIdProvider);
-    if (userId != null) {
-      try {
-        final supabase = ref.read(supabaseServiceProvider);
-
-        // PR 상태가 변경된 세트들만 Supabase 업데이트
-        for (int i = 0; i < session.sets.length; i++) {
-          final oldSet = session.sets[i];
-          final newSet = updatedSets[i];
-          if (oldSet.isPr != newSet.isPr) {
-            await supabase
-                .from(SupabaseTables.workoutSets)
-                .update({'is_pr': newSet.isPr})
-                .eq('id', newSet.id);
-          }
-        }
-
-        await supabase.from(SupabaseTables.workoutSessions).update({
-          'finished_at': finishedAt.toIso8601String(),
-          'total_volume': session.calculatedVolume,
-          'total_sets': session.sets.length,
-          'total_duration_seconds': durationSeconds,
-          'notes': notes,
-          'mood_rating': moodRating,
-        }).eq('id', session.id);
-        debugPrint('✅ Supabase 세션 완료 성공: ${session.id}');
-      } catch (e) {
-        debugPrint('⚠️ Supabase 세션 완료 실패: $e');
-      }
+    // 중복 실행 방지
+    if (_isFinishing) {
+      print('=== finishWorkout 중복 호출 감지, 무시 ===');
+      return null;
     }
 
-    // 로컬 저장소 정리
+    if (state == null) {
+      print('=== finishWorkout: activeWorkout이 null ===');
+      return null;
+    }
+
+    // lock 설정
+    _isFinishing = true;
+    print('=== finishWorkout 시작: sessionId=${state!.id} ===');
+
     try {
-      final localStorage = ref.read(localStorageServiceProvider);
-      await localStorage.clearWorkoutSession();
-    } catch (e) {
-      debugPrint('로컬 저장소 정리 실패: $e');
-    }
+      final session = state!;
+      final finishedAt = DateTime.now();
+      final durationSeconds = finishedAt.difference(session.startedAt).inSeconds;
 
-    state = null;
-    return finishedSession;
+      // 세션 내 각 운동별 최고 무게 세트에만 PR 표시
+      final updatedSets = _updateSessionPRs(session.sets);
+
+      // 완료된 세션 생성
+      final finishedSession = session.copyWith(
+        finishedAt: finishedAt,
+        totalVolume: session.calculatedVolume,
+        totalSets: session.sets.length,
+        totalDurationSeconds: durationSeconds,
+        notes: notes,
+        moodRating: moodRating,
+        sets: updatedSets,
+      );
+
+      // 로그인한 경우에만 Supabase 업데이트
+      final userId = ref.read(currentUserIdProvider);
+      if (userId != null) {
+        try {
+          final supabase = ref.read(supabaseServiceProvider);
+
+          // PR 상태가 변경된 세트들만 Supabase 업데이트
+          for (int i = 0; i < session.sets.length; i++) {
+            final oldSet = session.sets[i];
+            final newSet = updatedSets[i];
+            if (oldSet.isPr != newSet.isPr) {
+              await supabase
+                  .from(SupabaseTables.workoutSets)
+                  .update({'is_pr': newSet.isPr})
+                  .eq('id', newSet.id);
+            }
+          }
+
+          await supabase.from(SupabaseTables.workoutSessions).update({
+            'finished_at': finishedAt.toIso8601String(),
+            'total_volume': session.calculatedVolume,
+            'total_sets': session.sets.length,
+            'total_duration_seconds': durationSeconds,
+            'notes': notes,
+            'mood_rating': moodRating,
+          }).eq('id', session.id);
+          print('=== finishWorkout: Supabase 업데이트 완료 ===');
+        } catch (e) {
+          print('=== finishWorkout: Supabase 업데이트 실패 $e ===');
+          // 실패해도 로컬 세션은 반환 (오프라인 지원)
+        }
+      }
+
+      // 로컬 저장소 정리
+      try {
+        final localStorage = ref.read(localStorageServiceProvider);
+        await localStorage.clearWorkoutSession();
+      } catch (e) {
+        print('=== finishWorkout: 로컬 저장소 정리 실패 $e ===');
+      }
+
+      // 상태 null로 설정 (모든 작업 완료 후)
+      state = null;
+      print('=== finishWorkout 완료: sessionId=${session.id} ===');
+
+      return finishedSession;
+    } finally {
+      // lock 해제 (성공/실패 상관없이)
+      _isFinishing = false;
+    }
   }
 
   /// 세션 내 각 운동별 최고 무게 세트에만 PR 표시

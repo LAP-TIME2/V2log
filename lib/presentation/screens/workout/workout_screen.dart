@@ -48,6 +48,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   // 운동별 메모 (운동 ID: 메모)
   final Map<String, String> _exerciseNotes = {};
 
+  // 운동 완료 중 상태 (중복 실행 방지)
+  bool _isFinishing = false;
+
   @override
   void initState() {
     super.initState();
@@ -865,6 +868,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       return;
     }
 
+    // 이미 완료 중이면 무시
+    if (_isFinishing) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('운동 완료 처리 중입니다...')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
@@ -888,50 +899,91 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _isFinishing ? null : () => Navigator.pop(context),
                   child: const Text('계속하기'),
                 ),
                 TextButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
+                  onPressed: _isFinishing
+                      ? null
+                      : () async {
+                          Navigator.pop(context);
 
-                    // 운동별 메모를 "exerciseId: 메모 / exerciseId: 메모" 형식으로 변환
-                    final notesList = _exerciseNotes.entries.map((e) {
-                      return '${e.key}: ${e.value}';
-                    }).toList();
-                    final formattedNotes = notesList.isEmpty ? null : notesList.join(' / ');
-                    final finishedSession = await ref
-                        .read(activeWorkoutProvider.notifier)
-                        .finishWorkout(notes: formattedNotes);
-                    ref.read(workoutTimerProvider.notifier).stop();
+                          // 중복 실행 방지 설정
+                          setState(() => _isFinishing = true);
+                          print('=== _showFinishDialog: _isFinishing = true ===');
 
-                    // 루틴 운동 및 인덱스 초기화
-                    ref.read(routineExercisesProvider.notifier).clear();
-                    ref.read(currentExerciseIndexProvider.notifier).reset();
+                          try {
+                            // 운동별 메모를 "exerciseId: 메모 / exerciseId: 메모" 형식으로 변환
+                            final notesList = _exerciseNotes.entries.map((e) {
+                              return '${e.key}: ${e.value}';
+                            }).toList();
+                            final formattedNotes =
+                                notesList.isEmpty ? null : notesList.join(' / ');
 
-                    // 기록/통계 Provider 새로고침 (Supabase에서 다시 로드)
-                    ref.invalidate(workoutHistoryProvider);
-                    ref.invalidate(recentWorkoutsProvider);
-                    ref.invalidate(weeklyStatsProvider);
-                    ref.invalidate(userStatsProvider);
+                            print('=== _showFinishDialog: finishWorkout 호출 시작 ===');
+                            final finishedSession = await ref
+                                .read(activeWorkoutProvider.notifier)
+                                .finishWorkout(notes: formattedNotes);
+                            print('=== _showFinishDialog: finishWorkout 완료, finishedSession=${finishedSession?.id} ===');
 
-                    if (mounted && finishedSession != null) {
-                      // 요약 화면으로 이동
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => WorkoutSummaryScreen(
-                            session: finishedSession,
+                            ref.read(workoutTimerProvider.notifier).stop();
+
+                            // 루틴 운동 및 인덱스 초기화
+                            ref.read(routineExercisesProvider.notifier).clear();
+                            ref.read(currentExerciseIndexProvider.notifier).reset();
+
+                            // 기록/통계 Provider 새로고침 (Supabase에서 다시 로드)
+                            ref.invalidate(workoutHistoryProvider);
+                            ref.invalidate(recentWorkoutsProvider);
+                            ref.invalidate(weeklyStatsProvider);
+                            ref.invalidate(userStatsProvider);
+
+                            // context가 아직 유효한지 확인 후 navigation
+                            if (mounted) {
+                              if (finishedSession != null) {
+                                // 요약 화면으로 이동
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => WorkoutSummaryScreen(
+                                      session: finishedSession,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                // finishWorkout가 null을 반환한 경우 (중복 호출 등)
+                                context.go('/home');
+                              }
+                            }
+                          } catch (e) {
+                            print('=== _showFinishDialog: 예외 발생 $e ===');
+                            // 에러 발생 시 상태 복구
+                            setState(() => _isFinishing = false);
+
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('운동 완료 실패: $e')),
+                              );
+                            }
+                          } finally {
+                            // 정상 완료 시에도 상태 해제 (Navigation 후이므로 문제 없음)
+                            if (mounted) {
+                              setState(() => _isFinishing = false);
+                            }
+                          }
+                        },
+                  child: _isFinishing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.success,
                           ),
+                        )
+                      : Text(
+                          '완료하기',
+                          style: TextStyle(color: AppColors.success),
                         ),
-                      );
-                    } else if (mounted) {
-                      context.go('/home');
-                    }
-                  },
-                  child: Text(
-                    '완료하기',
-                    style: TextStyle(color: AppColors.success),
-                  ),
                 ),
               ],
             );
