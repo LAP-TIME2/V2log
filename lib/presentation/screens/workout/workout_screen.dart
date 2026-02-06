@@ -380,13 +380,15 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   itemBuilder: (context, index) {
                     if (index < sets.length) {
                       final set = sets[index];
+                      // 세션 내 최고 무게 세트에만 PR 표시
+                      final isSessionPr = _isSessionMaxWeightSet(set, sets);
                       return SetRow(
                         setNumber: set.setNumber,
                         setType: set.setType,
                         weight: set.weight,
                         reps: set.reps,
                         isCompleted: true,
-                        isPr: set.isPr,
+                        isPr: isSessionPr,
                         onLongPress: () => _showDeleteConfirmDialog(set),
                       );
                     }
@@ -404,6 +406,33 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         ),
       ],
     );
+  }
+
+  /// 세션 내 최고 무게 세트인지 확인 (같은 무게면 첫 번째만 PR)
+  bool _isSessionMaxWeightSet(WorkoutSetModel set, List<WorkoutSetModel> allSets) {
+    // 같은 운동의 세트만 필터링
+    final exerciseSets = allSets.where((s) => s.exerciseId == set.exerciseId).toList();
+    if (exerciseSets.isEmpty) return false;
+
+    // setNumber 순으로 정렬
+    exerciseSets.sort((a, b) => a.setNumber.compareTo(b.setNumber));
+
+    // 최고 무게 찾기
+    double? maxWeight = exerciseSets
+        .map((s) => s.weight)
+        .where((w) => w != null)
+        .fold<double>(0, (max, w) => w! > max ? w! : max);
+
+    if (maxWeight == null || maxWeight == 0) return false;
+
+    // 최고 무게를 가진 첫 번째 세트인지 확인
+    for (final s in exerciseSets) {
+      if (s.weight == maxWeight) {
+        return s.id == set.id; // 첫 번째 최고 무게 세트만 true
+      }
+    }
+
+    return false;
   }
 
   Widget _buildEmptySetMessage() {

@@ -138,9 +138,8 @@ class ActiveWorkout extends _$ActiveWorkout {
         session.sets.where((s) => s.exerciseId == exerciseId).toList();
     final setNumber = exerciseSets.length + 1;
 
-    // PR 체크 (로컬 기준)
-    final isPr = _checkLocalPR(exerciseId, weight, reps);
-
+    // 세션 완료 시점에 PR이 확정되므로 진행 중에는 false
+    // 화면에서는 세션 내 최고 무게 세트에 실시간 PR 표시
     final newSet = WorkoutSetModel(
       id: _uuid.v4(),
       sessionId: session.id,
@@ -150,7 +149,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       weight: weight,
       reps: reps,
       rpe: rpe,
-      isPr: isPr,
+      isPr: false,
       notes: notes,
       completedAt: DateTime.now(),
     );
@@ -296,6 +295,9 @@ class ActiveWorkout extends _$ActiveWorkout {
     final finishedAt = DateTime.now();
     final durationSeconds = finishedAt.difference(session.startedAt).inSeconds;
 
+    // 세션 내 각 운동별 최고 무게 세트에만 PR 표시
+    final updatedSets = _updateSessionPRs(session.sets);
+
     // 완료된 세션 생성
     final finishedSession = session.copyWith(
       finishedAt: finishedAt,
@@ -304,6 +306,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       totalDurationSeconds: durationSeconds,
       notes: notes,
       moodRating: moodRating,
+      sets: updatedSets,
     );
 
     // 로그인한 경우에만 Supabase 업데이트
@@ -311,6 +314,19 @@ class ActiveWorkout extends _$ActiveWorkout {
     if (userId != null) {
       try {
         final supabase = ref.read(supabaseServiceProvider);
+
+        // PR 상태가 변경된 세트들만 Supabase 업데이트
+        for (int i = 0; i < session.sets.length; i++) {
+          final oldSet = session.sets[i];
+          final newSet = updatedSets[i];
+          if (oldSet.isPr != newSet.isPr) {
+            await supabase
+                .from(SupabaseTables.workoutSets)
+                .update({'is_pr': newSet.isPr})
+                .eq('id', newSet.id);
+          }
+        }
+
         await supabase.from(SupabaseTables.workoutSessions).update({
           'finished_at': finishedAt.toIso8601String(),
           'total_volume': session.calculatedVolume,
@@ -335,6 +351,54 @@ class ActiveWorkout extends _$ActiveWorkout {
 
     state = null;
     return finishedSession;
+  }
+
+  /// 세션 내 각 운동별 최고 무게 세트에만 PR 표시
+  List<WorkoutSetModel> _updateSessionPRs(List<WorkoutSetModel> sets) {
+    // 모든 세트의 isPr를 false로 초기화
+    final updatedSets = sets.map((set) => set.copyWith(isPr: false)).toList();
+
+    // 운동별로 그룹화
+    final Map<String, List<WorkoutSetModel>> exerciseSets = {};
+    for (final set in updatedSets) {
+      exerciseSets.putIfAbsent(set.exerciseId, () => []);
+      exerciseSets[set.exerciseId]!.add(set);
+    }
+
+    // 각 운동별로 최고 무게를 찾아 첫 번째 세트에만 PR 표시
+    for (final entry in exerciseSets.entries) {
+      final exerciseSetsList = entry.value;
+
+      // setNumber 순으로 정렬 (이미 정렬되어 있을 수 있지만 명시적)
+      exerciseSetsList.sort((a, b) => a.setNumber.compareTo(b.setNumber));
+
+      // 최고 무게 찾기
+      double? maxWeight;
+      for (final set in exerciseSetsList) {
+        if (set.weight != null) {
+          if (maxWeight == null || set.weight! > maxWeight) {
+            maxWeight = set.weight!;
+          }
+        }
+      }
+
+      // 최고 무게를 가진 첫 번째 세트에만 PR 표시
+      if (maxWeight != null) {
+        for (int i = 0; i < exerciseSetsList.length; i++) {
+          final set = exerciseSetsList[i];
+          if (set.weight == maxWeight) {
+            // 전체 리스트에서 해당 세트를 찾아 isPr를 true로 설정
+            final index = updatedSets.indexWhere((s) => s.id == set.id);
+            if (index != -1) {
+              updatedSets[index] = set.copyWith(isPr: true);
+            }
+            break; // 첫 번째 최고 무게 세트만 PR
+          }
+        }
+      }
+    }
+
+    return updatedSets;
   }
 
   /// 세션 메모 업데이트
