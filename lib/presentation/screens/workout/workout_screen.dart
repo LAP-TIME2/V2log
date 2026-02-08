@@ -101,28 +101,13 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     final workoutTimer = ref.watch(workoutTimerProvider);
     final routineExercises = ref.watch(routineExercisesProvider);
     final currentExerciseIndex = ref.watch(currentExerciseIndexProvider);
-    final isFinishing = ref.read(activeWorkoutProvider.notifier).isFinishing;
 
     if (session == null) {
+      // 진행 중인 운동이 없으면 빈 로딩 UI 표시 (요약 화면으로 이동 후 정리됨)
       return Scaffold(
         backgroundColor: AppColors.darkBg,
         body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '진행 중인 운동이 없습니다',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.darkTextSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              V2Button.primary(
-                text: '홈으로 돌아가기',
-                onPressed: () => context.go('/home'),
-              ),
-            ],
-          ),
+          child: CircularProgressIndicator(color: AppColors.primary500),
         ),
       );
     }
@@ -909,6 +894,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   onPressed: finishing
                       ? null
                       : () async {
+                          print('@@@ UI COMPLETE BUTTON PRESSED @@@');
                           Navigator.pop(context);
 
                           try {
@@ -945,6 +931,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                             ref.invalidate(recentWorkoutsProvider);
                             ref.invalidate(weeklyStatsProvider);
                             ref.invalidate(userStatsProvider);
+
+                            // 활성 운동 정리 (요약 화면 이동 전에)
+                            await ref.read(activeWorkoutProvider.notifier).clearActiveWorkout();
 
                             // context가 아직 유효한지 확인 후 navigation
                             if (mounted) {

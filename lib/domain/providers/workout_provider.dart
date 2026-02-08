@@ -295,6 +295,7 @@ class ActiveWorkout extends _$ActiveWorkout {
 
   /// 운동 완료 - 완료된 세션을 반환
   Future<WorkoutSessionModel?> finishWorkout({String? notes, int? moodRating}) async {
+    print('@@@ finishWorkout ENTER @@@');
     // 중복 실행 방지 (SSOT lock)
     if (_isFinishing) {
       print('=== finishWorkout DUPLICATE_BLOCKED: 이미 진행 중 ===');
@@ -308,9 +309,10 @@ class ActiveWorkout extends _$ActiveWorkout {
 
     // lock 획득
     _isFinishing = true;
-    print('=== finishWorkout START: sessionId=${state!.id} ===');
+    print('=== finishWorkout START: hasActiveWorkout=true, sessionId=${state!.id} ===');
 
     try {
+      print('=== finishWorkout STEP 1: 세션 데이터 준비 시작 ===');
       final session = state!;
       final finishedAt = DateTime.now();
       final durationSeconds = finishedAt.difference(session.startedAt).inSeconds;
@@ -328,8 +330,10 @@ class ActiveWorkout extends _$ActiveWorkout {
         moodRating: moodRating,
         sets: updatedSets,
       );
+      print('=== finishWorkout STEP 1: 세션 데이터 준비 완료 ===');
 
       // 로그인한 경우에만 Supabase 업데이트
+      print('=== finishWorkout STEP 2: Supabase 업데이트 시작 ===');
       final userId = ref.read(currentUserIdProvider);
       if (userId != null) {
         try {
@@ -355,27 +359,35 @@ class ActiveWorkout extends _$ActiveWorkout {
             'notes': notes,
             'mood_rating': moodRating,
           }).eq('id', session.id);
-          print('=== finishWorkout Supabase 업데이트 완료 ===');
+          print('=== finishWorkout STEP 2: Supabase 업데이트 완료 ===');
         } catch (e) {
-          print('=== finishWorkout Supabase 업데이트 실패: $e ===');
+          print('=== finishWorkout STEP 2 ERROR: Supabase 업데이트 실패: $e ===');
           // 실패해도 로컬 세션은 반환 (오프라인 지원)
         }
+      } else {
+        print('=== finishWorkout STEP 2: 로그인 안 됨, Supabase 업데이트 건너뜀 ===');
       }
 
       // 로컬 저장소 정리
+      print('=== finishWorkout STEP 3: 로컬 저장소 정리 시작 ===');
       try {
         final localStorage = ref.read(localStorageServiceProvider);
         await localStorage.clearWorkoutSession();
+        print('=== finishWorkout STEP 3: 로컬 저장소 정리 완료 ===');
       } catch (e) {
-        print('=== finishWorkout 로컬 저장소 정리 실패: $e ===');
+        print('=== finishWorkout STEP 3 ERROR: 로컬 저장소 정리 실패: $e ===');
       }
 
-      // 상태 null로 설정 (모든 작업 완료 후, 네비게이션 직전)
-      state = null;
-      print('=== finishWorkout END: sessionId=${session.id}, state=null 설정 완료 ===');
+      // 상태 null 설정은 요약 화면 이후에 처리 (여기서는 제거)
+      print('=== finishWorkout STEP 4: state 유지, 요약 화면 이동 후 정리 예정 ===');
 
       return finishedSession;
+    } catch (e, stackTrace) {
+      print('=== finishWorkout CATCH ERROR: $e ===');
+      print('=== finishWorkout STACK TRACE: $stackTrace ===');
+      rethrow;
     } finally {
+      print('=== finishWorkout FINALLY END: sessionId=${state?.id ?? 'null'} ===');
       // lock 해제 (성공/실패 상관없이 반드시 실행)
       _isFinishing = false;
       print('=== finishWorkout lock 해제 ===');
@@ -459,6 +471,21 @@ class ActiveWorkout extends _$ActiveWorkout {
     } catch (e) {
       debugPrint('세션 백업 실패: $e');
     }
+  }
+
+  /// 활성 운동 정리 (요약 화면 이후 호출용)
+  Future<void> clearActiveWorkout() async {
+    // 로컬 저장소 정리
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.clearWorkoutSession();
+    } catch (e) {
+      debugPrint('로컬 저장소 정리 실패: $e');
+    }
+
+    // 상태 null로 설정
+    state = null;
+    print('=== clearActiveWorkout: state=null 설정 완료 ===');
   }
 
   /// 운동 취소
