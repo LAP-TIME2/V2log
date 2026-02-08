@@ -26,7 +26,7 @@ class ActiveWorkout extends _$ActiveWorkout {
   // 데모 모드용 로컬 PR 기록
   final Map<String, double> _localPrRecords = {};
 
-  // 운동 완료 중복 실행 방지 플래그
+  // 운동 완료 중복 실행 방지 플래그 (SSOT)
   bool _isFinishing = false;
 
   @override
@@ -35,6 +35,9 @@ class ActiveWorkout extends _$ActiveWorkout {
     _restoreSession();
     return null;
   }
+
+  /// 운동 완료 진행 중 여부 (UI에서 구독용)
+  bool get isFinishing => _isFinishing;
 
   Future<void> _restoreSession() async {
     try {
@@ -292,20 +295,20 @@ class ActiveWorkout extends _$ActiveWorkout {
 
   /// 운동 완료 - 완료된 세션을 반환
   Future<WorkoutSessionModel?> finishWorkout({String? notes, int? moodRating}) async {
-    // 중복 실행 방지
+    // 중복 실행 방지 (SSOT lock)
     if (_isFinishing) {
-      print('=== finishWorkout 중복 호출 감지, 무시 ===');
+      print('=== finishWorkout DUPLICATE_BLOCKED: 이미 진행 중 ===');
       return null;
     }
 
     if (state == null) {
-      print('=== finishWorkout: activeWorkout이 null ===');
+      print('=== finishWorkout ERROR: activeWorkout이 null ===');
       return null;
     }
 
-    // lock 설정
+    // lock 획득
     _isFinishing = true;
-    print('=== finishWorkout 시작: sessionId=${state!.id} ===');
+    print('=== finishWorkout START: sessionId=${state!.id} ===');
 
     try {
       final session = state!;
@@ -352,9 +355,9 @@ class ActiveWorkout extends _$ActiveWorkout {
             'notes': notes,
             'mood_rating': moodRating,
           }).eq('id', session.id);
-          print('=== finishWorkout: Supabase 업데이트 완료 ===');
+          print('=== finishWorkout Supabase 업데이트 완료 ===');
         } catch (e) {
-          print('=== finishWorkout: Supabase 업데이트 실패 $e ===');
+          print('=== finishWorkout Supabase 업데이트 실패: $e ===');
           // 실패해도 로컬 세션은 반환 (오프라인 지원)
         }
       }
@@ -364,17 +367,18 @@ class ActiveWorkout extends _$ActiveWorkout {
         final localStorage = ref.read(localStorageServiceProvider);
         await localStorage.clearWorkoutSession();
       } catch (e) {
-        print('=== finishWorkout: 로컬 저장소 정리 실패 $e ===');
+        print('=== finishWorkout 로컬 저장소 정리 실패: $e ===');
       }
 
-      // 상태 null로 설정 (모든 작업 완료 후)
+      // 상태 null로 설정 (모든 작업 완료 후, 네비게이션 직전)
       state = null;
-      print('=== finishWorkout 완료: sessionId=${session.id} ===');
+      print('=== finishWorkout END: sessionId=${session.id}, state=null 설정 완료 ===');
 
       return finishedSession;
     } finally {
-      // lock 해제 (성공/실패 상관없이)
+      // lock 해제 (성공/실패 상관없이 반드시 실행)
       _isFinishing = false;
+      print('=== finishWorkout lock 해제 ===');
     }
   }
 

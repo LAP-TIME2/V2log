@@ -48,8 +48,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   // 운동별 메모 (운동 ID: 메모)
   final Map<String, String> _exerciseNotes = {};
 
-  // 운동 완료 중 상태 (중복 실행 방지)
-  bool _isFinishing = false;
+  // _isFinishing 제거: Provider.isFinishing을 SSOT로 사용
 
   @override
   void initState() {
@@ -102,6 +101,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     final workoutTimer = ref.watch(workoutTimerProvider);
     final routineExercises = ref.watch(routineExercisesProvider);
     final currentExerciseIndex = ref.watch(currentExerciseIndexProvider);
+    final isFinishing = ref.read(activeWorkoutProvider.notifier).isFinishing;
 
     if (session == null) {
       return Scaffold(
@@ -868,8 +868,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       return;
     }
 
-    // 이미 완료 중이면 무시
-    if (_isFinishing) {
+    // Provider SSOT 상태 확인 (추가 방어)
+    final isFinishing = ref.read(activeWorkoutProvider.notifier).isFinishing;
+    if (isFinishing) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('운동 완료 처리 중입니다...')),
       );
@@ -884,6 +885,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             // exerciseNames Map 가져오기
             final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
             final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
+            // Provider의 finishing 상태 구독
+            final finishing = ref.read(activeWorkoutProvider.notifier).isFinishing;
 
             return AlertDialog(
               backgroundColor: AppColors.darkCard,
@@ -899,18 +902,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: _isFinishing ? null : () => Navigator.pop(context),
+                  onPressed: finishing ? null : () => Navigator.pop(context),
                   child: const Text('계속하기'),
                 ),
                 TextButton(
-                  onPressed: _isFinishing
+                  onPressed: finishing
                       ? null
                       : () async {
                           Navigator.pop(context);
-
-                          // 중복 실행 방지 설정
-                          setState(() => _isFinishing = true);
-                          print('=== _showFinishDialog: _isFinishing = true ===');
 
                           try {
                             // 운동별 메모를 "exerciseId: 메모 / exerciseId: 메모" 형식으로 변환
@@ -920,11 +919,20 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                             final formattedNotes =
                                 notesList.isEmpty ? null : notesList.join(' / ');
 
-                            print('=== _showFinishDialog: finishWorkout 호출 시작 ===');
+                            // finishWorkout 내부에서 lock 획득/해제 처리됨
                             final finishedSession = await ref
                                 .read(activeWorkoutProvider.notifier)
                                 .finishWorkout(notes: formattedNotes);
-                            print('=== _showFinishDialog: finishWorkout 완료, finishedSession=${finishedSession?.id} ===');
+
+                            // null 반환 = 중복 호출 차단됨
+                            if (finishedSession == null) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('이미 처리 중입니다')),
+                                );
+                              }
+                              return;
+                            }
 
                             ref.read(workoutTimerProvider.notifier).stop();
 
@@ -940,38 +948,26 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
                             // context가 아직 유효한지 확인 후 navigation
                             if (mounted) {
-                              if (finishedSession != null) {
-                                // 요약 화면으로 이동
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => WorkoutSummaryScreen(
-                                      session: finishedSession,
-                                    ),
+                              // 요약 화면으로 이동
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) => WorkoutSummaryScreen(
+                                    session: finishedSession,
                                   ),
-                                );
-                              } else {
-                                // finishWorkout가 null을 반환한 경우 (중복 호출 등)
-                                context.go('/home');
-                              }
+                                ),
+                              );
                             }
                           } catch (e) {
-                            print('=== _showFinishDialog: 예외 발생 $e ===');
-                            // 에러 발생 시 상태 복구
-                            setState(() => _isFinishing = false);
-
+                            print('=== _showFinishDialog 예외: $e ===');
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('운동 완료 실패: $e')),
                               );
                             }
-                          } finally {
-                            // 정상 완료 시에도 상태 해제 (Navigation 후이므로 문제 없음)
-                            if (mounted) {
-                              setState(() => _isFinishing = false);
-                            }
                           }
+                          // setState로 _isFinishing 관리 제거 - Provider가 SSOT
                         },
-                  child: _isFinishing
+                  child: finishing
                       ? const SizedBox(
                           width: 16,
                           height: 16,
