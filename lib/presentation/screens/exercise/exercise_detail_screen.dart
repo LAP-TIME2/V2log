@@ -18,37 +18,38 @@ class ExerciseDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final exerciseAsync = ref.watch(exerciseDetailProvider(exerciseId));
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         title: Text(
           '운동 상세',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         elevation: 0,
       ),
       body: exerciseAsync.when(
         data: (exercise) {
           if (exercise == null) {
-            return _buildNotFound();
+            return _buildNotFound(isDark);
           }
-          return _buildContent(exercise);
+          return _buildContent(exercise, isDark);
         },
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary500),
         ),
         error: (error, _) {
           print('=== 에러: $error ===');
-          return _buildError();
+          return _buildError(isDark);
         },
       ),
     );
   }
 
-  Widget _buildNotFound() {
+  Widget _buildNotFound(bool isDark) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -56,13 +57,13 @@ class ExerciseDetailScreen extends ConsumerWidget {
           Icon(
             Icons.search_off,
             size: 64,
-            color: AppColors.darkTextTertiary,
+            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
             '운동 정보를 찾을 수 없습니다',
             style: AppTypography.bodyLarge.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ],
@@ -70,7 +71,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(bool isDark) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -84,7 +85,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
           Text(
             '운동 정보를 불러오는데 실패했습니다',
             style: AppTypography.bodyLarge.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ],
@@ -92,46 +93,46 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(ExerciseModel exercise) {
+  Widget _buildContent(ExerciseModel exercise, bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 운동 헤더 (이름 + 아이콘)
-          _buildHeader(exercise),
+          _buildHeader(exercise, isDark),
           const SizedBox(height: AppSpacing.xl),
 
           // 주요 근육
-          _buildMuscleSection(exercise),
+          _buildMuscleSection(exercise, isDark),
           const SizedBox(height: AppSpacing.xl),
 
           // 운동 방법 (instructions)
           if (exercise.instructions.isNotEmpty) ...[
-            _buildInstructionsSection(exercise),
+            _buildInstructionsSection(exercise, isDark),
             const SizedBox(height: AppSpacing.xl),
           ],
 
           // 팁 (tips)
           if (exercise.tips.isNotEmpty) ...[
-            _buildTipsSection(exercise),
+            _buildTipsSection(exercise, isDark),
             const SizedBox(height: AppSpacing.xl),
           ],
 
           // 추가 정보
-          _buildMetaSection(exercise),
+          _buildMetaSection(exercise, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(ExerciseModel exercise) {
+  Widget _buildHeader(ExerciseModel exercise, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.darkBorder),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Row(
         children: [
@@ -159,7 +160,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                 Text(
                   exercise.name,
                   style: AppTypography.h2.copyWith(
-                    color: AppColors.darkText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                 ),
                 if (exercise.nameEn != null) ...[
@@ -167,7 +168,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   Text(
                     exercise.nameEn!,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.darkTextSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -194,20 +195,20 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMuscleSection(ExerciseModel exercise) {
+  Widget _buildMuscleSection(ExerciseModel exercise, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('타겟 근육'),
+        _buildSectionTitle('타겟 근육', isDark),
         const SizedBox(height: AppSpacing.md),
 
         // 주요 근육
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.darkCard,
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: AppColors.darkBorder),
+            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +227,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   Text(
                     '주요 근육',
                     style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.darkTextSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -242,7 +243,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
               // 보조 근육
               if (exercise.secondaryMuscles.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.lg),
-                const Divider(color: AppColors.darkBorder),
+                Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 const SizedBox(height: AppSpacing.lg),
                 Row(
                   children: [
@@ -250,7 +251,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -258,7 +259,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                     Text(
                       '보조 근육',
                       style: AppTypography.labelMedium.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                       ),
                     ),
                   ],
@@ -279,18 +280,18 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInstructionsSection(ExerciseModel exercise) {
+  Widget _buildInstructionsSection(ExerciseModel exercise, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('운동 방법'),
+        _buildSectionTitle('운동 방법', isDark),
         const SizedBox(height: AppSpacing.md),
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.darkCard,
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: AppColors.darkBorder),
+            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
           child: Column(
             children: exercise.instructions.asMap().entries.map((entry) {
@@ -326,7 +327,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       child: Text(
                         instruction,
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.darkText,
+                          color: isDark ? AppColors.darkText : AppColors.lightText,
                           height: 1.6,
                         ),
                       ),
@@ -341,11 +342,11 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTipsSection(ExerciseModel exercise) {
+  Widget _buildTipsSection(ExerciseModel exercise, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('팁'),
+        _buildSectionTitle('팁', isDark),
         const SizedBox(height: AppSpacing.md),
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -373,7 +374,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       child: Text(
                         tip,
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.darkText,
+                          color: isDark ? AppColors.darkText : AppColors.lightText,
                           height: 1.5,
                         ),
                       ),
@@ -388,18 +389,18 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMetaSection(ExerciseModel exercise) {
+  Widget _buildMetaSection(ExerciseModel exercise, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('추가 정보'),
+        _buildSectionTitle('추가 정보', isDark),
         const SizedBox(height: AppSpacing.md),
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.darkCard,
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: AppColors.darkBorder),
+            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
           child: Column(
             children: [
@@ -409,6 +410,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   icon: Icons.sports_gymnastics,
                   label: '필요 장비',
                   value: exercise.equipmentRequired.join(', '),
+                  isDark: isDark,
                 ),
               // 칼로리
               if (exercise.caloriesPerMinute != null) ...[
@@ -417,6 +419,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   icon: Icons.local_fire_department,
                   label: '소모 칼로리',
                   value: '${exercise.caloriesPerMinute!.toStringAsFixed(1)} kcal/분',
+                  isDark: isDark,
                 ),
               ],
             ],
@@ -426,11 +429,11 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDark) {
     return Text(
       title,
       style: AppTypography.h4.copyWith(
-        color: AppColors.darkText,
+        color: isDark ? AppColors.darkText : AppColors.lightText,
       ),
     );
   }
@@ -456,22 +459,23 @@ class ExerciseDetailScreen extends ConsumerWidget {
     required IconData icon,
     required String label,
     required String value,
+    required bool isDark,
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.darkTextSecondary),
+        Icon(icon, size: 20, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
         const SizedBox(width: AppSpacing.md),
         Text(
           label,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
         const Spacer(),
         Text(
           value,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
           ),
         ),
       ],

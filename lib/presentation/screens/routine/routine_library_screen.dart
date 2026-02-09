@@ -54,14 +54,15 @@ class _RoutineLibraryScreenState extends ConsumerState<RoutineLibraryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         elevation: 0,
         title: Text(
           '전문가 루틴',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         centerTitle: false,
         bottom: PreferredSize(
@@ -77,10 +78,11 @@ class _RoutineLibraryScreenState extends ConsumerState<RoutineLibraryScreen>
   }
 
   Widget _buildTabBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       ),
       child: TabBar(
@@ -92,7 +94,7 @@ class _RoutineLibraryScreenState extends ConsumerState<RoutineLibraryScreen>
         indicatorSize: TabBarIndicatorSize.tab,
         indicatorPadding: const EdgeInsets.all(4),
         labelColor: Colors.white,
-        unselectedLabelColor: AppColors.darkTextSecondary,
+        unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
         labelStyle: AppTypography.labelMedium,
         unselectedLabelStyle: AppTypography.labelMedium,
         dividerColor: Colors.transparent,
@@ -127,7 +129,7 @@ class _RoutineList extends ConsumerWidget {
     return routinesAsync.when(
       data: (routines) {
         if (routines.isEmpty) {
-          return _buildEmptyState();
+          return _buildEmptyState(context);
         }
         return _buildRoutineList(context, routines);
       },
@@ -136,7 +138,7 @@ class _RoutineList extends ConsumerWidget {
           color: AppColors.primary500,
         ),
       ),
-      error: (error, stack) => _buildErrorState(error.toString()),
+      error: (error, stack) => _buildErrorState(context, error.toString()),
     );
   }
 
@@ -165,7 +167,8 @@ class _RoutineList extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -173,20 +176,20 @@ class _RoutineList extends ConsumerWidget {
           Icon(
             Icons.fitness_center,
             size: 64,
-            color: AppColors.darkTextTertiary,
+            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
             '아직 루틴이 없어요',
             style: AppTypography.bodyLarge.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             '곧 새로운 루틴이 추가됩니다',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.darkTextTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
           ),
         ],
@@ -194,7 +197,8 @@ class _RoutineList extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(String error) {
+  Widget _buildErrorState(BuildContext context, String error) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -208,14 +212,14 @@ class _RoutineList extends ConsumerWidget {
           Text(
             '루틴을 불러오는데 실패했어요',
             style: AppTypography.bodyLarge.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             error,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.darkTextTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
             textAlign: TextAlign.center,
           ),

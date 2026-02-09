@@ -81,7 +81,7 @@ class V2Card extends StatelessWidget {
       padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
       margin: margin,
       backgroundColor: Colors.transparent,
-      borderColor: borderColor ?? AppColors.darkBorder,
+      borderColor: borderColor,
       borderWidth: 1,
       onTap: onTap,
       key: key,
@@ -104,9 +104,9 @@ class V2Card extends StatelessWidget {
       margin: margin,
       backgroundColor: isSelected
           ? (selectedColor ?? AppColors.primary500).withValues(alpha: 0.1)
-          : AppColors.darkCard,
+          : null,
       borderColor:
-          isSelected ? (selectedColor ?? AppColors.primary500) : AppColors.darkBorder,
+          isSelected ? (selectedColor ?? AppColors.primary500) : null,
       borderWidth: isSelected ? 2 : 1,
       onTap: onTap,
       key: key,
@@ -116,9 +116,14 @@ class V2Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final defaultCard = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final defaultCardElevated = isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated;
+    final defaultBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
     final effectiveBackgroundColor = elevated
-        ? AppColors.darkCardElevated
-        : (backgroundColor ?? AppColors.darkCard);
+        ? (backgroundColor ?? defaultCardElevated)
+        : (backgroundColor ?? defaultCard);
 
     final effectiveBorderRadius = borderRadius ?? AppSpacing.radiusLg;
 
@@ -130,7 +135,7 @@ class V2Card extends StatelessWidget {
         borderRadius: BorderRadius.circular(effectiveBorderRadius),
         border: borderColor != null || borderWidth != null
             ? Border.all(
-                color: borderColor ?? AppColors.darkBorder,
+                color: borderColor ?? defaultBorder,
                 width: borderWidth ?? 1,
               )
             : null,

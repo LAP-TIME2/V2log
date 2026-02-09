@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_spacing.dart';
 
 /// V2 스타일 스위치 위젯
 class V2Switch extends StatelessWidget {
@@ -16,15 +15,16 @@ class V2Switch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Transform.scale(
       scale: 0.8,
       child: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.primary500,
-        activeTrackColor: AppColors.primary500.withValues(alpha: 0.5),
-        inactiveThumbColor: AppColors.darkTextTertiary,
-        inactiveTrackColor: AppColors.darkBorder,
+        activeThumbColor: Colors.white,
+        activeTrackColor: AppColors.primary500,
+        inactiveThumbColor: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+        inactiveTrackColor: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );

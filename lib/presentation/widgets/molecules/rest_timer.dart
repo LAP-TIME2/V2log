@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/haptic_feedback.dart';
 import '../../../domain/providers/timer_provider.dart';
 
@@ -28,7 +29,7 @@ class RestTimerWidget extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       ),
       child: Column(
@@ -45,9 +46,9 @@ class RestTimerWidget extends ConsumerWidget {
                 child: CircularProgressIndicator(
                   value: isRunning ? timerState.progress : 0,
                   strokeWidth: 8,
-                  backgroundColor: AppColors.darkBorder,
+                  backgroundColor: context.borderColor,
                   valueColor: AlwaysStoppedAnimation(
-                    isRunning ? AppColors.primary500 : AppColors.darkTextTertiary,
+                    isRunning ? AppColors.primary500 : context.textTertiaryColor,
                   ),
                 ),
               ),
@@ -60,7 +61,7 @@ class RestTimerWidget extends ConsumerWidget {
                     style: AppTypography.timer.copyWith(
                       color: isRunning
                           ? AppColors.primary500
-                          : AppColors.darkTextSecondary,
+                          : context.textSecondaryColor,
                     ),
                   ),
                   if (isRunning) ...[
@@ -68,7 +69,7 @@ class RestTimerWidget extends ConsumerWidget {
                     Text(
                       '휴식 중',
                       style: AppTypography.labelMedium.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: context.textSecondaryColor,
                       ),
                     ),
                   ],
@@ -150,7 +151,7 @@ class RestTimerWidget extends ConsumerWidget {
       decoration: BoxDecoration(
         color: isRunning
             ? AppColors.primary500.withValues(alpha: 0.1)
-            : AppColors.darkCard,
+            : context.cardColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         border: isRunning
             ? Border.all(color: AppColors.primary500, width: 1)
@@ -161,7 +162,7 @@ class RestTimerWidget extends ConsumerWidget {
           // 타이머 아이콘
           Icon(
             Icons.timer,
-            color: isRunning ? AppColors.primary500 : AppColors.darkTextSecondary,
+            color: isRunning ? AppColors.primary500 : context.textSecondaryColor,
             size: 20,
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -170,7 +171,7 @@ class RestTimerWidget extends ConsumerWidget {
           Text(
             timerState.formattedTime,
             style: AppTypography.timerSmall.copyWith(
-              color: isRunning ? AppColors.primary500 : AppColors.darkTextSecondary,
+              color: isRunning ? AppColors.primary500 : context.textSecondaryColor,
               fontSize: 24,
             ),
           ),
@@ -184,7 +185,7 @@ class RestTimerWidget extends ConsumerWidget {
               onPressed: () {
                 ref.read(restTimerProvider.notifier).addTime(-15);
               },
-              color: AppColors.darkTextSecondary,
+              color: context.textSecondaryColor,
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
@@ -207,7 +208,7 @@ class RestTimerWidget extends ConsumerWidget {
               onPressed: () {
                 ref.read(restTimerProvider.notifier).addTime(15);
               },
-              color: AppColors.darkTextSecondary,
+              color: context.textSecondaryColor,
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
@@ -215,7 +216,7 @@ class RestTimerWidget extends ConsumerWidget {
               onPressed: () {
                 ref.read(restTimerProvider.notifier).skip();
               },
-              color: AppColors.darkTextTertiary,
+              color: context.textTertiaryColor,
               visualDensity: VisualDensity.compact,
             ),
           ] else ...[
@@ -256,7 +257,7 @@ class _TimerButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Material(
-          color: isPrimary ? AppColors.primary500 : AppColors.darkCardElevated,
+          color: isPrimary ? AppColors.primary500 : context.cardElevatedColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
           child: InkWell(
             onTap: onTap,
@@ -267,7 +268,7 @@ class _TimerButton extends StatelessWidget {
               alignment: Alignment.center,
               child: Icon(
                 icon,
-                color: isPrimary ? Colors.white : AppColors.darkText,
+                color: isPrimary ? Colors.white : context.textColor,
                 size: isPrimary ? 28 : 20,
               ),
             ),
@@ -277,7 +278,7 @@ class _TimerButton extends StatelessWidget {
         Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.darkTextTertiary,
+            color: context.textTertiaryColor,
           ),
         ),
       ],

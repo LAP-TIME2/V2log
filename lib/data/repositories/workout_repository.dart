@@ -60,7 +60,7 @@ class WorkoutRepository {
 
       // 오프라인이면 큐에 추가
       if (!await _isOnline) {
-        debugPrint('📦 오프라인: 세션 시작을 큐에 추가');
+        print('📦 오프라인: 세션 시작을 큐에 추가');
         await _sync.enqueue(
           operation: SyncOperation.insert,
           table: 'workout_sessions',
@@ -86,7 +86,7 @@ class WorkoutRepository {
 
       return WorkoutSessionModel.fromJson(response);
     } catch (e) {
-      debugPrint('운동 세션 시작 실패: $e');
+      print('운동 세션 시작 실패: $e');
       rethrow;
     }
   }
@@ -123,7 +123,7 @@ class WorkoutRepository {
 
       // 오프라인이면 큐에 추가
       if (!await _isOnline) {
-        debugPrint('📦 오프라인: 세션 완료를 큐에 추가');
+        print('📦 오프라인: 세션 완료를 큐에 추가');
         await _sync.enqueue(
           operation: SyncOperation.update,
           table: 'workout_sessions',
@@ -163,7 +163,7 @@ class WorkoutRepository {
         'sets': sets.map((s) => s.toJson()).toList(),
       });
     } catch (e) {
-      debugPrint('운동 세션 완료 실패: $e');
+      print('운동 세션 완료 실패: $e');
       rethrow;
     }
   }
@@ -179,7 +179,7 @@ class WorkoutRepository {
 
       // 오프라인이면 큐에 추가
       if (!await _isOnline) {
-        debugPrint('📦 오프라인: 세션 취소를 큐에 추가');
+        print('📦 오프라인: 세션 취소를 큐에 추가');
         await _sync.enqueue(
           operation: SyncOperation.update,
           table: 'workout_sessions',
@@ -196,7 +196,7 @@ class WorkoutRepository {
           })
           .eq('id', sessionId);
     } catch (e) {
-      debugPrint('운동 세션 취소 실패: $e');
+      print('운동 세션 취소 실패: $e');
       rethrow;
     }
   }
@@ -222,7 +222,7 @@ class WorkoutRepository {
         'sets': sets.map((s) => s.toJson()).toList(),
       });
     } catch (e) {
-      debugPrint('세션 정보를 불러오는데 실패했습니다: $e');
+      print('세션 정보를 불러오는데 실패했습니다: $e');
       return null;
     }
   }
@@ -256,7 +256,7 @@ class WorkoutRepository {
         });
       }).toList();
     } catch (e) {
-      debugPrint('운동 기록을 불러오는데 실패했습니다: $e');
+      print('운동 기록을 불러오는데 실패했습니다: $e');
       rethrow;
     }
   }
@@ -293,7 +293,7 @@ class WorkoutRepository {
         });
       }).toList();
     } catch (e) {
-      debugPrint('날짜별 운동 기록을 불러오는데 실패했습니다: $e');
+      print('날짜별 운동 기록을 불러오는데 실패했습니다: $e');
       rethrow;
     }
   }
@@ -319,7 +319,7 @@ class WorkoutRepository {
           .map((d) => DateTime(d.year, d.month, d.day))
           .toList();
     } catch (e) {
-      debugPrint('운동 일수를 불러오는데 실패했습니다: $e');
+      print('운동 일수를 불러오는데 실패했습니다: $e');
       rethrow;
     }
   }
@@ -367,7 +367,7 @@ class WorkoutRepository {
 
       // 오프라인이면 큐에 추가
       if (!await _isOnline) {
-        debugPrint('📦 오프라인: 세트 추가를 큐에 추가');
+        print('📦 오프라인: 세트 추가를 큐에 추가');
         await _sync.enqueue(
           operation: SyncOperation.insert,
           table: 'workout_sets',
@@ -401,7 +401,7 @@ class WorkoutRepository {
 
       return WorkoutSetModel.fromJson(response);
     } catch (e) {
-      debugPrint('세트 기록 추가 실패: $e');
+      print('세트 기록 추가 실패: $e');
       rethrow;
     }
   }
@@ -425,7 +425,7 @@ class WorkoutRepository {
 
       // 오프라인이면 큐에 추가
       if (!await _isOnline) {
-        debugPrint('📦 오프라인: 세트 수정을 큐에 추가');
+        print('📦 오프라인: 세트 수정을 큐에 추가');
         await _sync.enqueue(
           operation: SyncOperation.update,
           table: 'workout_sets',
@@ -458,7 +458,7 @@ class WorkoutRepository {
 
       return WorkoutSetModel.fromJson(response);
     } catch (e) {
-      debugPrint('세트 기록 수정 실패: $e');
+      print('세트 기록 수정 실패: $e');
       rethrow;
     }
   }
@@ -470,7 +470,7 @@ class WorkoutRepository {
 
       // 오프라인이면 큐에 추가
       if (!await _isOnline) {
-        debugPrint('📦 오프라인: 세트 삭제를 큐에 추가');
+        print('📦 오프라인: 세트 삭제를 큐에 추가');
         await _sync.enqueue(
           operation: SyncOperation.delete,
           table: 'workout_sets',
@@ -484,7 +484,7 @@ class WorkoutRepository {
           .delete()
           .eq('id', setId);
     } catch (e) {
-      debugPrint('세트 기록 삭제 실패: $e');
+      print('세트 기록 삭제 실패: $e');
       rethrow;
     }
   }
@@ -507,7 +507,7 @@ class WorkoutRepository {
       if (response == null) return null;
       return ExerciseRecordModel.fromJson(response);
     } catch (e) {
-      debugPrint('운동 기록을 불러오는데 실패했습니다: $e');
+      print('운동 기록을 불러오는데 실패했습니다: $e');
       return null;
     }
   }
@@ -571,7 +571,7 @@ class WorkoutRepository {
             .eq('id', existing.id);
       }
     } catch (e) {
-      debugPrint('운동 기록 업데이트 실패: $e');
+      print('운동 기록 업데이트 실패: $e');
     }
   }
 
@@ -630,7 +630,7 @@ class WorkoutRepository {
 
       return BodyRecordModel.fromJson(response);
     } catch (e) {
-      debugPrint('신체 기록 추가 실패: $e');
+      print('신체 기록 추가 실패: $e');
       rethrow;
     }
   }
@@ -652,7 +652,7 @@ class WorkoutRepository {
           .map((e) => BodyRecordModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint('신체 기록을 불러오는데 실패했습니다: $e');
+      print('신체 기록을 불러오는데 실패했습니다: $e');
       rethrow;
     }
   }
@@ -671,7 +671,7 @@ class WorkoutRepository {
       if (response == null) return null;
       return BodyRecordModel.fromJson(response);
     } catch (e) {
-      debugPrint('최근 신체 기록을 불러오는데 실패했습니다: $e');
+      print('최근 신체 기록을 불러오는데 실패했습니다: $e');
       return null;
     }
   }

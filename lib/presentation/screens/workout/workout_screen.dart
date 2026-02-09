@@ -8,7 +8,6 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/haptic_feedback.dart';
 import '../../../data/dummy/dummy_exercises.dart';
-import '../../../data/dummy/dummy_preset_routines.dart';
 import '../../../data/models/exercise_model.dart';
 import '../../../data/models/preset_routine_model.dart';
 import '../../../data/models/workout_session_model.dart';
@@ -102,10 +101,12 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     final routineExercises = ref.watch(routineExercisesProvider);
     final currentExerciseIndex = ref.watch(currentExerciseIndexProvider);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (session == null) {
       // 진행 중인 운동이 없으면 빈 로딩 UI 표시 (요약 화면으로 이동 후 정리됨)
       return Scaffold(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primary500),
         ),
@@ -121,8 +122,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     // 프리셋 모드에서 루틴 운동 로딩 중
     if (session.mode == WorkoutMode.preset && routineExercises.isEmpty) {
       return Scaffold(
-        backgroundColor: AppColors.darkBg,
-        appBar: _buildAppBar(context, session, workoutTimer),
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+        appBar: _buildAppBar(context, session, workoutTimer, isDark),
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.primary500),
         ),
@@ -130,8 +131,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
-      appBar: _buildAppBar(context, session, workoutTimer),
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+      appBar: _buildAppBar(context, session, workoutTimer, isDark),
       body: Column(
         children: [
           // 상단 고정 영역 (스크롤 안 됨)
@@ -140,16 +141,16 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             children: [
               // 운동 진행 상태 표시 (프리셋 모드)
               if (session.mode == WorkoutMode.preset && routineExercises.isNotEmpty)
-                _buildExerciseProgress(routineExercises, currentExerciseIndex),
+                _buildExerciseProgress(routineExercises, currentExerciseIndex, isDark),
 
               // 운동 가이드 영역
-              _buildExerciseHeader(session, currentExercise),
+              _buildExerciseHeader(session, currentExercise, isDark),
             ],
           ),
 
           // 세트 기록 리스트 (스크롤 가능)
           Expanded(
-            child: _buildSetList(currentSets),
+            child: _buildSetList(currentSets, isDark),
           ),
 
           // 하단 고정 영역 (스크롤 안 됨)
@@ -173,7 +174,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               ),
 
               // 세트 완료 버튼 + 다음 운동 버튼
-              _buildBottomButtons(session, routineExercises, currentExerciseIndex, currentSets),
+              _buildBottomButtons(session, routineExercises, currentExerciseIndex, currentSets, isDark),
             ],
           ),
         ],
@@ -185,13 +186,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   Widget _buildExerciseProgress(
     List<PresetRoutineExerciseModel> exercises,
     int currentIndex,
+    bool isDark,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      color: AppColors.darkCard,
+      color: isDark ? AppColors.darkCard : AppColors.lightCard,
       child: Column(
         children: [
           Row(
@@ -206,7 +208,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               Text(
                 '${((currentIndex + 1) / exercises.length * 100).toInt()}%',
                 style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
             ],
@@ -217,7 +219,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: (currentIndex + 1) / exercises.length,
-              backgroundColor: AppColors.darkCardElevated,
+              backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary500),
               minHeight: 4,
             ),
@@ -231,9 +233,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     BuildContext context,
     dynamic session,
     int workoutTimer,
+    bool isDark,
   ) {
     return AppBar(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       leading: IconButton(
         icon: const Icon(Icons.close),
         onPressed: () => _showCancelDialog(context),
@@ -243,7 +246,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           Text(
             session.mode.label,
             style: AppTypography.labelMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
           Text(
@@ -268,7 +271,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     );
   }
 
-  Widget _buildExerciseHeader(WorkoutSessionModel session, ExerciseModel? exercise) {
+  Widget _buildExerciseHeader(WorkoutSessionModel session, ExerciseModel? exercise, bool isDark) {
     if (exercise == null) {
       // 프리셋 모드에서 운동 정보 로딩 중
       final routineExercise = ref.watch(currentRoutineExerciseProvider);
@@ -276,9 +279,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         return Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.darkCard,
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
             border: Border(
-              bottom: BorderSide(color: AppColors.darkBorder, width: 1),
+              bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 1),
             ),
           ),
           child: Row(
@@ -303,13 +306,13 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   children: [
                     Text(
                       routineExercise.exercise?.name ?? '운동 ${routineExercise.orderIndex + 1}',
-                      style: AppTypography.h4.copyWith(color: AppColors.darkText),
+                      style: AppTypography.h4.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       routineExercise.setsRepsText,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                       ),
                     ),
                   ],
@@ -331,29 +334,11 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       routineExercise: session.mode == WorkoutMode.preset
           ? ref.watch(currentRoutineExerciseProvider)
           : null,
+      isDark: isDark,
     );
   }
 
-  Widget _buildTag(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.labelSmall.copyWith(
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSetList(List<WorkoutSetModel> sets) {
+  Widget _buildSetList(List<WorkoutSetModel> sets, bool isDark) {
     return Column(
       children: [
         // 헤더
@@ -362,7 +347,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         // 세트 리스트
         Expanded(
           child: sets.isEmpty
-              ? _buildEmptySetMessage()
+              ? _buildEmptySetMessage(isDark)
               : ListView.builder(
                   itemCount: sets.length + 1, // +1 for current set
                   itemBuilder: (context, index) {
@@ -406,12 +391,12 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     exerciseSets.sort((a, b) => a.setNumber.compareTo(b.setNumber));
 
     // 최고 무게 찾기
-    double? maxWeight = exerciseSets
+    double maxWeight = exerciseSets
         .map((s) => s.weight)
         .where((w) => w != null)
-        .fold<double>(0, (max, w) => w! > max ? w! : max);
+        .fold<double>(0, (max, w) => w! > max ? w : max);
 
-    if (maxWeight == null || maxWeight == 0) return false;
+    if (maxWeight == 0) return false;
 
     // 최고 무게를 가진 첫 번째 세트인지 확인
     for (final s in exerciseSets) {
@@ -423,7 +408,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     return false;
   }
 
-  Widget _buildEmptySetMessage() {
+  Widget _buildEmptySetMessage(bool isDark) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -441,7 +426,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           Text(
             '첫 세트를 완료해보세요!',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
           ),
         ],
@@ -454,6 +439,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     List<PresetRoutineExerciseModel> routineExercises,
     int currentExerciseIndex,
     List<WorkoutSetModel> currentSets,
+    bool isDark,
   ) {
     final isPresetMode = session.mode == WorkoutMode.preset;
     final isLastExercise = currentExerciseIndex >= routineExercises.length - 1;
@@ -468,9 +454,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
         border: Border(
-          top: BorderSide(color: AppColors.darkBorder, width: 1),
+          top: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 1),
         ),
       ),
       child: SafeArea(
@@ -557,9 +543,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   void _showSetTypeSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.darkCard,
+      backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSpacing.radiusXl),
@@ -576,7 +563,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                 Text(
                   '세트 타입',
                   style: AppTypography.h4.copyWith(
-                    color: AppColors.darkText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -587,7 +574,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                     title: Text(
                       type.label,
                       style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.darkText,
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
                       ),
                     ),
                     trailing: isSelected
@@ -609,18 +596,19 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
   /// 세트 삭제 확인 다이얼로그
   void _showDeleteConfirmDialog(WorkoutSetModel set) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         title: Text(
           '세트 삭제',
-          style: AppTypography.h4.copyWith(color: AppColors.darkText),
+          style: AppTypography.h4.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         content: Text(
           '${set.setNumber}세트를 삭제하시겠습니까?',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
         actions: [
@@ -629,7 +617,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             child: Text(
               '취소',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
           ),
@@ -652,9 +640,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   void _showExerciseSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.darkCard,
+      backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -683,47 +672,33 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     );
   }
 
-  /// 운동 ID로 이름 찾기
-  String _getExerciseNameById(String exerciseId, Map<String, String> exerciseNames) {
-    // 1. Supabase exerciseNames 맵에서 찾기
-    if (exerciseNames.containsKey(exerciseId)) {
-      return exerciseNames[exerciseId]!;
-    }
-
-    // 2. DummyExercises에서 찾기
-    final exercise = DummyExercises.getById(exerciseId);
-    if (exercise != null) return exercise.name;
-
-    // 3. DummyPresetRoutines에서 찾기
-    final presetExercise = DummyPresetRoutines.getExerciseById(exerciseId);
-    if (presetExercise != null) return presetExercise.name;
-
-    return '운동';
-  }
-
   void _showCancelDialog(BuildContext context) {
+    // WorkoutScreen의 GoRouter를 미리 캡처 (다이얼로그 pop 후 stale context 방지)
+    final router = GoRouter.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         title: Text(
           '운동 취소',
-          style: AppTypography.h4.copyWith(color: AppColors.darkText),
+          style: AppTypography.h4.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         content: Text(
           '진행 중인 운동을 취소하시겠습니까?\n기록된 세트는 저장되지 않습니다.',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('계속하기'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await ref.read(activeWorkoutProvider.notifier).cancelWorkout();
               ref.read(workoutTimerProvider.notifier).stop();
 
@@ -731,7 +706,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               ref.read(routineExercisesProvider.notifier).clear();
               ref.read(currentExerciseIndexProvider.notifier).reset();
 
-              if (mounted) context.go('/home');
+              if (mounted) router.go('/home');
             },
             child: Text(
               '취소하기',
@@ -769,6 +744,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
   /// 메모 입력 다이얼로그
   Future<void> _showMemoDialog() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentNotes = _getCurrentExerciseNotes();
     final controller = TextEditingController(text: currentNotes);
     final hasMemo = currentNotes.isNotEmpty;
@@ -776,18 +752,18 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         title: Row(
           children: [
             Icon(
               Icons.edit_note,
-              color: hasMemo ? AppColors.warning : AppColors.darkTextSecondary,
+              color: hasMemo ? AppColors.warning : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
               size: 24,
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
               '운동 메모',
-              style: AppTypography.h4.copyWith(color: AppColors.darkText),
+              style: AppTypography.h4.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
             ),
           ],
         ),
@@ -797,21 +773,21 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           maxLength: 200,
           maxLines: 4,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
           ),
           decoration: InputDecoration(
             hintText: '예: 어깨 통증 발생',
             hintStyle: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
             filled: true,
-            fillColor: AppColors.darkCardElevated,
+            fillColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               borderSide: BorderSide.none,
             ),
             counterStyle: AppTypography.bodySmall.copyWith(
-              color: AppColors.darkTextTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
           ),
         ),
@@ -821,7 +797,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             child: Text(
               '취소',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
           ),
@@ -862,32 +838,33 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       return;
     }
 
+    // WorkoutScreen의 Navigator를 미리 캡처 (다이얼로그 pop 후 stale context 방지)
+    final screenNavigator = Navigator.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return Consumer(
-          builder: (context, ref, child) {
-            // exerciseNames Map 가져오기
-            final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
-            final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
+          builder: (dialogContext, ref, child) {
             // Provider의 finishing 상태 구독
             final finishing = ref.read(activeWorkoutProvider.notifier).isFinishing;
 
             return AlertDialog(
-              backgroundColor: AppColors.darkCard,
+              backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
               title: Text(
                 '운동 완료',
-                style: AppTypography.h4.copyWith(color: AppColors.darkText),
+                style: AppTypography.h4.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
               ),
               content: Text(
                 '운동을 완료하시겠습니까?\n총 ${session.sets.length}세트, ${Formatters.volume(session.calculatedVolume)} 볼륨',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: finishing ? null : () => Navigator.pop(context),
+                  onPressed: finishing ? null : () => Navigator.pop(dialogContext),
                   child: const Text('계속하기'),
                 ),
                 TextButton(
@@ -895,7 +872,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                       ? null
                       : () async {
                           print('@@@ UI COMPLETE BUTTON PRESSED @@@');
-                          Navigator.pop(context);
+
+                          // 다이얼로그 pop 전에 필요한 notifier 참조 캡처
+                          final workoutNotifier = ref.read(activeWorkoutProvider.notifier);
+                          final timerNotifier = ref.read(workoutTimerProvider.notifier);
+                          final routineNotifier = ref.read(routineExercisesProvider.notifier);
+                          final indexNotifier = ref.read(currentExerciseIndexProvider.notifier);
+
+                          Navigator.pop(dialogContext);
 
                           try {
                             // 운동별 메모를 "exerciseId: 메모 / exerciseId: 메모" 형식으로 변환
@@ -906,55 +890,54 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                                 notesList.isEmpty ? null : notesList.join(' / ');
 
                             // finishWorkout 내부에서 lock 획득/해제 처리됨
-                            final finishedSession = await ref
-                                .read(activeWorkoutProvider.notifier)
+                            final finishedSession = await workoutNotifier
                                 .finishWorkout(notes: formattedNotes);
 
                             // null 반환 = 중복 호출 차단됨
                             if (finishedSession == null) {
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                ScaffoldMessenger.of(this.context).showSnackBar(
                                   const SnackBar(content: Text('이미 처리 중입니다')),
                                 );
                               }
                               return;
                             }
 
-                            ref.read(workoutTimerProvider.notifier).stop();
+                            timerNotifier.stop();
 
                             // 루틴 운동 및 인덱스 초기화
-                            ref.read(routineExercisesProvider.notifier).clear();
-                            ref.read(currentExerciseIndexProvider.notifier).reset();
+                            routineNotifier.clear();
+                            indexNotifier.reset();
 
-                            // 기록/통계 Provider 새로고침 (Supabase에서 다시 로드)
-                            ref.invalidate(workoutHistoryProvider);
-                            ref.invalidate(recentWorkoutsProvider);
-                            ref.invalidate(weeklyStatsProvider);
-                            ref.invalidate(userStatsProvider);
-
-                            // 활성 운동 정리 (요약 화면 이동 전에)
-                            await ref.read(activeWorkoutProvider.notifier).clearActiveWorkout();
-
-                            // context가 아직 유효한지 확인 후 navigation
+                            // 기록/통계 Provider 새로고침 (WorkoutScreen의 ref 사용)
                             if (mounted) {
-                              // 요약 화면으로 이동
-                              Navigator.of(context).pushReplacement(
+                              this.ref.invalidate(workoutHistoryProvider);
+                              this.ref.invalidate(recentWorkoutsProvider);
+                              this.ref.invalidate(weeklyStatsProvider);
+                              this.ref.invalidate(userStatsProvider);
+                            }
+
+                            // 요약 화면으로 먼저 이동 (state 정리 전에 캡처된 navigator 사용)
+                            if (mounted) {
+                              screenNavigator.pushReplacement(
                                 MaterialPageRoute(
-                                  builder: (context) => WorkoutSummaryScreen(
+                                  builder: (_) => WorkoutSummaryScreen(
                                     session: finishedSession,
                                   ),
                                 ),
                               );
                             }
+
+                            // 이동 후 활성 운동 정리 (WorkoutScreen은 이미 대체됨)
+                            await workoutNotifier.clearActiveWorkout();
                           } catch (e) {
                             print('=== _showFinishDialog 예외: $e ===');
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(this.context).showSnackBar(
                                 SnackBar(content: Text('운동 완료 실패: $e')),
                               );
                             }
                           }
-                          // setState로 _isFinishing 관리 제거 - Provider가 SSOT
                         },
                   child: finishing
                       ? const SizedBox(
@@ -1022,6 +1005,7 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
   @override
   Widget build(BuildContext context) {
     final exercisesAsync = ref.watch(filteredExercisesProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -1030,7 +1014,7 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: AppColors.darkBorder, width: 1),
+              bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 1),
             ),
           ),
           child: Column(
@@ -1040,7 +1024,7 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
                   Text(
                     '운동 선택',
                     style: AppTypography.h4.copyWith(
-                      color: AppColors.darkText,
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
                     ),
                   ),
                   const Spacer(),
@@ -1051,7 +1035,7 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
                       ref.read(exerciseFilterStateProvider.notifier).clearFilters();
                       Navigator.pop(context);
                     },
-                    color: AppColors.darkTextSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                 ],
               ),
@@ -1060,16 +1044,16 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
               TextField(
                 controller: _searchController,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                 ),
                 decoration: InputDecoration(
                   hintText: '운동 검색 (예: 벤치프레스, 스쿼트)',
                   hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.darkTextTertiary,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.search,
-                    color: AppColors.darkTextSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -1077,11 +1061,11 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
                           onPressed: () {
                             _searchController.clear();
                           },
-                          color: AppColors.darkTextSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         )
                       : null,
                   filled: true,
-                  fillColor: AppColors.darkCardElevated,
+                  fillColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                     borderSide: BorderSide.none,
@@ -1170,13 +1154,13 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
                       Icon(
                         Icons.search_off,
                         size: 48,
-                        color: AppColors.darkTextTertiary,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         '검색 결과가 없습니다',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.darkTextSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                         ),
                       ),
                     ],
@@ -1205,19 +1189,19 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
                     title: Text(
                       exercise.name,
                       style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.darkText,
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
                       ),
                     ),
                     subtitle: Text(
                       exercise.primaryMuscle.label,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                       ),
                     ),
                     trailing: IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.info_outline,
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                       ),
                       onPressed: () {
                         // 상세 화면으로 이동
@@ -1250,7 +1234,7 @@ class _ExerciseSelectorSheetState extends ConsumerState<_ExerciseSelectorSheet> 
                   Text(
                     '운동 목록을 불러오는데 실패했습니다',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.darkTextSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -1279,22 +1263,23 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(right: AppSpacing.sm),
       child: FilterChip(
         label: Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: isSelected ? Colors.white : (color ?? AppColors.darkTextSecondary),
+            color: isSelected ? Colors.white : (color ?? (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
           ),
         ),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        backgroundColor: AppColors.darkCard,
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         selectedColor: color ?? AppColors.primary500,
         checkmarkColor: Colors.white,
         side: BorderSide(
-          color: isSelected ? Colors.transparent : (color?.withValues(alpha: 0.3) ?? AppColors.darkBorder),
+          color: isSelected ? Colors.transparent : (color?.withValues(alpha: 0.3) ?? (isDark ? AppColors.darkBorder : AppColors.lightBorder)),
         ),
       ),
     );
@@ -1309,6 +1294,7 @@ class _ExerciseGuideCard extends StatelessWidget {
   final VoidCallback onEditNotes;
   final VoidCallback? onChangeExercise;
   final dynamic routineExercise;
+  final bool isDark;
 
   const _ExerciseGuideCard({
     required this.exercise,
@@ -1317,6 +1303,7 @@ class _ExerciseGuideCard extends StatelessWidget {
     required this.onEditNotes,
     this.onChangeExercise,
     this.routineExercise,
+    required this.isDark,
   });
 
   @override
@@ -1333,9 +1320,9 @@ class _ExerciseGuideCard extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
         border: Border(
-          bottom: BorderSide(color: AppColors.darkBorder, width: 1),
+          bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 1),
         ),
       ),
       child: Row(
@@ -1365,7 +1352,7 @@ class _ExerciseGuideCard extends StatelessWidget {
                 Text(
                   exercise.name,
                   style: AppTypography.h4.copyWith(
-                    color: AppColors.darkText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 16,
                   ),
                   maxLines: 1,
@@ -1408,7 +1395,7 @@ class _ExerciseGuideCard extends StatelessWidget {
           IconButton(
             icon: Icon(
               notes.isEmpty ? Icons.note_outlined : Icons.note,
-              color: notes.isEmpty ? AppColors.darkTextTertiary : AppColors.warning,
+              color: notes.isEmpty ? (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary) : AppColors.warning,
             ),
             onPressed: onEditNotes,
             tooltip: notes.isEmpty ? '메모 추가' : '메모 편집',
@@ -1422,33 +1409,13 @@ class _ExerciseGuideCard extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.swap_horiz),
               onPressed: onChangeExercise,
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               tooltip: '운동 변경',
               iconSize: 20,
               padding: const EdgeInsets.all(4),
               constraints: const BoxConstraints(),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMuscleTag(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.labelSmall.copyWith(
-          color: color,
-          fontSize: 10,
-        ),
       ),
     );
   }

@@ -32,6 +32,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final routineAsync = ref.watch(presetRoutineDetailProvider(widget.routineId));
 
     return DraggableScrollableSheet(
@@ -40,18 +41,18 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
       maxChildSize: 0.95,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.darkCard,
-            borderRadius: BorderRadius.vertical(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
+            borderRadius: const BorderRadius.vertical(
               top: Radius.circular(AppSpacing.radiusXxl),
             ),
           ),
           child: routineAsync.when(
-            data: (routine) => _buildContent(context, routine, scrollController),
+            data: (routine) => _buildContent(context, routine, scrollController, isDark),
             loading: () => const Center(
               child: CircularProgressIndicator(color: AppColors.primary500),
             ),
-            error: (error, _) => _buildError(error.toString()),
+            error: (error, _) => _buildError(error.toString(), isDark),
           ),
         );
       },
@@ -62,6 +63,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
     BuildContext context,
     PresetRoutineModel routine,
     ScrollController scrollController,
+    bool isDark,
   ) {
     final exercisesByDay = routine.exercisesByDay;
     final dayNumbers = exercisesByDay.keys.toList()..sort();
@@ -69,7 +71,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
     return Column(
       children: [
         // 드래그 핸들
-        _buildDragHandle(),
+        _buildDragHandle(isDark),
 
         // 스크롤 가능한 콘텐츠
         Expanded(
@@ -80,25 +82,25 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 헤더 (루틴 정보)
-                _buildHeader(routine),
+                _buildHeader(routine, isDark),
                 const SizedBox(height: AppSpacing.xxl),
 
                 // 메타 정보 카드
-                _buildMetaCards(routine),
+                _buildMetaCards(routine, isDark),
                 const SizedBox(height: AppSpacing.xxl),
 
                 // Day 선택 탭
                 if (dayNumbers.length > 1) ...[
-                  _buildDayTabs(routine, dayNumbers),
+                  _buildDayTabs(routine, dayNumbers, isDark),
                   const SizedBox(height: AppSpacing.lg),
                 ],
 
                 // Day 제목
-                _buildDayTitle(routine, _selectedDay),
+                _buildDayTitle(routine, _selectedDay, isDark),
                 const SizedBox(height: AppSpacing.lg),
 
                 // 운동 목록
-                _buildExerciseList(exercisesByDay[_selectedDay] ?? []),
+                _buildExerciseList(exercisesByDay[_selectedDay] ?? [], isDark),
                 const SizedBox(height: AppSpacing.xxl),
               ],
             ),
@@ -106,26 +108,26 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
         ),
 
         // 하단 버튼
-        _buildBottomButton(context, routine),
+        _buildBottomButton(context, routine, isDark),
       ],
     );
   }
 
-  Widget _buildDragHandle() {
+  Widget _buildDragHandle(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
       child: Container(
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.darkTextTertiary,
+          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
           borderRadius: BorderRadius.circular(2),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(PresetRoutineModel routine) {
+  Widget _buildHeader(PresetRoutineModel routine, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -144,7 +146,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
         // 루틴 이름
         Text(
           routine.name,
-          style: AppTypography.h2.copyWith(color: AppColors.darkText),
+          style: AppTypography.h2.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         const SizedBox(height: AppSpacing.sm),
 
@@ -153,7 +155,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
           Text(
             routine.description!,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
 
@@ -181,7 +183,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
     );
   }
 
-  Widget _buildMetaCards(PresetRoutineModel routine) {
+  Widget _buildMetaCards(PresetRoutineModel routine, bool isDark) {
     return Row(
       children: [
         Expanded(
@@ -189,6 +191,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
             icon: Icons.calendar_today_outlined,
             label: '주간 횟수',
             value: '${routine.daysPerWeek}회',
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -197,6 +200,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
             icon: Icons.timer_outlined,
             label: '예상 시간',
             value: '${routine.estimatedDurationMinutes ?? 60}분',
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -205,13 +209,14 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
             icon: Icons.fitness_center,
             label: '운동 수',
             value: '${routine.totalExerciseCount}개',
+            isDark: isDark,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDayTabs(PresetRoutineModel routine, List<int> dayNumbers) {
+  Widget _buildDayTabs(PresetRoutineModel routine, List<int> dayNumbers, bool isDark) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -231,6 +236,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
               dayName: dayName,
               isSelected: isSelected,
               onTap: () => setState(() => _selectedDay = day),
+              isDark: isDark,
             ),
           );
         }).toList(),
@@ -238,7 +244,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
     );
   }
 
-  Widget _buildDayTitle(PresetRoutineModel routine, int day) {
+  Widget _buildDayTitle(PresetRoutineModel routine, int day, bool isDark) {
     final dayExercises = routine.exercisesByDay[day];
     final dayName = dayExercises?.isNotEmpty == true
         ? dayExercises!.first.dayName
@@ -267,20 +273,20 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
           const SizedBox(width: AppSpacing.sm),
           Text(
             dayName.replaceFirst('Day $day - ', ''),
-            style: AppTypography.h4.copyWith(color: AppColors.darkText),
+            style: AppTypography.h4.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
           ),
         ],
       ],
     );
   }
 
-  Widget _buildExerciseList(List<PresetRoutineExerciseModel> exercises) {
+  Widget _buildExerciseList(List<PresetRoutineExerciseModel> exercises, bool isDark) {
     if (exercises.isEmpty) {
       return Center(
         child: Text(
           '이 Day에는 운동이 없습니다',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
       );
@@ -297,13 +303,14 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
           child: _ExerciseItem(
             index: index + 1,
             exercise: exercise,
+            isDark: isDark,
           ),
         );
       }).toList(),
     );
   }
 
-  Widget _buildBottomButton(BuildContext context, PresetRoutineModel routine) {
+  Widget _buildBottomButton(BuildContext context, PresetRoutineModel routine, bool isDark) {
     return Container(
       padding: EdgeInsets.only(
         left: AppSpacing.screenPadding,
@@ -312,9 +319,9 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
         top: AppSpacing.lg,
       ),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
         border: Border(
-          top: BorderSide(color: AppColors.darkBorder, width: 1),
+          top: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 1),
         ),
       ),
       child: V2Button.primary(
@@ -326,7 +333,7 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
     );
   }
 
-  Widget _buildError(String error) {
+  Widget _buildError(String error, bool isDark) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -342,14 +349,14 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
             Text(
               '루틴을 불러오는데 실패했어요',
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               error,
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -468,18 +475,20 @@ class _MetaCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool isDark;
 
   const _MetaCard({
     required this.icon,
     required this.label,
     required this.value,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      backgroundColor: AppColors.darkCardElevated,
+      backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
       child: Column(
         children: [
           Icon(icon, size: 24, color: AppColors.primary500),
@@ -487,7 +496,7 @@ class _MetaCard extends StatelessWidget {
           Text(
             value,
             style: AppTypography.h4.copyWith(
-              color: AppColors.darkText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -495,7 +504,7 @@ class _MetaCard extends StatelessWidget {
           Text(
             label,
             style: AppTypography.caption.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ],
@@ -510,12 +519,14 @@ class _DayTab extends StatelessWidget {
   final String dayName;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isDark;
 
   const _DayTab({
     required this.dayNumber,
     required this.dayName,
     required this.isSelected,
     required this.onTap,
+    required this.isDark,
   });
 
   @override
@@ -528,16 +539,16 @@ class _DayTab extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary500 : AppColors.darkCardElevated,
+          color: isSelected ? AppColors.primary500 : (isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: isSelected
               ? null
-              : Border.all(color: AppColors.darkBorder, width: 1),
+              : Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 1),
         ),
         child: Text(
           'Day $dayNumber',
           style: AppTypography.labelMedium.copyWith(
-            color: isSelected ? Colors.white : AppColors.darkTextSecondary,
+            color: isSelected ? Colors.white : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),
@@ -550,17 +561,19 @@ class _DayTab extends StatelessWidget {
 class _ExerciseItem extends StatelessWidget {
   final int index;
   final PresetRoutineExerciseModel exercise;
+  final bool isDark;
 
   const _ExerciseItem({
     required this.index,
     required this.exercise,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      backgroundColor: AppColors.darkCardElevated,
+      backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -592,7 +605,7 @@ class _ExerciseItem extends StatelessWidget {
                 Text(
                   exercise.exercise?.name ?? '운동 ${exercise.exerciseId}',
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.darkText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -603,11 +616,13 @@ class _ExerciseItem extends StatelessWidget {
                     _InfoChip(
                       icon: Icons.repeat,
                       text: exercise.setsRepsText,
+                      isDark: isDark,
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     _InfoChip(
                       icon: Icons.timer_outlined,
                       text: '휴식 ${exercise.restTimeFormatted}',
+                      isDark: isDark,
                     ),
                   ],
                 ),
@@ -620,14 +635,14 @@ class _ExerciseItem extends StatelessWidget {
                       Icon(
                         Icons.info_outline,
                         size: 14,
-                        color: AppColors.darkTextTertiary,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                       ),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           exercise.notes!,
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.darkTextTertiary,
+                            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -648,10 +663,12 @@ class _ExerciseItem extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String text;
+  final bool isDark;
 
   const _InfoChip({
     required this.icon,
     required this.text,
+    required this.isDark,
   });
 
   @override
@@ -659,12 +676,12 @@ class _InfoChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.darkTextSecondary),
+        Icon(icon, size: 14, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
         const SizedBox(width: AppSpacing.xxs),
         Text(
           text,
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
       ],

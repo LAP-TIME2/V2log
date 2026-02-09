@@ -30,18 +30,19 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final weeklyStatsAsync = ref.watch(weeklyStatsProvider);
     final totalStatsAsync = ref.watch(userStatsProvider);
     final muscleDailyVolumesAsync = ref.watch(muscleDailyVolumesProvider);
     final muscleMonthlyVolumesAsync = ref.watch(muscleMonthlyVolumesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         title: Text(
           '통계',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         elevation: 0,
       ),
@@ -53,20 +54,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 이번 주 요약
-                _buildSectionTitle('이번 주'),
+                _buildSectionTitle('이번 주', isDark),
                 const SizedBox(height: AppSpacing.lg),
                 weeklyStatsAsync.when(
                   data: (stats) => _buildWeeklyStats(context, stats),
                   loading: () => const Center(
                     child: CircularProgressIndicator(color: AppColors.primary500),
                   ),
-                  error: (_, __) => _buildErrorCard(),
+                  error: (_, __) => _buildErrorCard(isDark),
                 ),
 
                 const SizedBox(height: AppSpacing.xxxl),
 
                 // 이번 주 운동 일정
-                _buildSectionTitle('이번 주 운동 일정'),
+                _buildSectionTitle('이번 주 운동 일정', isDark),
                 const SizedBox(height: AppSpacing.lg),
                 weeklyStatsAsync.when(
                   data: (stats) => _buildWeeklyCalendar(context, stats.workoutDates),
@@ -77,55 +78,55 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 const SizedBox(height: AppSpacing.xxxl),
 
                 // 주간 볼륨 차트 (부위별 Stacked Bar)
-                _buildSectionTitle('주간 볼륨 (최근 7일)'),
+                _buildSectionTitle('주간 볼륨 (최근 7일)', isDark),
                 const SizedBox(height: AppSpacing.lg),
                 muscleDailyVolumesAsync.when(
-                  data: (volumes) => _buildWeeklyVolumeChart(context, volumes),
+                  data: (volumes) => _buildWeeklyVolumeChart(context, volumes, isDark),
                   loading: () => const Center(
                     child: CircularProgressIndicator(color: AppColors.primary500),
                   ),
-                  error: (_, __) => _buildErrorCard(),
+                  error: (_, __) => _buildErrorCard(isDark),
                 ),
 
                 const SizedBox(height: AppSpacing.xxxl),
 
                 // 월간 볼륨 차트 (부위별 Stacked Bar)
-                _buildSectionTitle('월간 볼륨 (최근 3개월)'),
+                _buildSectionTitle('월간 볼륨 (최근 3개월)', isDark),
                 const SizedBox(height: AppSpacing.lg),
                 muscleMonthlyVolumesAsync.when(
-                  data: (volumes) => _buildMonthlyVolumeChart(context, volumes),
+                  data: (volumes) => _buildMonthlyVolumeChart(context, volumes, isDark),
                   loading: () => const Center(
                     child: CircularProgressIndicator(color: AppColors.primary500),
                   ),
-                  error: (_, __) => _buildErrorCard(),
+                  error: (_, __) => _buildErrorCard(isDark),
                 ),
 
                 const SizedBox(height: AppSpacing.xxxl),
 
                 // 전체 통계
-                _buildSectionTitle('전체 통계'),
+                _buildSectionTitle('전체 통계', isDark),
                 const SizedBox(height: AppSpacing.lg),
                 totalStatsAsync.when(
-                  data: (stats) => _buildTotalStats(context, stats),
+                  data: (stats) => _buildTotalStats(context, stats, isDark),
                   loading: () => const Center(
                     child: CircularProgressIndicator(color: AppColors.primary500),
                   ),
-                  error: (_, __) => _buildErrorCard(),
+                  error: (_, __) => _buildErrorCard(isDark),
                 ),
 
                 const SizedBox(height: AppSpacing.xxxl),
 
                 // 1RM 추이
-                _buildSectionTitle('1RM 추이 (최근 6개월)'),
+                _buildSectionTitle('1RM 추이 (최근 6개월)', isDark),
                 const SizedBox(height: AppSpacing.lg),
-                _buildExercise1RMSection(context),
+                _buildExercise1RMSection(context, isDark),
 
                 const SizedBox(height: AppSpacing.xxxl),
 
                 // 운동 빈도
-                _buildSectionTitle('운동 빈도 (최근 6개월)'),
+                _buildSectionTitle('운동 빈도 (최근 6개월)', isDark),
                 const SizedBox(height: AppSpacing.lg),
-                _buildMuscleFrequencySection(context),
+                _buildMuscleFrequencySection(context, isDark),
               ],
             ),
           ),
@@ -133,6 +134,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           if (_selectedDailyVolume != null)
             _buildVolumeDetailPopup(
               context: context,
+              isDark: isDark,
               date: _selectedDailyVolume!.date,
               volumeByMuscle: _selectedDailyVolume!.volumeByMuscle,
               onClose: () => setState(() => _selectedDailyVolume = null),
@@ -140,6 +142,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           if (_selectedMonthlyVolume != null)
             _buildVolumeDetailPopup(
               context: context,
+              isDark: isDark,
               monthLabel: _selectedMonthlyVolume!.monthLabel,
               volumeByMuscle: _selectedMonthlyVolume!.volumeByMuscle,
               onClose: () => setState(() => _selectedMonthlyVolume = null),
@@ -149,11 +152,11 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDark) {
     return Text(
       title,
       style: AppTypography.h4.copyWith(
-        color: AppColors.darkText,
+        color: isDark ? AppColors.darkText : AppColors.lightText,
       ),
     );
   }
@@ -230,6 +233,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   }
 
   Widget _buildWeeklyCalendar(BuildContext context, List<DateTime> workoutDates) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // 이번 주 날짜 계산
     final now = DateTime.now();
     final weekday = now.weekday;
@@ -258,7 +262,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 style: AppTypography.caption.copyWith(
                   color: isToday
                       ? AppColors.primary500
-                      : AppColors.darkTextTertiary,
+                      : isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -269,7 +273,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   color: hasWorkout
                       ? AppColors.primary500
                       : isToday
-                          ? AppColors.darkCardElevated
+                          ? (isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated)
                           : Colors.transparent,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   border: isToday && !hasWorkout
@@ -284,7 +288,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         ? Colors.white
                         : isToday
                             ? AppColors.primary500
-                            : AppColors.darkTextSecondary,
+                            : isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
@@ -296,7 +300,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     );
   }
 
-  Widget _buildWeeklyVolumeChart(BuildContext context, List<MuscleDailyVolume> volumes) {
+  Widget _buildWeeklyVolumeChart(BuildContext context, List<MuscleDailyVolume> volumes, bool isDark) {
     if (volumes.isEmpty) {
       return V2Card(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -304,7 +308,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           child: Text(
             '최근 7일 운동 기록이 없어요',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
@@ -368,8 +372,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           if (totalVolume == 0) return null;
                           return BarTooltipItem(
                             '${Formatters.number(totalVolume, decimals: 0)}kg',
-                            const TextStyle(
-                              color: AppColors.darkText,
+                            TextStyle(
+                              color: isDark ? AppColors.darkText : AppColors.lightText,
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
@@ -412,7 +416,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                                 style: AppTypography.caption.copyWith(
                                   color: isToday
                                       ? AppColors.primary500
-                                      : AppColors.darkTextTertiary,
+                                      : isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                                   fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                                 ),
                               ),
@@ -432,7 +436,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                             return Text(
                               Formatters.number(value, decimals: 0),
                               style: AppTypography.caption.copyWith(
-                                color: AppColors.darkTextTertiary,
+                                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                               ),
                             );
                           },
@@ -450,7 +454,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       drawVerticalLine: false,
                       getDrawingHorizontalLine: (value) {
                         return FlLine(
-                          color: AppColors.darkBorder,
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                           strokeWidth: 1,
                         );
                       },
@@ -475,7 +479,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                             BarChartRodStackItem(
                               currentY,
                               currentY + volume,
-                              muscleColors[muscle] ?? AppColors.darkBorder,
+                              muscleColors[muscle] ?? (isDark ? AppColors.darkBorder : AppColors.lightBorder),
                             ),
                           );
                           currentY += volume;
@@ -512,12 +516,12 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         // 범례
-        _buildMuscleLegend(muscleColors, muscleOrder),
+        _buildMuscleLegend(muscleColors, muscleOrder, isDark),
       ],
     );
   }
 
-  Widget _buildMonthlyVolumeChart(BuildContext context, List<MuscleMonthlyVolume> volumes) {
+  Widget _buildMonthlyVolumeChart(BuildContext context, List<MuscleMonthlyVolume> volumes, bool isDark) {
     if (volumes.isEmpty) {
       return V2Card(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -525,7 +529,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           child: Text(
             '최근 3개월 운동 기록이 없어요',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
@@ -589,8 +593,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           if (totalVolume == 0) return null;
                           return BarTooltipItem(
                             '${Formatters.number(totalVolume, decimals: 0)}kg',
-                            const TextStyle(
-                              color: AppColors.darkText,
+                            TextStyle(
+                              color: isDark ? AppColors.darkText : AppColors.lightText,
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
@@ -630,7 +634,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                                 style: AppTypography.labelMedium.copyWith(
                                   color: isCurrentMonth
                                       ? AppColors.primary500
-                                      : AppColors.darkTextSecondary,
+                                      : isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                                   fontWeight: isCurrentMonth ? FontWeight.w700 : FontWeight.w500,
                                 ),
                               ),
@@ -650,7 +654,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                             return Text(
                               Formatters.number(value, decimals: 0),
                               style: AppTypography.caption.copyWith(
-                                color: AppColors.darkTextTertiary,
+                                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                               ),
                             );
                           },
@@ -668,7 +672,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       drawVerticalLine: false,
                       getDrawingHorizontalLine: (value) {
                         return FlLine(
-                          color: AppColors.darkBorder,
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                           strokeWidth: 1,
                         );
                       },
@@ -691,7 +695,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                             BarChartRodStackItem(
                               currentY,
                               currentY + volume,
-                              muscleColors[muscle] ?? AppColors.darkBorder,
+                              muscleColors[muscle] ?? (isDark ? AppColors.darkBorder : AppColors.lightBorder),
                             ),
                           );
                           currentY += volume;
@@ -728,7 +732,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         // 범례
-        _buildMuscleLegend(muscleColors, muscleOrder),
+        _buildMuscleLegend(muscleColors, muscleOrder, isDark),
       ],
     );
   }
@@ -736,6 +740,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   /// 부위별 상세 팝업
   Widget _buildVolumeDetailPopup({
     required BuildContext context,
+    required bool isDark,
     DateTime? date,
     String? monthLabel,
     required Map<MuscleGroup, double> volumeByMuscle,
@@ -786,9 +791,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           child: Container(
             constraints: const BoxConstraints(maxWidth: 280),
             decoration: BoxDecoration(
-              color: AppColors.darkCard,
+              color: isDark ? AppColors.darkCard : AppColors.lightCard,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.darkBorder),
+              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -801,20 +806,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     Text(
                       title,
                       style: AppTypography.h3.copyWith(
-                        color: AppColors.darkText,
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
                       ),
                     ),
                     GestureDetector(
                       onTap: onClose,
                       child: Icon(
                         Icons.close,
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Divider(color: AppColors.darkBorder),
+                Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 const SizedBox(height: 16),
 
                 // 총 볼륨
@@ -824,13 +829,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     Text(
                       '총 볼륨',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                       ),
                     ),
                     Text(
                       '${Formatters.number(totalVolume, decimals: 0)}kg',
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.darkText,
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -842,7 +847,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 ...entries.map((entry) {
                   final muscle = entry.key;
                   final volume = entry.value;
-                  final color = muscleColors[muscle] ?? AppColors.darkBorder;
+                  final color = muscleColors[muscle] ?? (isDark ? AppColors.darkBorder : AppColors.lightBorder);
                   final label = muscleLabels[muscle] ?? muscle.label;
 
                   return Padding(
@@ -864,7 +869,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           child: Text(
                             label,
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.darkText,
+                              color: isDark ? AppColors.darkText : AppColors.lightText,
                             ),
                           ),
                         ),
@@ -872,7 +877,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         Text(
                           '${Formatters.number(volume, decimals: 0)}kg',
                           style: AppTypography.labelLarge.copyWith(
-                            color: AppColors.darkText,
+                            color: isDark ? AppColors.darkText : AppColors.lightText,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -894,6 +899,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   Widget _buildMuscleLegend(
     Map<MuscleGroup, Color> muscleColors,
     List<MuscleGroup> muscleOrder,
+    bool isDark,
   ) {
     // 중복 제거된 범례 항목 (이두/삼두를 "팔"로 표시, 대퇴사두를 "하체"로 표시)
     final legendItems = <_LegendItem>[];
@@ -917,7 +923,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         seenLabels.add(label);
         legendItems.add(_LegendItem(
           label: label,
-          color: muscleColors[muscle] ?? AppColors.darkBorder,
+          color: muscleColors[muscle] ?? (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          isDark: isDark,
         ));
       }
     }
@@ -930,7 +937,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     );
   }
 
-  Widget _buildTotalStats(BuildContext context, UserStats stats) {
+  Widget _buildTotalStats(BuildContext context, UserStats stats, bool isDark) {
+    final dividerColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -939,35 +947,40 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             icon: Icons.fitness_center,
             label: '총 운동 횟수',
             value: '${stats.totalWorkouts}회',
+            isDark: isDark,
           ),
-          const Divider(color: AppColors.darkBorder, height: AppSpacing.xl),
+          Divider(color: dividerColor, height: AppSpacing.xl),
           _TotalStatRow(
             icon: Icons.local_fire_department,
             label: '총 볼륨',
             value: Formatters.volume(stats.totalVolume),
+            isDark: isDark,
           ),
-          const Divider(color: AppColors.darkBorder, height: AppSpacing.xl),
+          Divider(color: dividerColor, height: AppSpacing.xl),
           _TotalStatRow(
             icon: Icons.timer,
             label: '총 운동 시간',
             value: Formatters.duration(stats.totalDuration),
+            isDark: isDark,
           ),
           if (stats.currentStreak > 0) ...[
-            const Divider(color: AppColors.darkBorder, height: AppSpacing.xl),
+            Divider(color: dividerColor, height: AppSpacing.xl),
             _TotalStatRow(
               icon: Icons.local_fire_department,
               label: '현재 연속 운동',
               value: '${stats.currentStreak}일',
               valueColor: AppColors.secondary500,
+              isDark: isDark,
             ),
           ],
           if (stats.longestStreak > 0) ...[
-            const Divider(color: AppColors.darkBorder, height: AppSpacing.xl),
+            Divider(color: dividerColor, height: AppSpacing.xl),
             _TotalStatRow(
               icon: Icons.emoji_events,
               label: '최장 연속 운동',
               value: '${stats.longestStreak}일',
               valueColor: AppColors.warning,
+              isDark: isDark,
             ),
           ],
         ],
@@ -975,14 +988,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     );
   }
 
-  Widget _buildErrorCard() {
+  Widget _buildErrorCard(bool isDark) {
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.xxl),
       child: Center(
         child: Text(
           '통계를 불러오는데 실패했어요',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
       ),
@@ -1000,7 +1013,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   }
 
   /// 운동별 1RM 추이 섹션
-  Widget _buildExercise1RMSection(BuildContext context) {
+  Widget _buildExercise1RMSection(BuildContext context, bool isDark) {
     // 운동 선택 드롭다운
     final exercises = ['벤치프레스', '스쿼트', '데드리프트', '오버헤드프레스', '바벨로우'];
     final exercise1RMHistoryAsync = ref.watch(exercise1RMHistoryProvider(_selectedExercise));
@@ -1014,9 +1027,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             child: DropdownButton<String>(
               value: _selectedExercise,
               isExpanded: true,
-              dropdownColor: AppColors.darkCard,
+              dropdownColor: isDark ? AppColors.darkCard : AppColors.lightCard,
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.darkText,
+                color: isDark ? AppColors.darkText : AppColors.lightText,
               ),
               items: exercises.map((exercise) {
                 return DropdownMenuItem<String>(
@@ -1038,21 +1051,21 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
         // 1RM 라인 차트
         exercise1RMHistoryAsync.when(
-          data: (records) => _buildExercise1RMChart(context, records),
+          data: (records) => _buildExercise1RMChart(context, records, isDark),
           loading: () => const SizedBox(
             height: 200,
             child: Center(
               child: CircularProgressIndicator(color: AppColors.primary500),
             ),
           ),
-          error: (_, __) => _buildErrorCard(),
+          error: (_, __) => _buildErrorCard(isDark),
         ),
       ],
     );
   }
 
   /// 운동별 1RM 라인 차트 (월간, 최근 6개월)
-  Widget _buildExercise1RMChart(BuildContext context, List<Exercise1RMRecord> records) {
+  Widget _buildExercise1RMChart(BuildContext context, List<Exercise1RMRecord> records, bool isDark) {
     // 0값 필터링 (기록이 없는 월 제외)
     final validRecords = records.where((r) => r.estimated1RM > 0).toList();
 
@@ -1063,7 +1076,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           child: Text(
             '$_selectedExercise 기록이 없어요',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
@@ -1085,7 +1098,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
               drawVerticalLine: false,
               getDrawingHorizontalLine: (value) {
                 return FlLine(
-                  color: AppColors.darkBorder,
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                   strokeWidth: 1,
                 );
               },
@@ -1112,7 +1125,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       child: Text(
                         label,
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                         ),
                       ),
                     );
@@ -1130,7 +1143,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     return Text(
                       Formatters.number(value, decimals: 0),
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.darkTextTertiary,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                       ),
                     );
                   },
@@ -1167,7 +1180,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       radius: 4,
                       color: AppColors.primary500,
                       strokeWidth: 2,
-                      strokeColor: AppColors.darkCard,
+                      strokeColor: isDark ? AppColors.darkCard : AppColors.lightCard,
                     );
                   },
                 ),
@@ -1182,7 +1195,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
               touchTooltipData: LineTouchTooltipData(
                 tooltipPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 tooltipMargin: 8,
-                getTooltipColor: (_) => AppColors.darkCard,
+                getTooltipColor: (_) => isDark ? AppColors.darkCard : AppColors.lightCard,
                 getTooltipItems: (touchedSpots) {
                   return touchedSpots.map((spot) {
                     final index = spot.x.toInt();
@@ -1194,8 +1207,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     // 호버 시 무게만 표시 (날짜 없음)
                     return LineTooltipItem(
                       '${value}kg',
-                      const TextStyle(
-                        color: AppColors.darkText,
+                      TextStyle(
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1211,7 +1224,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   }
 
   /// 운동 빈도 섹션 (부위별 + 운동별 TOP 5)
-  Widget _buildMuscleFrequencySection(BuildContext context) {
+  Widget _buildMuscleFrequencySection(BuildContext context, bool isDark) {
     final muscleFrequencyAsync = ref.watch(muscleFrequencyProvider);
     final exerciseFrequencyAsync = ref.watch(exerciseFrequencyProvider);
 
@@ -1219,35 +1232,35 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       children: [
         // 부위별 운동 빈도
         muscleFrequencyAsync.when(
-          data: (frequencies) => _buildMuscleFrequencyCard(context, frequencies),
+          data: (frequencies) => _buildMuscleFrequencyCard(context, frequencies, isDark),
           loading: () => const SizedBox(
             height: 200,
             child: Center(
               child: CircularProgressIndicator(color: AppColors.primary500),
             ),
           ),
-          error: (_, __) => _buildErrorCard(),
+          error: (_, __) => _buildErrorCard(isDark),
         ),
 
         const SizedBox(height: AppSpacing.lg),
 
         // 운동별 빈도 TOP 5
         exerciseFrequencyAsync.when(
-          data: (frequencies) => _buildExerciseFrequencyCard(context, frequencies),
+          data: (frequencies) => _buildExerciseFrequencyCard(context, frequencies, isDark),
           loading: () => const SizedBox(
             height: 200,
             child: Center(
               child: CircularProgressIndicator(color: AppColors.primary500),
             ),
           ),
-          error: (_, __) => _buildErrorCard(),
+          error: (_, __) => _buildErrorCard(isDark),
         ),
       ],
     );
   }
 
   /// 부위별 운동 빈도 카드
-  Widget _buildMuscleFrequencyCard(BuildContext context, List<MuscleFrequency> frequencies) {
+  Widget _buildMuscleFrequencyCard(BuildContext context, List<MuscleFrequency> frequencies, bool isDark) {
     if (frequencies.every((f) => f.count == 0)) {
       return V2Card(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -1255,7 +1268,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           child: Text(
             '최근 6개월 운동 기록이 없어요',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
@@ -1273,7 +1286,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           Text(
             '부위별 운동 횟수',
             style: AppTypography.labelLarge.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1302,7 +1315,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           Text(
                             frequency.label,
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.darkText,
+                              color: isDark ? AppColors.darkText : AppColors.lightText,
                             ),
                           ),
                         ],
@@ -1310,7 +1323,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       Text(
                         '${frequency.count}회',
                         style: AppTypography.labelMedium.copyWith(
-                          color: AppColors.darkText,
+                          color: isDark ? AppColors.darkText : AppColors.lightText,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1321,7 +1334,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: percentage,
-                      backgroundColor: AppColors.darkCardElevated,
+                      backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                       valueColor: AlwaysStoppedAnimation<Color>(frequency.color),
                       minHeight: 8,
                     ),
@@ -1336,7 +1349,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   }
 
   /// 운동별 빈도 TOP 5 카드
-  Widget _buildExerciseFrequencyCard(BuildContext context, List<ExerciseFrequency> frequencies) {
+  Widget _buildExerciseFrequencyCard(BuildContext context, List<ExerciseFrequency> frequencies, bool isDark) {
     if (frequencies.isEmpty) {
       return V2Card(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -1344,7 +1357,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           child: Text(
             '최근 6개월 운동 기록이 없어요',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
@@ -1361,7 +1374,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           Text(
             '운동별 빈도 TOP 5',
             style: AppTypography.labelLarge.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1371,7 +1384,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             final percentage = maxCount > 0 ? (frequency.count / maxCount) : 0.0;
 
             // 부위별 색상 매핑
-            final muscleColor = _getMuscleColor(frequency.primaryMuscle);
+            final muscleColor = _getMuscleColor(frequency.primaryMuscle, isDark);
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -1406,7 +1419,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                               child: Text(
                                 frequency.exerciseName,
                                 style: AppTypography.bodyMedium.copyWith(
-                                  color: AppColors.darkText,
+                                  color: isDark ? AppColors.darkText : AppColors.lightText,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1426,7 +1439,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       Text(
                         '${frequency.count}회',
                         style: AppTypography.labelMedium.copyWith(
-                          color: AppColors.darkText,
+                          color: isDark ? AppColors.darkText : AppColors.lightText,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1437,7 +1450,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: percentage,
-                      backgroundColor: AppColors.darkCardElevated,
+                      backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                       valueColor: AlwaysStoppedAnimation<Color>(muscleColor),
                       minHeight: 6,
                     ),
@@ -1452,7 +1465,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   }
 
   /// 부위별 색상 가져오기 (주간/월간 차트와 동일)
-  Color _getMuscleColor(String muscleLabel) {
+  Color _getMuscleColor(String muscleLabel, bool isDark) {
     switch (muscleLabel) {
       case '가슴':
         return AppColors.muscleChest;
@@ -1474,7 +1487,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       case '복근':
         return AppColors.muscleCore;
       default:
-        return AppColors.darkBorder;
+        return isDark ? AppColors.darkBorder : AppColors.lightBorder;
     }
   }
 }
@@ -1499,6 +1512,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -1522,7 +1536,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: AppTypography.caption.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -1532,7 +1546,7 @@ class _StatCard extends StatelessWidget {
               Text(
                 value,
                 style: AppTypography.h3.copyWith(
-                  color: AppColors.darkText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1543,7 +1557,7 @@ class _StatCard extends StatelessWidget {
                   child: Text(
                     unit,
                     style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.darkTextSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                     ),
                   ),
                 ),
@@ -1562,12 +1576,14 @@ class _TotalStatRow extends StatelessWidget {
   final String label;
   final String value;
   final Color? valueColor;
+  final bool isDark;
 
   const _TotalStatRow({
     required this.icon,
     required this.label,
     required this.value,
     this.valueColor,
+    required this.isDark,
   });
 
   @override
@@ -1577,21 +1593,21 @@ class _TotalStatRow extends StatelessWidget {
         Icon(
           icon,
           size: 20,
-          color: AppColors.darkTextSecondary,
+          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Text(
             label,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
         Text(
           value,
           style: AppTypography.labelLarge.copyWith(
-            color: valueColor ?? AppColors.darkText,
+            color: valueColor ?? (isDark ? AppColors.darkText : AppColors.lightText),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1604,10 +1620,12 @@ class _TotalStatRow extends StatelessWidget {
 class _LegendItem extends StatelessWidget {
   final String label;
   final Color color;
+  final bool isDark;
 
   const _LegendItem({
     required this.label,
     required this.color,
+    required this.isDark,
   });
 
   @override
@@ -1627,7 +1645,7 @@ class _LegendItem extends StatelessWidget {
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
       ],

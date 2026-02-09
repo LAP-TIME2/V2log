@@ -6,10 +6,12 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/user_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
+import '../../widgets/atoms/v2_switch.dart';
 import 'notification_settings_screen.dart';
 
 /// 프로필 화면
@@ -24,13 +26,17 @@ class ProfileScreen extends ConsumerWidget {
     // 디버그 로그
     print('=== ProfileScreen: authState=$authState ===');
 
+    final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final bgColor = isDarkMode ? AppColors.darkBg : AppColors.lightBg;
+    final textColor = isDarkMode ? AppColors.darkText : AppColors.lightText;
+
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: bgColor,
         title: Text(
           '프로필',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: textColor),
         ),
         elevation: 0,
       ),
@@ -42,12 +48,12 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               children: [
                 // 프로필 카드
-                _buildProfileCard(user),
+                _buildProfileCard(user, isDarkMode),
                 const SizedBox(height: AppSpacing.xl),
 
                 // 통계 카드
                 userStatsAsync.when(
-                  data: (stats) => _buildStatsCard(stats),
+                  data: (stats) => _buildStatsCard(stats, isDarkMode),
                   loading: () => const Center(
                     child:
                         CircularProgressIndicator(color: AppColors.primary500),
@@ -64,7 +70,7 @@ class ProfileScreen extends ConsumerWidget {
                 V2Button.secondary(
                   text: '로그아웃',
                   icon: Icons.logout,
-                  onPressed: () => _handleLogout(context, ref),
+                  onPressed: () => _handleLogout(context, ref, isDarkMode),
                   fullWidth: true,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -73,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
                 Text(
                   'V2log v1.0.0',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.darkTextTertiary,
+                    color: isDarkMode ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                   ),
                 ),
               ],
@@ -89,7 +95,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Text(
               '프로필을 불러오는데 실패했습니다',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: isDarkMode ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
           );
@@ -98,7 +104,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileCard(user) {
+  Widget _buildProfileCard(user, bool isDark) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final secondaryTextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final tertiaryTextColor = isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
+
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -123,7 +133,7 @@ class ProfileScreen extends ConsumerWidget {
           // 닉네임
           Text(
             user?.nickname ?? '사용자',
-            style: AppTypography.h3.copyWith(color: AppColors.darkText),
+            style: AppTypography.h3.copyWith(color: textColor),
           ),
           const SizedBox(height: AppSpacing.xs),
 
@@ -131,7 +141,7 @@ class ProfileScreen extends ConsumerWidget {
           Text(
             user?.email ?? '',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: secondaryTextColor,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -158,7 +168,7 @@ class ProfileScreen extends ConsumerWidget {
             Text(
               '${Formatters.monthDay(user!.createdAt)} 가입',
               style: AppTypography.caption.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: tertiaryTextColor,
               ),
             ),
         ],
@@ -183,7 +193,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatsCard(UserStats stats) {
+  Widget _buildStatsCard(UserStats stats, bool isDark) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final secondaryTextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final tertiaryTextColor = isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
+
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -192,7 +206,7 @@ class ProfileScreen extends ConsumerWidget {
           Text(
             '나의 기록',
             style: AppTypography.labelLarge.copyWith(
-              color: AppColors.darkText,
+              color: textColor,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -204,6 +218,9 @@ class ProfileScreen extends ConsumerWidget {
                   label: '총 운동',
                   value: '${stats.totalWorkouts}회',
                   color: AppColors.primary500,
+                  textColor: textColor,
+                  secondaryColor: secondaryTextColor,
+                  tertiaryColor: tertiaryTextColor,
                 ),
               ),
               Expanded(
@@ -213,6 +230,9 @@ class ProfileScreen extends ConsumerWidget {
                   value: Formatters.number(stats.totalVolume, decimals: 0),
                   unit: 'kg',
                   color: AppColors.secondary500,
+                  textColor: textColor,
+                  secondaryColor: secondaryTextColor,
+                  tertiaryColor: tertiaryTextColor,
                 ),
               ),
               Expanded(
@@ -221,6 +241,9 @@ class ProfileScreen extends ConsumerWidget {
                   label: '총 시간',
                   value: Formatters.duration(stats.totalDuration),
                   color: AppColors.success,
+                  textColor: textColor,
+                  secondaryColor: secondaryTextColor,
+                  tertiaryColor: tertiaryTextColor,
                 ),
               ),
             ],
@@ -236,6 +259,9 @@ class ProfileScreen extends ConsumerWidget {
     required String value,
     String? unit,
     required Color color,
+    required Color textColor,
+    required Color secondaryColor,
+    required Color tertiaryColor,
   }) {
     return Column(
       children: [
@@ -248,7 +274,7 @@ class ProfileScreen extends ConsumerWidget {
             Text(
               value,
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.darkText,
+                color: textColor,
               ),
             ),
             if (unit != null) ...[
@@ -258,7 +284,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: Text(
                   unit,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: secondaryColor,
                   ),
                 ),
               ),
@@ -269,7 +295,7 @@ class ProfileScreen extends ConsumerWidget {
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: AppColors.darkTextTertiary,
+            color: tertiaryColor,
           ),
         ),
       ],
@@ -277,21 +303,55 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildSettingsSection(BuildContext context, WidgetRef ref) {
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return V2Card(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
+          // 다크 모드 토글
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              children: [
+                Icon(
+                  isDark ? Icons.dark_mode : Icons.light_mode,
+                  size: 24,
+                  color: textColor,
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Text(
+                    '다크 모드',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                    ),
+                  ),
+                ),
+                V2Switch(
+                  value: isDark,
+                  onChanged: (_) =>
+                      ref.read(themeModeProvider.notifier).toggle(),
+                ),
+              ],
+            ),
+          ),
+          Divider(color: borderColor, height: 1),
           _buildSettingItem(
             icon: Icons.person_outline,
             title: '프로필 수정',
+            isDark: isDark,
             onTap: () {
               // TODO: 프로필 수정 화면
             },
           ),
-          const Divider(color: AppColors.darkBorder, height: 1),
+          Divider(color: borderColor, height: 1),
           _buildSettingItem(
             icon: Icons.notifications_outlined,
             title: '알림 설정',
+            isDark: isDark,
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -300,20 +360,22 @@ class ProfileScreen extends ConsumerWidget {
               );
             },
           ),
-          const Divider(color: AppColors.darkBorder, height: 1),
+          Divider(color: borderColor, height: 1),
           _buildSettingItem(
             icon: Icons.help_outline,
             title: '도움말',
+            isDark: isDark,
             onTap: () {
               // TODO: 도움말 화면
             },
           ),
-          const Divider(color: AppColors.darkBorder, height: 1),
+          Divider(color: borderColor, height: 1),
           _buildSettingItem(
             icon: Icons.info_outline,
             title: '앱 정보',
+            isDark: isDark,
             onTap: () {
-              _showAppInfoDialog(context);
+              _showAppInfoDialog(context, isDark);
             },
           ),
         ],
@@ -325,26 +387,31 @@ class ProfileScreen extends ConsumerWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    bool isDark = true,
   }) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final secondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final tertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
+
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
           children: [
-            Icon(icon, size: 24, color: AppColors.darkTextSecondary),
+            Icon(icon, size: 24, color: secondaryColor),
             const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Text(
                 title,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkText,
+                  color: textColor,
                 ),
               ),
             ),
             Icon(
               Icons.chevron_right,
-              color: AppColors.darkTextTertiary,
+              color: tertiaryColor,
             ),
           ],
         ),
@@ -352,14 +419,19 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showAppInfoDialog(BuildContext context) {
+  void _showAppInfoDialog(BuildContext context, bool isDark) {
+    final cardColor = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final secondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final tertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
+        backgroundColor: cardColor,
         title: Text(
           'V2log',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: textColor),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -368,14 +440,14 @@ class ProfileScreen extends ConsumerWidget {
             Text(
               '버전: 1.0.0',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: secondaryColor,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               '전문가 루틴으로 시작하고, 기록은 10초 만에',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: tertiaryColor,
               ),
             ),
           ],
@@ -395,19 +467,23 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref, bool isDark) async {
+    final cardColor = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final secondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
+        backgroundColor: cardColor,
         title: Text(
           '로그아웃',
-          style: AppTypography.h4.copyWith(color: AppColors.darkText),
+          style: AppTypography.h4.copyWith(color: textColor),
         ),
         content: Text(
           '정말 로그아웃 하시겠습니까?',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: secondaryColor,
           ),
         ),
         actions: [
@@ -416,7 +492,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Text(
               '취소',
               style: AppTypography.labelMedium.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: secondaryColor,
               ),
             ),
           ),

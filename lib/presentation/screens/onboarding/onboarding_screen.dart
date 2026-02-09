@@ -69,8 +69,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -82,7 +84,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: Text(
                   '건너뛰기',
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                 ),
               ),
@@ -95,7 +97,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onPageChanged: _onPageChanged,
                 itemCount: _pages.length,
                 itemBuilder: (context, index) {
-                  return _buildPage(_pages[index]);
+                  return _buildPage(_pages[index], isDark);
                 },
               ),
             ),
@@ -114,7 +116,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     decoration: BoxDecoration(
                       color: _currentPage == index
                           ? AppColors.primary500
-                          : AppColors.darkBorder,
+                          : isDark ? AppColors.darkBorder : AppColors.lightBorder,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );
@@ -137,7 +139,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildPage(OnboardingPage page) {
+  Widget _buildPage(OnboardingPage page, bool isDark) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       child: Column(
@@ -163,7 +165,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             page.title,
             style: AppTypography.h1.copyWith(
-              color: AppColors.darkText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
             ),
             textAlign: TextAlign.center,
           ),
@@ -173,7 +175,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             page.description,
             style: AppTypography.bodyLarge.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
             textAlign: TextAlign.center,
           ),

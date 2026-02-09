@@ -1,8 +1,4 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,7 +15,6 @@ import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
-import '../../widgets/molecules/set_row.dart';
 import '../../widgets/molecules/workout_share_card.dart';
 
 /// 운동 완료 요약 화면
@@ -52,8 +47,10 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
     final totalSets = widget.session.sets.length;
     final prSets = widget.session.sets.where((s) => s.isPr).toList();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -70,7 +67,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
               Text(
                 '운동 완료!',
                 style: AppTypography.h1.copyWith(
-                  color: AppColors.darkText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -78,28 +75,28 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
               Text(
                 _getMotivationalMessage(totalSets, prSets.length),
                 style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxl),
 
               // 주요 통계
-              _buildMainStats(duration, totalVolume, totalSets),
+              _buildMainStats(duration, totalVolume, totalSets, isDark),
               const SizedBox(height: AppSpacing.xl),
 
               // PR 달성 (있는 경우)
               if (prSets.isNotEmpty) ...[
-                _buildPrSection(prSets, exerciseNames),
+                _buildPrSection(prSets, exerciseNames, isDark),
                 const SizedBox(height: AppSpacing.xl),
               ],
 
               // 운동별 요약
-              _buildExerciseSummary(exerciseNames),
+              _buildExerciseSummary(exerciseNames, isDark),
               const SizedBox(height: AppSpacing.xxl),
 
               // 버튼들
-              _buildActionButtons(context),
+              _buildActionButtons(context, isDark),
               const SizedBox(height: AppSpacing.xl),
             ],
           ),
@@ -148,7 +145,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
     return '오늘도 운동 완료! 내일도 파이팅!';
   }
 
-  Widget _buildMainStats(Duration duration, double volume, int sets) {
+  Widget _buildMainStats(Duration duration, double volume, int sets, bool isDark) {
     return Row(
       children: [
         Expanded(
@@ -181,7 +178,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
     );
   }
 
-  Widget _buildPrSection(List<WorkoutSetModel> prSets, Map<String, String> exerciseNames) {
+  Widget _buildPrSection(List<WorkoutSetModel> prSets, Map<String, String> exerciseNames, bool isDark) {
     return V2Card(
       backgroundColor: AppColors.warning.withValues(alpha: 0.1),
       borderColor: AppColors.warning,
@@ -229,7 +226,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
                       child: Text(
                         '${_getExerciseName(set.exerciseId, exerciseNames)}: ${set.weight}kg x ${set.reps}회',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.darkText,
+                          color: isDark ? AppColors.darkText : AppColors.lightText,
                         ),
                       ),
                     ),
@@ -261,7 +258,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
     return exerciseNotes;
   }
 
-  Widget _buildExerciseSummary(Map<String, String> exerciseNames) {
+  Widget _buildExerciseSummary(Map<String, String> exerciseNames, bool isDark) {
     final exerciseGroups = widget.session.setsByExercise;
     final parsedNotes = _parseExerciseNotes(exerciseNames);
 
@@ -273,7 +270,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
           Text(
             '운동별 요약',
             style: AppTypography.h4.copyWith(
-              color: AppColors.darkText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -318,14 +315,14 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
                             Text(
                               exerciseName,
                               style: AppTypography.labelLarge.copyWith(
-                                color: AppColors.darkText,
+                                color: isDark ? AppColors.darkText : AppColors.lightText,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               '${sets.length}세트 • 최고 ${maxWeight}kg • 볼륨 ${Formatters.volume(totalVolume)}',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.darkTextSecondary,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -338,7 +335,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
                   // 세트 타입별 요약
                   Wrap(
                     spacing: AppSpacing.xs,
-                    children: _buildSetTypeBadges(sets),
+                    children: _buildSetTypeBadges(sets, isDark),
                   ),
                   // 해당 운동의 메모 표시
                   if (exerciseNote != null && exerciseNote.isNotEmpty)
@@ -356,7 +353,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
                             child: Text(
                               '📝 $exerciseNote',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.darkTextSecondary,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -376,7 +373,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
 
   /// 세트 타입별 뱃지 목록 생성
   /// "웜업 1 / 본세트 2" 형식으로 표시
-  List<Widget> _buildSetTypeBadges(List<WorkoutSetModel> sets) {
+  List<Widget> _buildSetTypeBadges(List<WorkoutSetModel> sets, bool isDark) {
     final typeCounts = <SetType, int>{};
     for (final set in sets) {
       typeCounts[set.setType] = (typeCounts[set.setType] ?? 0) + 1;
@@ -396,7 +393,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
       Text(
         typeLabels.join(' / '),
         style: AppTypography.bodySmall.copyWith(
-          color: AppColors.darkTextTertiary,
+          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
           fontSize: 11,
         ),
       ),
@@ -429,7 +426,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
     return exerciseId;
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, bool isDark) {
     return Column(
       children: [
         V2Button.primary(
@@ -466,11 +463,13 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
                     color: AppColors.primary500,
                   ),
                 )
-              : const Icon(Icons.share, color: AppColors.darkTextSecondary),
+              : Icon(Icons.share, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
           label: Text(
             '공유하기',
             style: AppTypography.bodyMedium.copyWith(
-              color: _isSharing ? AppColors.darkTextTertiary : AppColors.darkTextSecondary,
+              color: _isSharing
+                  ? (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary)
+                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
             ),
           ),
         ),
@@ -480,8 +479,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
 
   /// 공유 다이얼로그 표시
   void _showShareDialog(BuildContext context) async {
-    final exerciseNamesAsync = await ref.read(exerciseNamesMapProvider.future);
-    final exerciseNames = exerciseNamesAsync ?? {};
+    final exerciseNames = await ref.read(exerciseNamesMapProvider.future);
 
     if (!mounted) return;
 
@@ -573,6 +571,7 @@ class _SharePreviewDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -587,7 +586,7 @@ class _SharePreviewDialog extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close, color: Colors.white),
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.darkCardElevated,
+                  backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                 ),
               ),
             ),
@@ -621,8 +620,8 @@ class _SharePreviewDialog extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.darkTextSecondary,
-                        side: const BorderSide(color: AppColors.darkBorder),
+                        foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                         padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.md,
                         ),
@@ -669,6 +668,7 @@ class _StatBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -686,7 +686,7 @@ class _StatBox extends StatelessWidget {
               child: Text(
                 value,
                 style: AppTypography.h4.copyWith(
-                  color: AppColors.darkText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontWeight: FontWeight.w700,
                 ),
                 maxLines: 1,
@@ -697,7 +697,7 @@ class _StatBox extends StatelessWidget {
           Text(
             label,
             style: AppTypography.caption.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ],

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 
 /// 빠른 입력 컨트롤 (무게/횟수) - 휠 피커 방식
 class QuickInputControl extends StatelessWidget {
@@ -32,9 +32,9 @@ class QuickInputControl extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: context.cardColor,
         border: Border(
-          top: BorderSide(color: AppColors.darkBorder, width: 1),
+          top: BorderSide(color: context.borderColor, width: 1),
         ),
       ),
       child: Row(
@@ -137,7 +137,7 @@ class _WeightInputState extends State<_WeightInput> {
         Text(
           '무게',
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: context.textSecondaryColor,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -179,8 +179,8 @@ class _WeightInputState extends State<_WeightInput> {
                           _formatValue(value),
                           style: AppTypography.h3.copyWith(
                             color: isSelected
-                                ? AppColors.darkText
-                                : AppColors.darkTextSecondary,
+                                ? context.textColor
+                                : context.textSecondaryColor,
                             fontWeight:
                                 isSelected ? FontWeight.w700 : FontWeight.w400,
                             fontSize: isSelected ? 20 : 16,
@@ -212,7 +212,7 @@ class _WeightInputState extends State<_WeightInput> {
         Text(
           'kg',
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.darkTextTertiary,
+            color: context.textTertiaryColor,
           ),
         ),
       ],
@@ -302,7 +302,7 @@ class _RepsInputState extends State<_RepsInput> {
         Text(
           '횟수',
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: context.textSecondaryColor,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -344,8 +344,8 @@ class _RepsInputState extends State<_RepsInput> {
                           '$value',
                           style: AppTypography.h3.copyWith(
                             color: isSelected
-                                ? AppColors.darkText
-                                : AppColors.darkTextSecondary,
+                                ? context.textColor
+                                : context.textSecondaryColor,
                             fontWeight:
                                 isSelected ? FontWeight.w700 : FontWeight.w400,
                             fontSize: isSelected ? 20 : 16,
@@ -377,7 +377,7 @@ class _RepsInputState extends State<_RepsInput> {
         Text(
           '회',
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.darkTextTertiary,
+            color: context.textTertiaryColor,
           ),
         ),
       ],
@@ -425,7 +425,7 @@ class _WheelButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.darkCardElevated,
+      color: context.cardElevatedColor,
       borderRadius: BorderRadius.circular(6),
       child: InkWell(
         onTap: () {
@@ -440,7 +440,7 @@ class _WheelButton extends StatelessWidget {
           child: Text(
             label,
             style: AppTypography.labelSmall.copyWith(
-              color: AppColors.darkText,
+              color: context.textColor,
               fontWeight: FontWeight.w600,
               fontSize: 11,
             ),

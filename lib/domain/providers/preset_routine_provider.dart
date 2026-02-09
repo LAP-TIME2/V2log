@@ -18,7 +18,7 @@ Future<List<PresetRoutineModel>> presetRoutines(PresetRoutinesRef ref) async {
     final repository = ref.watch(presetRoutineRepositoryProvider);
     return await repository.getAllPresetRoutines();
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     return DummyPresetRoutines.presetRoutines;
   }
 }
@@ -32,7 +32,7 @@ Future<List<PresetRoutineModel>> featuredPresetRoutines(
     final repository = ref.watch(presetRoutineRepositoryProvider);
     return await repository.getFeaturedPresetRoutines();
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     return DummyPresetRoutines.getFeatured();
   }
 }
@@ -47,7 +47,7 @@ Future<List<PresetRoutineModel>> presetRoutinesByDifficulty(
     final repository = ref.watch(presetRoutineRepositoryProvider);
     return await repository.getPresetRoutinesByDifficulty(difficulty);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     return DummyPresetRoutines.getByDifficulty(difficulty);
   }
 }
@@ -62,7 +62,7 @@ Future<List<PresetRoutineModel>> presetRoutinesByGoal(
     final repository = ref.watch(presetRoutineRepositoryProvider);
     return await repository.getPresetRoutinesByGoal(targetGoal);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     return DummyPresetRoutines.presetRoutines
         .where((r) => r.targetGoal == targetGoal)
         .toList();
@@ -126,7 +126,7 @@ Future<List<PresetRoutineModel>> filteredPresetRoutines(
 
     return await repository.getFilteredPresetRoutines(filter);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
 
     // 더미 데이터에서 필터링
     var routines = DummyPresetRoutines.presetRoutines;
@@ -169,7 +169,7 @@ Future<PresetRoutineModel> presetRoutineDetail(
 
     return await repository.getPresetRoutineWithExercises(routineId);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     final routine = DummyPresetRoutines.getById(routineId);
     if (routine == null) {
       throw Exception('루틴을 찾을 수 없습니다: $routineId');
@@ -189,7 +189,7 @@ Future<List<PresetRoutineExerciseModel>> presetRoutineDayExercises(
     final repository = ref.watch(presetRoutineRepositoryProvider);
     return await repository.getPresetRoutineExercisesByDay(routineId, dayNumber);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     final routine = DummyPresetRoutines.getById(routineId);
     if (routine == null) return [];
     return routine.exercisesByDay[dayNumber] ?? [];

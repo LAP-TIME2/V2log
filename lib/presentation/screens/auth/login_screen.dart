@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/validators.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
@@ -69,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -102,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'V2log',
                         style: AppTypography.h1.copyWith(
-                          color: AppColors.darkText,
+                          color: context.textColor,
                         ),
                       ),
                     ],
@@ -135,7 +136,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Text(
                       '비밀번호를 잊으셨나요?',
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: context.textSecondaryColor,
                       ),
                     ),
                   ),
@@ -156,18 +157,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // 구분선
                 Row(
                   children: [
-                    Expanded(child: Divider(color: AppColors.darkBorder)),
+                    Expanded(child: Divider(color: context.borderColor)),
                     Padding(
                       padding:
                           const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                       child: Text(
                         '또는',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: context.textTertiaryColor,
                         ),
                       ),
                     ),
-                    Expanded(child: Divider(color: AppColors.darkBorder)),
+                    Expanded(child: Divider(color: context.borderColor)),
                   ],
                 ),
 
@@ -206,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Text(
                       '게스트로 둘러보기',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: context.textSecondaryColor,
                         decoration: TextDecoration.underline,
                       ),
                     ),
@@ -222,7 +223,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       '계정이 없으신가요?',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: context.textSecondaryColor,
                       ),
                     ),
                     TextButton(
@@ -260,7 +261,7 @@ class _SocialButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.darkCard,
+      color: context.cardColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       child: InkWell(
         onTap: onTap,
@@ -271,7 +272,7 @@ class _SocialButton extends StatelessWidget {
           alignment: Alignment.center,
           child: Icon(
             icon,
-            color: AppColors.darkText,
+            color: context.textColor,
             size: 28,
           ),
         ),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/workout_share_utils.dart';
 import '../../../data/models/workout_session_model.dart';
@@ -52,7 +53,7 @@ class WorkoutShareCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 헤더
-          _buildHeader(),
+          _buildHeader(context),
           const SizedBox(height: AppSpacing.lg),
 
           // 완료 메시지
@@ -70,17 +71,17 @@ class WorkoutShareCard extends StatelessWidget {
           ],
 
           // 운동별 요약
-          _buildExerciseSummary(),
+          _buildExerciseSummary(context),
           const SizedBox(height: AppSpacing.xl),
 
           // 푸터 (워터마크)
-          _buildFooter(),
+          _buildFooter(context),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
         // 로고 아이콘
@@ -112,7 +113,7 @@ class WorkoutShareCard extends StatelessWidget {
             Text(
               '오늘의 운동 기록',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: context.textSecondaryColor,
               ),
             ),
           ],
@@ -122,7 +123,7 @@ class WorkoutShareCard extends StatelessWidget {
         Text(
           Formatters.monthDay(session.startedAt),
           style: AppTypography.labelMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: context.textSecondaryColor,
           ),
         ),
       ],
@@ -260,7 +261,7 @@ class WorkoutShareCard extends StatelessWidget {
     );
   }
 
-  Widget _buildExerciseSummary() {
+  Widget _buildExerciseSummary(BuildContext context) {
     final exerciseGroups = session.setsByExercise;
 
     return Column(
@@ -302,7 +303,7 @@ class WorkoutShareCard extends StatelessWidget {
                   child: Text(
                     '${sets.length}세트',
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.darkTextSecondary,
+                      color: context.textSecondaryColor,
                     ),
                   ),
                 ),
@@ -322,14 +323,14 @@ class WorkoutShareCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.darkCardElevated,
+        color: context.cardElevatedColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -346,7 +347,7 @@ class WorkoutShareCard extends StatelessWidget {
           Text(
             '- 전문가 루틴으로 시작하고, 기록은 10초 만에',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: context.textSecondaryColor,
               fontSize: 10,
             ),
           ),
@@ -421,7 +422,7 @@ class _ShareStatBox extends StatelessWidget {
           Text(
             label,
             style: AppTypography.caption.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: context.textSecondaryColor,
               fontSize: 10,
             ),
           ),

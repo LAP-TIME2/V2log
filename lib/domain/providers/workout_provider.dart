@@ -52,7 +52,7 @@ class ActiveWorkout extends _$ActiveWorkout {
         }
       }
     } catch (e) {
-      debugPrint('세션 복구 실패: $e');
+      print('세션 복구 실패: $e');
     }
   }
 
@@ -89,9 +89,9 @@ class ActiveWorkout extends _$ActiveWorkout {
           'mode': session.mode.value,
           'started_at': session.startedAt.toIso8601String(),
         });
-        debugPrint('✅ Supabase 세션 생성 성공: ${session.id}');
+        print('✅ Supabase 세션 생성 성공: ${session.id}');
       } catch (e) {
-        debugPrint('⚠️ Supabase 세션 생성 실패: $e');
+        print('⚠️ Supabase 세션 생성 실패: $e');
       }
     }
 
@@ -101,7 +101,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       await localStorage.saveWorkoutSession(session.toJson());
       localStorage.lastWorkoutMode = mode.value;
     } catch (e) {
-      debugPrint('로컬 저장 실패: $e');
+      print('로컬 저장 실패: $e');
     }
 
     state = session;
@@ -123,7 +123,7 @@ class ActiveWorkout extends _$ActiveWorkout {
 
       return (response as List).length + 1;
     } catch (e) {
-      debugPrint('세션 번호 조회 실패 (데모 모드 기본값 1): $e');
+      print('세션 번호 조회 실패 (데모 모드 기본값 1): $e');
       return 1;
     }
   }
@@ -179,7 +179,7 @@ class ActiveWorkout extends _$ActiveWorkout {
           'completed_at': newSet.completedAt.toIso8601String(),
         });
       } catch (e) {
-        debugPrint('Supabase 세트 저장 실패: $e');
+        print('Supabase 세트 저장 실패: $e');
       }
     }
 
@@ -191,7 +191,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       final localStorage = ref.read(localStorageServiceProvider);
       await localStorage.saveLastSet(session.userId, exerciseId, weight, reps);
     } catch (e) {
-      debugPrint('마지막 세트 저장 실패: $e');
+      print('마지막 세트 저장 실패: $e');
     }
 
     // 상태 업데이트
@@ -208,7 +208,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       final localStorage = ref.read(localStorageServiceProvider);
       await localStorage.saveWorkoutSession(updatedSession.toJson());
     } catch (e) {
-      debugPrint('세션 백업 실패: $e');
+      print('세션 백업 실패: $e');
     }
   }
 
@@ -253,7 +253,7 @@ class ActiveWorkout extends _$ActiveWorkout {
           'reps': updatedSet.reps,
         }).eq('id', setId);
       } catch (e) {
-        debugPrint('⚠️ Supabase 세트 수정 실패: $e');
+        print('⚠️ Supabase 세트 수정 실패: $e');
       }
     }
 
@@ -282,7 +282,7 @@ class ActiveWorkout extends _$ActiveWorkout {
         final supabase = ref.read(supabaseServiceProvider);
         await supabase.from(SupabaseTables.workoutSets).delete().eq('id', setId);
       } catch (e) {
-        debugPrint('⚠️ Supabase 세트 삭제 실패: $e');
+        print('⚠️ Supabase 세트 삭제 실패: $e');
       }
     }
 
@@ -309,7 +309,7 @@ class ActiveWorkout extends _$ActiveWorkout {
 
     // lock 획득
     _isFinishing = true;
-    print('=== finishWorkout START: hasActiveWorkout=true, sessionId=${state!.id} ===');
+    print('=== finishWorkout START: hasActiveWorkout=true, sessionId=${state?.id} ===');
 
     try {
       print('=== finishWorkout STEP 1: 세션 데이터 준비 시작 ===');
@@ -458,7 +458,7 @@ class ActiveWorkout extends _$ActiveWorkout {
           'notes': notes,
         }).eq('id', session.id);
       } catch (e) {
-        debugPrint('⚠️ Supabase 메모 업데이트 실패: $e');
+        print('⚠️ Supabase 메모 업데이트 실패: $e');
       }
     }
 
@@ -469,7 +469,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       final localStorage = ref.read(localStorageServiceProvider);
       await localStorage.saveWorkoutSession(updatedSession.toJson());
     } catch (e) {
-      debugPrint('세션 백업 실패: $e');
+      print('세션 백업 실패: $e');
     }
   }
 
@@ -480,7 +480,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       final localStorage = ref.read(localStorageServiceProvider);
       await localStorage.clearWorkoutSession();
     } catch (e) {
-      debugPrint('로컬 저장소 정리 실패: $e');
+      print('로컬 저장소 정리 실패: $e');
     }
 
     // 상태 null로 설정
@@ -504,7 +504,7 @@ class ActiveWorkout extends _$ActiveWorkout {
           'finished_at': DateTime.now().toIso8601String(),
         }).eq('id', session.id);
       } catch (e) {
-        debugPrint('⚠️ Supabase 세션 취소 실패: $e');
+        print('⚠️ Supabase 세션 취소 실패: $e');
       }
     }
 
@@ -513,7 +513,7 @@ class ActiveWorkout extends _$ActiveWorkout {
       final localStorage = ref.read(localStorageServiceProvider);
       await localStorage.clearWorkoutSession();
     } catch (e) {
-      debugPrint('로컬 저장소 정리 실패: $e');
+      print('로컬 저장소 정리 실패: $e');
     }
 
     state = null;
@@ -534,7 +534,7 @@ class RoutineExercises extends _$RoutineExercises {
       );
       state = exercises;
     } catch (e) {
-      debugPrint('루틴 운동 로드 실패: $e');
+      print('루틴 운동 로드 실패: $e');
       // 더미 데이터에서 로드
       final routine = DummyPresetRoutines.getById(routineId);
       if (routine != null) {
@@ -663,7 +663,7 @@ Future<List<WorkoutSessionModel>> recentWorkouts(RecentWorkoutsRef ref) async {
         .order('started_at', ascending: false)
         .limit(5);
 
-    debugPrint('✅ 최근 운동 기록 로드 성공: ${(response as List).length}개');
+    print('✅ 최근 운동 기록 로드 성공: ${(response as List).length}개');
 
     return response.map((e) {
       final sets = (e['workout_sets'] as List?)
@@ -677,7 +677,7 @@ Future<List<WorkoutSessionModel>> recentWorkouts(RecentWorkoutsRef ref) async {
       });
     }).toList();
   } catch (e) {
-    debugPrint('❌ 최근 운동 기록 로드 실패: $e');
+    print('❌ 최근 운동 기록 로드 실패: $e');
     return [];
   }
 }
@@ -722,7 +722,7 @@ Future<List<WorkoutSessionModel>> workoutHistory(
       });
     }).toList();
   } catch (e) {
-    debugPrint('운동 기록 조회 실패: $e');
+    print('운동 기록 조회 실패: $e');
     return [];
   }
 }
@@ -757,7 +757,7 @@ Future<WorkoutSessionModel?> workoutSessionDetail(
       'sets': sets.map((s) => s.toJson()).toList(),
     });
   } catch (e) {
-    debugPrint('세션 상세 조회 실패: $e');
+    print('세션 상세 조회 실패: $e');
     return null;
   }
 }
@@ -777,7 +777,7 @@ Future<Map<String, String>> exerciseNamesMap(ExerciseNamesMapRef ref) async {
     }
     return map;
   } catch (e) {
-    debugPrint('운동 이름 조회 실패: $e');
+    print('운동 이름 조회 실패: $e');
     // 더미 데이터에서 가져오기
     final map = <String, String>{};
     for (final ex in DummyExercises.exercises) {

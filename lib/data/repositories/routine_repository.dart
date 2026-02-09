@@ -55,7 +55,7 @@ class RoutineRepository {
         });
       }).toList();
     } catch (e) {
-      debugPrint('사용자 루틴 목록을 불러오는데 실패했습니다: $e');
+      print('사용자 루틴 목록을 불러오는데 실패했습니다: $e');
       rethrow;
     }
   }
@@ -90,7 +90,7 @@ class RoutineRepository {
         'exercises': exercises?.map((e) => e.toJson()).toList() ?? [],
       });
     } catch (e) {
-      debugPrint('루틴 정보를 불러오는데 실패했습니다: $e');
+      print('루틴 정보를 불러오는데 실패했습니다: $e');
       return null;
     }
   }
@@ -121,7 +121,7 @@ class RoutineRepository {
 
       return RoutineModel.fromJson(response);
     } catch (e) {
-      debugPrint('루틴 생성에 실패했습니다: $e');
+      print('루틴 생성에 실패했습니다: $e');
       rethrow;
     }
   }
@@ -144,7 +144,7 @@ class RoutineRepository {
 
       return RoutineModel.fromJson(response);
     } catch (e) {
-      debugPrint('루틴 업데이트에 실패했습니다: $e');
+      print('루틴 업데이트에 실패했습니다: $e');
       rethrow;
     }
   }
@@ -160,7 +160,7 @@ class RoutineRepository {
           })
           .eq('id', routineId);
     } catch (e) {
-      debugPrint('루틴 삭제에 실패했습니다: $e');
+      print('루틴 삭제에 실패했습니다: $e');
       rethrow;
     }
   }
@@ -204,7 +204,7 @@ class RoutineRepository {
         'exercise': exercise?.toJson(),
       });
     } catch (e) {
-      debugPrint('루틴에 운동 추가 실패: $e');
+      print('루틴에 운동 추가 실패: $e');
       rethrow;
     }
   }
@@ -217,7 +217,7 @@ class RoutineRepository {
           .delete()
           .eq('id', routineExerciseId);
     } catch (e) {
-      debugPrint('루틴에서 운동 제거 실패: $e');
+      print('루틴에서 운동 제거 실패: $e');
       rethrow;
     }
   }
@@ -235,7 +235,7 @@ class RoutineRepository {
             .eq('id', exerciseIds[i]);
       }
     } catch (e) {
-      debugPrint('운동 순서 변경 실패: $e');
+      print('운동 순서 변경 실패: $e');
       rethrow;
     }
   }
@@ -290,7 +290,7 @@ class RoutineRepository {
       // 4. 완성된 루틴 반환
       return (await getRoutineById(newRoutineId))!;
     } catch (e) {
-      debugPrint('프리셋 루틴 복사 실패: $e');
+      print('프리셋 루틴 복사 실패: $e');
       rethrow;
     }
   }

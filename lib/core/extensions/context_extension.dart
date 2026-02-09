@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_colors.dart';
+
 /// BuildContext 확장
 extension ContextExtension on BuildContext {
   // Theme shortcuts
@@ -19,7 +21,16 @@ extension ContextExtension on BuildContext {
   double get bottomSafeArea => padding.bottom;
   bool get isKeyboardVisible => viewInsets.bottom > 0;
   Brightness get platformBrightness => mediaQuery.platformBrightness;
-  bool get isDarkMode => platformBrightness == Brightness.dark;
+  bool get isDarkMode => theme.brightness == Brightness.dark;
+
+  // Theme-responsive color getters
+  Color get bgColor => isDarkMode ? AppColors.darkBg : AppColors.lightBg;
+  Color get cardColor => isDarkMode ? AppColors.darkCard : AppColors.lightCard;
+  Color get cardElevatedColor => isDarkMode ? AppColors.darkCardElevated : AppColors.lightCardElevated;
+  Color get borderColor => isDarkMode ? AppColors.darkBorder : AppColors.lightBorder;
+  Color get textColor => isDarkMode ? AppColors.darkText : AppColors.lightText;
+  Color get textSecondaryColor => isDarkMode ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+  Color get textTertiaryColor => isDarkMode ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
 
   // Screen size helpers
   bool get isSmallScreen => screenWidth < 360;
@@ -27,18 +38,8 @@ extension ContextExtension on BuildContext {
   bool get isLargeScreen => screenWidth >= 600;
   bool get isTablet => screenWidth >= 600;
 
-  // Navigation shortcuts
+  // Navigation shortcuts (use GoRouter context.go/push/pop for route-based navigation)
   NavigatorState get navigator => Navigator.of(this);
-
-  void pop<T>([T? result]) => navigator.pop(result);
-
-  Future<T?> push<T>(Widget page) => navigator.push<T>(
-        MaterialPageRoute(builder: (_) => page),
-      );
-
-  Future<T?> pushReplacement<T>(Widget page) => navigator.pushReplacement(
-        MaterialPageRoute(builder: (_) => page),
-      );
 
   // Focus
   void unfocus() => FocusScope.of(this).unfocus();

@@ -51,9 +51,9 @@ class SyncService {
         createdAt: DateTime.now(),
       );
       await box.put(item.id, item.toJson());
-      debugPrint('📦 큐에 추가: ${item.operation.name} on ${item.table}');
+      print('📦 큐에 추가: ${item.operation.name} on ${item.table}');
     } catch (e) {
-      debugPrint('❌ 큐 추가 실패: $e');
+      print('❌ 큐 추가 실패: $e');
     }
   }
 
@@ -68,7 +68,7 @@ class SyncService {
           try {
             items.add(SyncQueueItem.fromJson(Map<String, dynamic>.from(json)));
           } catch (e) {
-            debugPrint('큐 아이템 파싱 실패: $e');
+            print('큐 아이템 파싱 실패: $e');
           }
         }
       }
@@ -76,7 +76,7 @@ class SyncService {
       items.sort((a, b) => a.createdAt.compareTo(b.createdAt));
       return items;
     } catch (e) {
-      debugPrint('❌ 큐 가져오기 실패: $e');
+      print('❌ 큐 가져오기 실패: $e');
       return [];
     }
   }
@@ -86,9 +86,9 @@ class SyncService {
     try {
       final box = await _queue;
       await box.delete(itemId);
-      debugPrint('🗑️ 큐에서 삭제: $itemId');
+      print('🗑️ 큐에서 삭제: $itemId');
     } catch (e) {
-      debugPrint('❌ 큐 삭제 실패: $e');
+      print('❌ 큐 삭제 실패: $e');
     }
   }
 
@@ -97,9 +97,9 @@ class SyncService {
     try {
       final box = await _queue;
       await box.clear();
-      debugPrint('🗑️ 큐 비우기 완료');
+      print('🗑️ 큐 비우기 완료');
     } catch (e) {
-      debugPrint('❌ 큐 비우기 실패: $e');
+      print('❌ 큐 비우기 실패: $e');
     }
   }
 
@@ -133,9 +133,9 @@ class SyncService {
         await _syncItem(item);
         await dequeue(item.id);
         success++;
-        debugPrint('✅ 동기화 성공: ${item.table}');
+        print('✅ 동기화 성공: ${item.table}');
       } catch (e) {
-        debugPrint('❌ 동기화 실패: ${item.table} - $e');
+        print('❌ 동기화 실패: ${item.table} - $e');
         // 재시도를 위해 업데이트
         final box = await _queue;
         await box.put(item.id, item.withRetry().toJson());
@@ -195,7 +195,7 @@ class SyncService {
       }
       return ConnectionStatus.online;
     } catch (e) {
-      debugPrint('연결 상태 확인 실패: $e');
+      print('연결 상태 확인 실패: $e');
       return ConnectionStatus.unknown;
     }
   }

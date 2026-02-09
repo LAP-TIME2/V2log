@@ -17,7 +17,7 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettingsMod
     _loadSettings();
   }
 
-  /// 저장된 설정 로드
+  /// 저장된 설정 로드 + 알림 재예약
   Future<void> _loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -28,6 +28,12 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettingsMod
         );
         state = settings;
         print('=== 알림 설정 로드 완료: ${settings.enabled} ===');
+
+        // 앱 재시작 시 저장된 설정으로 알림 재예약
+        if (settings.enabled) {
+          await _scheduleWeekdayNotifications(settings);
+          print('=== 앱 시작 시 알림 재예약 완료 ===');
+        }
       }
     } catch (e) {
       print('=== 알림 설정 로드 실패: $e ===');

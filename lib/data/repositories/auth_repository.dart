@@ -43,7 +43,7 @@ class AuthRepository {
         password: password,
       );
     } catch (e) {
-      debugPrint('이메일 로그인 실패: $e');
+      print('이메일 로그인 실패: $e');
       rethrow;
     }
   }
@@ -61,7 +61,7 @@ class AuthRepository {
         data: nickname != null ? {'nickname': nickname} : null,
       );
     } catch (e) {
-      debugPrint('이메일 회원가입 실패: $e');
+      print('이메일 회원가입 실패: $e');
       rethrow;
     }
   }
@@ -71,7 +71,7 @@ class AuthRepository {
     try {
       return await _supabase.signInWithGoogle();
     } catch (e) {
-      debugPrint('Google 로그인 실패: $e');
+      print('Google 로그인 실패: $e');
       rethrow;
     }
   }
@@ -81,7 +81,7 @@ class AuthRepository {
     try {
       return await _supabase.signInWithApple();
     } catch (e) {
-      debugPrint('Apple 로그인 실패: $e');
+      print('Apple 로그인 실패: $e');
       rethrow;
     }
   }
@@ -91,7 +91,7 @@ class AuthRepository {
     try {
       return await _supabase.signInWithKakao();
     } catch (e) {
-      debugPrint('Kakao 로그인 실패: $e');
+      print('Kakao 로그인 실패: $e');
       rethrow;
     }
   }
@@ -101,7 +101,7 @@ class AuthRepository {
     try {
       await _supabase.signOut();
     } catch (e) {
-      debugPrint('로그아웃 실패: $e');
+      print('로그아웃 실패: $e');
       rethrow;
     }
   }
@@ -111,7 +111,7 @@ class AuthRepository {
     try {
       await _supabase.resetPassword(email);
     } catch (e) {
-      debugPrint('비밀번호 재설정 실패: $e');
+      print('비밀번호 재설정 실패: $e');
       rethrow;
     }
   }
@@ -121,7 +121,7 @@ class AuthRepository {
     try {
       return await _supabase.updatePassword(newPassword);
     } catch (e) {
-      debugPrint('비밀번호 변경 실패: $e');
+      print('비밀번호 변경 실패: $e');
       rethrow;
     }
   }

@@ -20,7 +20,7 @@ Future<List<RoutineModel>> userRoutines(UserRoutinesRef ref) async {
     final repository = ref.watch(routineRepositoryProvider);
     return await repository.getUserRoutines(userId);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     return DummyRoutines.routines;
   }
 }
@@ -35,7 +35,7 @@ Future<RoutineModel?> routineDetail(
     final repository = ref.watch(routineRepositoryProvider);
     return await repository.getRoutineById(routineId);
   } catch (e) {
-    debugPrint('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
+    print('⚠️ Supabase 연결 실패, 더미 데이터 사용: $e');
     return DummyRoutines.getById(routineId);
   }
 }

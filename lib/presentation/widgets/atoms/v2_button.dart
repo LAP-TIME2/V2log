@@ -121,12 +121,13 @@ class V2Button extends StatelessWidget {
     return SizedBox(
       width: fullWidth ? double.infinity : null,
       height: size.height,
-      child: _buildButton(),
+      child: _buildButton(context),
     );
   }
 
-  Widget _buildButton() {
+  Widget _buildButton(BuildContext context) {
     final isDisabled = onPressed == null || isLoading;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     switch (variant) {
       case V2ButtonVariant.primary:
@@ -167,28 +168,33 @@ class V2Button extends StatelessWidget {
         );
 
       case V2ButtonVariant.ghost:
+        final ghostForeground = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
         return TextButton(
           onPressed: isDisabled ? null : _handlePress,
           style: TextButton.styleFrom(
-            foregroundColor: variant.foregroundColor,
+            foregroundColor: ghostForeground,
             padding: EdgeInsets.symmetric(horizontal: size.horizontalPadding),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             ),
           ),
-          child: _buildContent(),
+          child: _buildContent(isDark: isDark),
         );
     }
   }
 
-  Widget _buildContent() {
+  Widget _buildContent({bool isDark = true}) {
+    final effectiveForeground = variant == V2ButtonVariant.ghost
+        ? (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)
+        : variant.foregroundColor;
+
     if (isLoading) {
       return SizedBox(
         width: size.iconSize,
         height: size.iconSize,
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation(variant.foregroundColor),
+          valueColor: AlwaysStoppedAnimation(effectiveForeground),
         ),
       );
     }
@@ -203,7 +209,7 @@ class V2Button extends StatelessWidget {
         ],
         Text(
           text,
-          style: size.textStyle.copyWith(color: variant.foregroundColor),
+          style: size.textStyle.copyWith(color: effectiveForeground),
         ),
       ],
     );
@@ -270,6 +276,9 @@ class V2IconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final defaultColor = isDark ? AppColors.darkText : AppColors.lightText;
+
     return Material(
       color: backgroundColor ?? Colors.transparent,
       borderRadius: BorderRadius.circular(size / 2),
@@ -286,7 +295,7 @@ class V2IconButton extends StatelessWidget {
           height: size,
           child: Icon(
             icon,
-            color: color ?? AppColors.darkText,
+            color: color ?? defaultColor,
             size: size * 0.5,
           ),
         ),

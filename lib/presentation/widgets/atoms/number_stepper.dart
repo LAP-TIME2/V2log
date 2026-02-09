@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/haptic_feedback.dart';
 
 /// 숫자 스테퍼 (무게/횟수 조절용)
@@ -135,7 +135,7 @@ class NumberStepper extends StatelessWidget {
                 child: Text(
                   '${_formatValue(value)} $unit',
                   style: AppTypography.h2.copyWith(
-                    color: AppColors.darkText,
+                    color: context.textColor,
                     fontWeight: FontWeight.w700,
                   ),
                   textAlign: TextAlign.center,
@@ -202,7 +202,7 @@ class _QuickButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.darkCard,
+      color: context.cardColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       child: InkWell(
         onTap: onTap,
@@ -215,7 +215,7 @@ class _QuickButton extends StatelessWidget {
           child: Text(
             label,
             style: AppTypography.labelMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: context.textSecondaryColor,
             ),
           ),
         ),
@@ -239,7 +239,7 @@ class _StepButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: enabled ? AppColors.darkCard : AppColors.darkCard.withValues(alpha: 0.5),
+      color: enabled ? context.cardColor : context.cardColor.withValues(alpha: 0.5),
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -251,8 +251,8 @@ class _StepButton extends StatelessWidget {
           child: Icon(
             icon,
             color: enabled
-                ? AppColors.darkText
-                : AppColors.darkTextTertiary,
+                ? context.textColor
+                : context.textTertiaryColor,
             size: 24,
           ),
         ),
@@ -294,14 +294,14 @@ class CompactNumberStepper extends StatelessWidget {
         Text(
           _formatValue(),
           style: AppTypography.bodyLarge.copyWith(
-            color: AppColors.darkText,
+            color: context.textColor,
             fontWeight: FontWeight.w600,
           ),
         ),
         Text(
           unit,
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: context.textSecondaryColor,
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
@@ -336,7 +336,7 @@ class _CompactButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.darkBorder,
+      color: context.borderColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
       child: InkWell(
         onTap: onTap,
@@ -346,7 +346,7 @@ class _CompactButton extends StatelessWidget {
           height: 28,
           child: Icon(
             icon,
-            color: AppColors.darkText,
+            color: context.textColor,
             size: 16,
           ),
         ),

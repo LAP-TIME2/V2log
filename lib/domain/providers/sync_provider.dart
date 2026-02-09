@@ -45,7 +45,7 @@ class ConnectionState extends _$ConnectionState {
 
       // 오프라인 → 온라인 전환 시 자동 동기화
       if (wasOffline && status == ConnectionStatus.online) {
-        debugPrint('🌐 온라인 연결됨 - 동기화 시작');
+        print('🌐 온라인 연결됨 - 동기화 시작');
         ref.read(syncControllerProvider.notifier).syncNow();
       }
     });
@@ -84,7 +84,7 @@ class SyncController extends _$SyncController {
   Future<void> syncNow() async {
     final connectionState = ref.read(connectionStateProvider);
     if (connectionState != ConnectionStatus.online) {
-      debugPrint('⚠️ 오프라인 상태 - 동기화 건너뜀');
+      print('⚠️ 오프라인 상태 - 동기화 건너뜀');
       return;
     }
 
@@ -96,10 +96,10 @@ class SyncController extends _$SyncController {
 
       if (result.hasFailure) {
         ref.read(syncStateProvider.notifier).state = SyncStatus.error;
-        debugPrint('⚠️ 동기화 부분 실패: ${result.failed}/${result.total}');
+        print('⚠️ 동기화 부분 실패: ${result.failed}/${result.total}');
       } else if (result.total > 0) {
         ref.read(syncStateProvider.notifier).state = SyncStatus.completed;
-        debugPrint('✅ 동기화 완료: ${result.success}/${result.total}');
+        print('✅ 동기화 완료: ${result.success}/${result.total}');
         // 2초后 idle 상태로 복귀
         Future.delayed(const Duration(seconds: 2), () {
           ref.read(syncStateProvider.notifier).state = SyncStatus.idle;
@@ -112,7 +112,7 @@ class SyncController extends _$SyncController {
       ref.invalidate(pendingSyncCountProvider);
     } catch (e) {
       ref.read(syncStateProvider.notifier).state = SyncStatus.error;
-      debugPrint('❌ 동기화 실패: $e');
+      print('❌ 동기화 실패: $e');
       Future.delayed(const Duration(seconds: 2), () {
         ref.read(syncStateProvider.notifier).state = SyncStatus.idle;
       });

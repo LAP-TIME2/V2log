@@ -26,15 +26,16 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final historyAsync = ref.watch(workoutHistoryProvider());
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         title: Text(
           '운동 기록',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         elevation: 0,
       ),
@@ -56,7 +57,7 @@ class HistoryScreen extends ConsumerWidget {
               Text(
                 '기록을 불러오는데 실패했어요',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
             ],
@@ -67,6 +68,7 @@ class HistoryScreen extends ConsumerWidget {
   }
 
   Widget _buildHistoryList(BuildContext context, List<WorkoutSessionModel> sessions) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (sessions.isEmpty) {
       return Center(
         child: Column(
@@ -75,20 +77,20 @@ class HistoryScreen extends ConsumerWidget {
             Icon(
               Icons.fitness_center,
               size: 64,
-              color: AppColors.darkTextTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               '아직 운동 기록이 없어요',
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               '첫 운동을 시작해보세요!',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
               ),
             ),
           ],
@@ -125,14 +127,14 @@ class HistoryScreen extends ConsumerWidget {
                   Text(
                     Formatters.relativeDate(date),
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.darkText,
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     Formatters.monthDay(date),
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.darkTextTertiary,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                     ),
                   ),
                 ],
@@ -163,6 +165,7 @@ class _WorkoutSessionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final duration = session.totalDurationSeconds != null
         ? Duration(seconds: session.totalDurationSeconds!)
         : session.duration ?? Duration.zero;
@@ -216,14 +219,14 @@ class _WorkoutSessionCard extends ConsumerWidget {
                     Text(
                       _getWorkoutTitle(formattedNotes),
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.darkText,
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
                       Formatters.time(session.startedAt),
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.darkTextTertiary,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                       ),
                     ),
                   ],
@@ -233,7 +236,7 @@ class _WorkoutSessionCard extends ConsumerWidget {
               // 화살표
               Icon(
                 Icons.chevron_right,
-                color: AppColors.darkTextTertiary,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
               ),
             ],
           ),
@@ -269,7 +272,7 @@ class _WorkoutSessionCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.darkCardElevated,
+                color: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Row(
@@ -277,14 +280,14 @@ class _WorkoutSessionCard extends ConsumerWidget {
                   Icon(
                     Icons.note_outlined,
                     size: 16,
-                    color: AppColors.darkTextTertiary,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       formattedNotes,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -305,7 +308,7 @@ class _WorkoutSessionCard extends ConsumerWidget {
                   size: 16,
                   color: index < session.moodRating!
                       ? AppColors.warning
-                      : AppColors.darkTextTertiary,
+                      : isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                 );
               }),
             ),
@@ -340,6 +343,7 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -349,13 +353,13 @@ class _StatItem extends StatelessWidget {
             Icon(
               icon,
               size: 14,
-              color: AppColors.darkTextTertiary,
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
             ),
             const SizedBox(width: AppSpacing.xs),
             Text(
               label,
               style: AppTypography.caption.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
               ),
             ),
           ],
@@ -364,7 +368,7 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: AppTypography.labelMedium.copyWith(
-            color: AppColors.darkText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
           ),
         ),
       ],
@@ -388,16 +392,17 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sessionAsync = ref.watch(workoutSessionDetailProvider(widget.sessionId));
     final exerciseNamesAsync = ref.watch(exerciseNamesMapProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         title: Text(
           '운동 상세',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         elevation: 0,
         actions: [
@@ -419,7 +424,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                     : IconButton(
                         onPressed: () => _shareWorkout(context, session, exerciseNamesAsync),
                         icon: const Icon(Icons.share_outlined),
-                        color: AppColors.darkText,
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
                       )
                 : null,
           ) ?? const SizedBox.shrink(),
@@ -432,7 +437,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
               child: Text(
                 '운동 기록을 찾을 수 없습니다',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
             );
@@ -455,7 +460,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                 // 운동별 세트 목록
                 Text(
                   '운동 기록',
-                  style: AppTypography.h4.copyWith(color: AppColors.darkText),
+                  style: AppTypography.h4.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _buildExercisesList(session, exerciseNames),
@@ -484,7 +489,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
               Text(
                 '기록을 불러오는데 실패했어요',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -582,6 +587,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
   }
 
   Widget _buildSummaryCard(WorkoutSessionModel session, String formattedNotes) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final duration = session.totalDurationSeconds != null
         ? Duration(seconds: session.totalDurationSeconds!)
         : session.duration ?? Duration.zero;
@@ -619,7 +625,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
               Text(
                 Formatters.dateTime(session.startedAt),
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
             ],
@@ -656,13 +662,13 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.darkCardElevated,
+                color: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Text(
                 formattedNotes,
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
             ),
@@ -676,6 +682,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
     WorkoutSessionModel session,
     Map<String, String> exerciseNames,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // 운동별로 세트 그룹화
     final setsByExercise = <String, List<WorkoutSetModel>>{};
     for (final set in session.sets) {
@@ -689,7 +696,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
           child: Text(
             '기록된 세트가 없습니다',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
@@ -732,13 +739,13 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                           Text(
                             exerciseName,
                             style: AppTypography.labelLarge.copyWith(
-                              color: AppColors.darkText,
+                              color: isDark ? AppColors.darkText : AppColors.lightText,
                             ),
                           ),
                           Text(
                             '${sets.length}세트',
                             style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.darkTextSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                             ),
                           ),
                         ],
@@ -755,7 +762,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                       child: Text(
                         '세트',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                         ),
                       ),
                     ),
@@ -764,7 +771,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                       child: Text(
                         '타입',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                         ),
                       ),
                     ),
@@ -772,7 +779,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                       child: Text(
                         '무게',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -781,7 +788,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                       child: Text(
                         '횟수',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -790,14 +797,14 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                       child: Text(
                         '볼륨',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                         ),
                         textAlign: TextAlign.right,
                       ),
                     ),
                   ],
                 ),
-                const Divider(color: AppColors.darkBorder, height: AppSpacing.lg),
+                Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, height: AppSpacing.lg),
                 // 세트 목록
                 ...sets.asMap().entries.map((entry) {
                   final index = entry.key;
@@ -815,7 +822,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                               Text(
                                 '${index + 1}',
                                 style: AppTypography.bodyMedium.copyWith(
-                                  color: AppColors.darkText,
+                                  color: isDark ? AppColors.darkText : AppColors.lightText,
                                 ),
                               ),
                               if (set.isPr)
@@ -839,7 +846,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                           child: Text(
                             '${set.weight ?? 0}kg',
                             style: AppTypography.bodyMedium.copyWith(
-                              color: isWarmup ? AppColors.darkTextTertiary : AppColors.darkText,
+                              color: isWarmup ? (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary) : (isDark ? AppColors.darkText : AppColors.lightText),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -848,7 +855,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                           child: Text(
                             '${set.reps ?? 0}회',
                             style: AppTypography.bodyMedium.copyWith(
-                              color: isWarmup ? AppColors.darkTextTertiary : AppColors.darkText,
+                              color: isWarmup ? (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary) : (isDark ? AppColors.darkText : AppColors.lightText),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -857,7 +864,7 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
                           child: Text(
                             Formatters.volume(set.volume),
                             style: AppTypography.bodyMedium.copyWith(
-                              color: isWarmup ? AppColors.darkTextTertiary : AppColors.primary500,
+                              color: isWarmup ? (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary) : AppColors.primary500,
                             ),
                             textAlign: TextAlign.right,
                           ),
@@ -897,6 +904,7 @@ class _SharePreviewDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -911,7 +919,7 @@ class _SharePreviewDialog extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(false),
                 icon: const Icon(Icons.close, color: Colors.white),
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.darkCardElevated,
+                  backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                 ),
               ),
             ),
@@ -945,8 +953,8 @@ class _SharePreviewDialog extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.darkTextSecondary,
-                        side: const BorderSide(color: AppColors.darkBorder),
+                        foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                         padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.md,
                         ),
@@ -991,20 +999,21 @@ class _SummaryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
-        Icon(icon, size: 24, color: AppColors.darkTextSecondary),
+        Icon(icon, size: 24, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
         const SizedBox(height: AppSpacing.xs),
         Text(
           value,
           style: AppTypography.labelLarge.copyWith(
-            color: AppColors.darkText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
           ),
         ),
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: AppColors.darkTextTertiary,
+            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
           ),
         ),
       ],

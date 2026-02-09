@@ -34,9 +34,10 @@ class NotificationService {
 
     print('=== NotificationService 초기화 시작 ===');
 
-    // Timezone 초기화
+    // Timezone 초기화 + 한국 시간대 설정
     tz_data.initializeTimeZones();
-    print('=== Timezone 초기화 완료 ===');
+    tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
+    print('=== Timezone 초기화 완료 (Asia/Seoul) ===');
 
     // Android 설정
     const androidSettings = AndroidInitializationSettings(

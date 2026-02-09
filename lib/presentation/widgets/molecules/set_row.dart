@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/haptic_feedback.dart';
 import '../../../data/models/workout_set_model.dart';
 
@@ -61,7 +62,7 @@ class SetRow extends StatelessWidget {
               : Colors.transparent,
           border: Border(
             bottom: BorderSide(
-              color: AppColors.darkBorder,
+              color: context.borderColor,
               width: 1,
             ),
             left: isCurrent
@@ -77,7 +78,7 @@ class SetRow extends StatelessWidget {
               child: Text(
                 '$setNumber',
                 style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: context.textSecondaryColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -90,6 +91,7 @@ class SetRow extends StatelessWidget {
             // 무게
             Expanded(
               child: _buildValueCell(
+                context: context,
                 value: weight,
                 target: targetWeight,
                 unit: 'kg',
@@ -100,6 +102,7 @@ class SetRow extends StatelessWidget {
             // 횟수
             Expanded(
               child: _buildValueCell(
+                context: context,
                 value: reps?.toDouble(),
                 target: targetReps?.toDouble(),
                 unit: '회',
@@ -110,7 +113,7 @@ class SetRow extends StatelessWidget {
             // 상태 아이콘
             SizedBox(
               width: 32,
-              child: _buildStatusIcon(),
+              child: _buildStatusIcon(context),
             ),
           ],
         ),
@@ -119,6 +122,7 @@ class SetRow extends StatelessWidget {
   }
 
   Widget _buildValueCell({
+    required BuildContext context,
     double? value,
     double? target,
     required String unit,
@@ -141,14 +145,14 @@ class SetRow extends StatelessWidget {
     return Text(
       text,
       style: AppTypography.bodyLarge.copyWith(
-        color: isCompleted ? AppColors.darkText : AppColors.darkTextTertiary,
+        color: isCompleted ? context.textColor : context.textTertiaryColor,
         fontWeight: isCompleted ? FontWeight.w600 : FontWeight.w400,
       ),
       textAlign: TextAlign.center,
     );
   }
 
-  Widget _buildStatusIcon() {
+  Widget _buildStatusIcon(BuildContext context) {
     if (isPr) {
       return const Icon(
         Icons.emoji_events,
@@ -175,7 +179,7 @@ class SetRow extends StatelessWidget {
 
     return Icon(
       Icons.radio_button_unchecked,
-      color: AppColors.darkTextTertiary,
+      color: context.textTertiaryColor,
       size: 20,
     );
   }
@@ -242,9 +246,9 @@ class SetRowHeader extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: context.cardColor,
         border: Border(
-          bottom: BorderSide(color: AppColors.darkBorder, width: 1),
+          bottom: BorderSide(color: context.borderColor, width: 1),
         ),
       ),
       child: Row(
@@ -254,7 +258,7 @@ class SetRowHeader extends StatelessWidget {
             child: Text(
               '세트',
               style: AppTypography.labelSmall.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: context.textTertiaryColor,
               ),
             ),
           ),
@@ -264,7 +268,7 @@ class SetRowHeader extends StatelessWidget {
             child: Text(
               '무게',
               style: AppTypography.labelSmall.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: context.textTertiaryColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -273,7 +277,7 @@ class SetRowHeader extends StatelessWidget {
             child: Text(
               '횟수',
               style: AppTypography.labelSmall.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: context.textTertiaryColor,
               ),
               textAlign: TextAlign.center,
             ),

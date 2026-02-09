@@ -142,11 +142,16 @@ class V2TextField extends StatefulWidget {
           FilteringTextInputFormatter.digitsOnly,
       ],
       suffix: suffix != null
-          ? Text(
-              suffix,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.darkTextSecondary,
-              ),
+          ? Builder(
+              builder: (context) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Text(
+                  suffix,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                );
+              },
             )
           : null,
       onChanged: onChanged,
@@ -187,6 +192,9 @@ class V2TextField extends StatefulWidget {
 class _V2TextFieldState extends State<V2TextField> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -195,7 +203,7 @@ class _V2TextFieldState extends State<V2TextField> {
           Text(
             widget.label!,
             style: AppTypography.labelMedium.copyWith(
-              color: AppColors.darkText,
+              color: textColor,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -217,7 +225,7 @@ class _V2TextFieldState extends State<V2TextField> {
           validator: widget.validator,
           inputFormatters: widget.inputFormatters,
           autovalidateMode: widget.autovalidateMode,
-          style: AppTypography.bodyLarge.copyWith(color: AppColors.darkText),
+          style: AppTypography.bodyLarge.copyWith(color: textColor),
           decoration: InputDecoration(
             hintText: widget.hint,
             errorText: widget.errorText,

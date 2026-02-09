@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/session_notes_formatter.dart';
 import '../../../data/models/sync_queue_model.dart';
@@ -39,7 +40,7 @@ class HomeScreen extends ConsumerWidget {
     final isWorkoutInProgress = ref.watch(isWorkoutInProgressProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -101,14 +102,14 @@ class HomeScreen extends ConsumerWidget {
                   Text(
                     greeting,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.darkTextSecondary,
+                      color: context.textSecondaryColor,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     nickname ?? '운동하러 오셨군요!',
                     style: AppTypography.h2.copyWith(
-                      color: AppColors.darkText,
+                      color: context.textColor,
                     ),
                   ),
                 ],
@@ -121,10 +122,10 @@ class HomeScreen extends ConsumerWidget {
             // 프로필 아이콘
             CircleAvatar(
               radius: 24,
-              backgroundColor: AppColors.darkCard,
+              backgroundColor: context.cardColor,
               child: Icon(
                 Icons.person,
-                color: AppColors.darkTextSecondary,
+                color: context.textSecondaryColor,
               ),
             ),
           ],
@@ -172,7 +173,7 @@ class HomeScreen extends ConsumerWidget {
                 Text(
                   '${session.sets.length}세트 완료 • ${Formatters.timer(session.currentDuration.inSeconds)}',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: context.textSecondaryColor,
                   ),
                 ),
               ],
@@ -242,13 +243,13 @@ class HomeScreen extends ConsumerWidget {
                 Text(
                   '빠른 기록',
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.darkText,
+                    color: context.textColor,
                   ),
                 ),
                 Text(
                   '루틴 없이 바로 운동 기록하기',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: context.textSecondaryColor,
                   ),
                 ),
               ],
@@ -256,7 +257,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           Icon(
             Icons.chevron_right,
-            color: AppColors.darkTextTertiary,
+            color: context.textTertiaryColor,
           ),
         ],
       ),
@@ -272,7 +273,7 @@ class HomeScreen extends ConsumerWidget {
         Text(
           '이번 주 요약',
           style: AppTypography.h4.copyWith(
-            color: AppColors.darkText,
+            color: context.textColor,
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -331,7 +332,7 @@ class HomeScreen extends ConsumerWidget {
             Text(
               '최근 운동',
               style: AppTypography.h4.copyWith(
-                color: AppColors.darkText,
+                color: context.textColor,
               ),
             ),
             TextButton(
@@ -357,20 +358,20 @@ class HomeScreen extends ConsumerWidget {
                       Icon(
                         Icons.fitness_center,
                         size: 48,
-                        color: AppColors.darkTextTertiary,
+                        color: context.textTertiaryColor,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
                         '아직 운동 기록이 없어요',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.darkTextSecondary,
+                          color: context.textSecondaryColor,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         '첫 운동을 시작해보세요!',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.darkTextTertiary,
+                          color: context.textTertiaryColor,
                         ),
                       ),
                     ],
@@ -405,7 +406,7 @@ class HomeScreen extends ConsumerWidget {
               child: Text(
                 '기록을 불러오는데 실패했어요',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: context.textSecondaryColor,
                 ),
               ),
             ),
@@ -518,7 +519,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: AppTypography.caption.copyWith(
-              color: AppColors.darkTextTertiary,
+              color: context.textTertiaryColor,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -529,7 +530,7 @@ class _StatCard extends StatelessWidget {
                 child: Text(
                   value,
                   style: AppTypography.bodyLarge.copyWith(
-                    color: AppColors.darkText,
+                    color: context.textColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -544,7 +545,7 @@ class _StatCard extends StatelessWidget {
                   child: Text(
                     unit!,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.darkTextSecondary,
+                      color: context.textSecondaryColor,
                     ),
                   ),
                 ),
@@ -588,7 +589,7 @@ class _RecentWorkoutCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.darkCardElevated,
+              color: context.cardElevatedColor,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             ),
             child: Column(
@@ -597,13 +598,13 @@ class _RecentWorkoutCard extends StatelessWidget {
                 Text(
                   Formatters.shortWeekday(workout.date),
                   style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.darkTextTertiary,
+                    color: context.textTertiaryColor,
                   ),
                 ),
                 Text(
                   workout.date.day.toString(),
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.darkText,
+                    color: context.textColor,
                   ),
                 ),
               ],
@@ -619,14 +620,14 @@ class _RecentWorkoutCard extends StatelessWidget {
                 Text(
                   workout.name,
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.darkText,
+                    color: context.textColor,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '${Formatters.duration(workout.duration)} • ${Formatters.volume(workout.volume)}',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: context.textSecondaryColor,
                   ),
                 ),
               ],
@@ -635,7 +636,7 @@ class _RecentWorkoutCard extends StatelessWidget {
 
           Icon(
             Icons.chevron_right,
-            color: AppColors.darkTextTertiary,
+            color: context.textTertiaryColor,
           ),
         ],
       ),
@@ -659,7 +660,7 @@ class _SyncStatusIndicator extends ConsumerWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.darkCard,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Stack(
@@ -668,7 +669,7 @@ class _SyncStatusIndicator extends ConsumerWidget {
             // 메인 아이콘
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              child: _buildIcon(connection, syncStatus),
+              child: _buildIcon(context, connection, syncStatus),
             ),
             // 대기 중인 작업 수 뱃지
             if ((pendingCount.value ?? 0) > 0)
@@ -703,15 +704,15 @@ class _SyncStatusIndicator extends ConsumerWidget {
     );
   }
 
-  Widget _buildIcon(ConnectionStatus connection, SyncStatus syncStatus) {
+  Widget _buildIcon(BuildContext context, ConnectionStatus connection, SyncStatus syncStatus) {
     final status = syncStatus;
 
     // 오프라인
     if (connection == ConnectionStatus.offline) {
-      return const Icon(
+      return Icon(
         Icons.cloud_off,
-        key: ValueKey('offline'),
-        color: AppColors.darkTextTertiary,
+        key: const ValueKey('offline'),
+        color: context.textTertiaryColor,
         size: 20,
       );
     }
@@ -766,18 +767,20 @@ class _SyncStatusIndicator extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
+        backgroundColor: context.cardColor,
         title: const Text('동기화 상태'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatusRow('연결 상태', _getConnectionLabel(connection)),
-            const SizedBox(height: AppSpacing.sm),
-            _buildStatusRow('동기화 상태', _getSyncStatusLabel(syncStatus)),
-            const SizedBox(height: AppSpacing.sm),
-            _buildStatusRow('대기 중인 작업', '${pendingCount.value ?? 0}건'),
-          ],
+        content: Builder(
+          builder: (dialogContext) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatusRow(dialogContext, '연결 상태', _getConnectionLabel(connection)),
+              const SizedBox(height: AppSpacing.sm),
+              _buildStatusRow(dialogContext, '동기화 상태', _getSyncStatusLabel(syncStatus)),
+              const SizedBox(height: AppSpacing.sm),
+              _buildStatusRow(dialogContext, '대기 중인 작업', '${pendingCount.value ?? 0}건'),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -805,20 +808,20 @@ class _SyncStatusIndicator extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusRow(String label, String value) {
+  Widget _buildStatusRow(BuildContext context, String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: context.textSecondaryColor,
           ),
         ),
         Text(
           value,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.darkText,
+            color: context.textColor,
             fontWeight: FontWeight.w600,
           ),
         ),

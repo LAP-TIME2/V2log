@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/validators.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
@@ -118,12 +119,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkText),
+          icon: Icon(Icons.arrow_back, color: context.textColor),
           onPressed: () => context.pop(),
         ),
       ),
@@ -139,14 +140,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Text(
                   '회원가입',
                   style: AppTypography.h1.copyWith(
-                    color: AppColors.darkText,
+                    color: context.textColor,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   '건강한 운동 습관을 시작해보세요',
                   style: AppTypography.bodyLarge.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: context.textSecondaryColor,
                   ),
                 ),
 
@@ -204,7 +205,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             },
                       activeColor: AppColors.primary500,
                       checkColor: Colors.white,
-                      side: const BorderSide(color: AppColors.darkBorder),
+                      side: BorderSide(color: context.borderColor),
                     ),
                     Expanded(
                       child: GestureDetector(
@@ -224,7 +225,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               TextSpan(
                                 text: ' 및 ',
                                 style: AppTypography.bodyMedium.copyWith(
-                                  color: AppColors.darkTextSecondary,
+                                  color: context.textSecondaryColor,
                                   decoration: TextDecoration.none,
                                 ),
                               ),
@@ -238,7 +239,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               TextSpan(
                                 text: '에 동의합니다',
                                 style: AppTypography.bodyMedium.copyWith(
-                                  color: AppColors.darkTextSecondary,
+                                  color: context.textSecondaryColor,
                                   decoration: TextDecoration.none,
                                 ),
                               ),
@@ -269,7 +270,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Text(
                       '이미 계정이 있으신가요?',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.darkTextSecondary,
+                        color: context.textSecondaryColor,
                       ),
                     ),
                     TextButton(

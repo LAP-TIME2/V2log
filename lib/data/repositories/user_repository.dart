@@ -36,7 +36,7 @@ class UserRepository {
 
       return UserModel.fromJson(response);
     } catch (e) {
-      debugPrint('현재 사용자 정보 가져오기 실패: $e');
+      print('현재 사용자 정보 가져오기 실패: $e');
       rethrow;
     }
   }
@@ -52,7 +52,7 @@ class UserRepository {
 
       return UserModel.fromJson(response);
     } catch (e) {
-      debugPrint('사용자 정보 가져오기 실패: $e');
+      print('사용자 정보 가져오기 실패: $e');
       return null;
     }
   }
@@ -69,7 +69,7 @@ class UserRepository {
 
       return UserModel.fromJson(response);
     } catch (e) {
-      debugPrint('사용자 정보 업데이트 실패: $e');
+      print('사용자 정보 업데이트 실패: $e');
       rethrow;
     }
   }
@@ -97,7 +97,7 @@ class UserRepository {
 
       return url;
     } catch (e) {
-      debugPrint('프로필 이미지 업로드 실패: $e');
+      print('프로필 이미지 업로드 실패: $e');
       rethrow;
     }
   }
@@ -113,7 +113,7 @@ class UserRepository {
 
       return response == null;
     } catch (e) {
-      debugPrint('닉네임 중복 확인 실패: $e');
+      print('닉네임 중복 확인 실패: $e');
       rethrow;
     }
   }
@@ -148,7 +148,7 @@ class UserRepository {
 
       return UserModel.fromJson(response);
     } catch (e) {
-      debugPrint('온보딩 정보 저장 실패: $e');
+      print('온보딩 정보 저장 실패: $e');
       rethrow;
     }
   }

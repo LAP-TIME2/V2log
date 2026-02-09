@@ -22,16 +22,17 @@ class _NotificationSettingsScreenState
     extends ConsumerState<NotificationSettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final settings = ref.watch(notificationSettingsProvider);
     final notifier = ref.read(notificationSettingsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         title: Text(
           '알림 설정',
-          style: AppTypography.h3.copyWith(color: AppColors.darkText),
+          style: AppTypography.h3.copyWith(color: isDark ? AppColors.darkText : AppColors.lightText),
         ),
         elevation: 0,
       ),
@@ -49,11 +50,12 @@ class _NotificationSettingsScreenState
             onChanged: (value) {
               notifier.toggleAll(value);
             },
+            isDark: isDark,
           ),
           const SizedBox(height: AppSpacing.lg),
 
           // 요일별 설정 (한 줄)
-          _buildWeekdaysRow(settings, notifier),
+          _buildWeekdaysRow(settings, notifier, isDark),
 
           const SizedBox(height: AppSpacing.xl),
 
@@ -79,13 +81,13 @@ class _NotificationSettingsScreenState
                             Text(
                               '테스트 알림',
                               style: AppTypography.labelMedium.copyWith(
-                                color: AppColors.darkText,
+                                color: isDark ? AppColors.darkText : AppColors.lightText,
                               ),
                             ),
                             Text(
                               '알림이 정상 작동하는지 확인해보세요',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.darkTextSecondary,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                               ),
                             ),
                           ],
@@ -114,7 +116,7 @@ class _NotificationSettingsScreenState
             child: Text(
               '요일을 눌러서 알림 시간을 설정하세요! 💪',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.darkTextTertiary,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
               ),
             ),
           ),
@@ -130,6 +132,7 @@ class _NotificationSettingsScreenState
     required String description,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required bool isDark,
   }) {
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -156,14 +159,14 @@ class _NotificationSettingsScreenState
                 Text(
                   title,
                   style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.darkText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   description,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                 ),
               ],
@@ -179,7 +182,7 @@ class _NotificationSettingsScreenState
   }
 
   /// 요일 버튼 한 줄 (고정 순서: 월 화 수 목 금 토 일)
-  Widget _buildWeekdaysRow(NotificationSettingsModel settings, dynamic notifier) {
+  Widget _buildWeekdaysRow(NotificationSettingsModel settings, dynamic notifier, bool isDark) {
     const weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
     const weekdayColors = [
       AppColors.primary500,  // 월
@@ -208,7 +211,7 @@ class _NotificationSettingsScreenState
               Text(
                 '요일별 알림 시간',
                 style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.darkText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                 ),
               ),
             ],
@@ -243,7 +246,7 @@ class _NotificationSettingsScreenState
                             border: Border.all(
                               color: isEnabled
                                   ? weekdayColor.withValues(alpha: 0.8)
-                                  : AppColors.darkBorder,
+                                  : isDark ? AppColors.darkBorder : AppColors.lightBorder,
                               width: isEnabled ? 2 : 1,
                             ),
                             boxShadow: isEnabled
@@ -265,7 +268,7 @@ class _NotificationSettingsScreenState
                                   style: AppTypography.labelSmall.copyWith(
                                     color: isEnabled
                                         ? weekdayColor
-                                        : AppColors.darkTextTertiary,
+                                        : isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                                     fontWeight: isEnabled ? FontWeight.w700 : FontWeight.normal,
                                   ),
                                 ),
@@ -284,7 +287,7 @@ class _NotificationSettingsScreenState
                                   Text(
                                     'OFF',
                                     style: AppTypography.bodySmall.copyWith(
-                                      color: AppColors.darkTextTertiary,
+                                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                                       fontSize: 9,
                                     ),
                                   ),
@@ -319,6 +322,7 @@ class _NotificationSettingsScreenState
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => _WeekdaySettingDialog(
+        weekday: weekday,
         weekdayName: weekdayName,
         weekdayColor: weekdayColor,
         currentSetting: currentSetting,
@@ -333,11 +337,13 @@ class _NotificationSettingsScreenState
 
 /// 요일별 설정 다이얼로그
 class _WeekdaySettingDialog extends ConsumerStatefulWidget {
+  final int weekday; // 1(월) ~ 7(일)
   final String weekdayName;
   final Color weekdayColor;
   final WeekdaySetting currentSetting;
 
   const _WeekdaySettingDialog({
+    required this.weekday,
     required this.weekdayName,
     required this.weekdayColor,
     required this.currentSetting,
@@ -364,8 +370,10 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AlertDialog(
-      backgroundColor: AppColors.darkCard,
+      backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -393,7 +401,7 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
             child: Text(
               '${widget.weekdayName} 알림',
               style: AppTypography.h3.copyWith(
-                color: AppColors.darkText,
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: 20,
               ),
             ),
@@ -410,7 +418,7 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
               Text(
                 '알림 받기',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                 ),
               ),
               V2Switch(
@@ -430,7 +438,7 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
             Text(
               '알림 시간',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -442,10 +450,15 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
                   builder: (context, child) {
                     return Theme(
                       data: Theme.of(context).copyWith(
-                        colorScheme: ColorScheme.dark(
-                          primary: widget.weekdayColor,
-                          surface: AppColors.darkCard,
-                        ),
+                        colorScheme: isDark
+                            ? ColorScheme.dark(
+                                primary: widget.weekdayColor,
+                                surface: AppColors.darkCard,
+                              )
+                            : ColorScheme.light(
+                                primary: widget.weekdayColor,
+                                surface: AppColors.lightCard,
+                              ),
                       ),
                       child: child!,
                     );
@@ -463,7 +476,7 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
                   vertical: AppSpacing.md,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.darkCardElevated,
+                  color: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: widget.weekdayColor.withValues(alpha: 0.5),
@@ -496,13 +509,13 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
                 vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
-                color: AppColors.darkCardElevated,
+                color: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '알림이 꺼져 있습니다',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkTextTertiary,
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                 ),
               ),
             ),
@@ -515,21 +528,16 @@ class _WeekdaySettingDialogState extends ConsumerState<_WeekdaySettingDialog> {
           child: Text(
             '취소',
             style: AppTypography.labelMedium.copyWith(
-              color: AppColors.darkTextSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
           ),
         ),
         TextButton(
           onPressed: () {
-            // 설정 저장
+            // 설정 저장 (weekday 숫자를 직접 사용)
             final notifier = ref.read(notificationSettingsProvider.notifier);
             notifier.updateWeekdaySetting(
-              widget.weekdayName == '월요일' ? 1 :
-              widget.weekdayName == '화요일' ? 2 :
-              widget.weekdayName == '수요일' ? 3 :
-              widget.weekdayName == '목요일' ? 4 :
-              widget.weekdayName == '금요일' ? 5 :
-              widget.weekdayName == '토요일' ? 6 : 7,
+              widget.weekday,
               WeekdaySetting(
                 enabled: _enabled,
                 hour: _selectedTime.hour,

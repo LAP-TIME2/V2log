@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../data/models/preset_routine_model.dart';
 import '../../../data/models/user_model.dart';
 import '../atoms/v2_card.dart';
@@ -38,7 +39,7 @@ class PresetRoutineCard extends StatelessWidget {
               const Spacer(),
               Icon(
                 Icons.chevron_right,
-                color: AppColors.darkTextSecondary,
+                color: context.textSecondaryColor,
                 size: 24,
               ),
             ],
@@ -49,7 +50,7 @@ class PresetRoutineCard extends StatelessWidget {
           Text(
             routine.name,
             style: AppTypography.h3.copyWith(
-              color: AppColors.darkText,
+              color: context.textColor,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -59,7 +60,7 @@ class PresetRoutineCard extends StatelessWidget {
             Text(
               routine.description!,
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.darkTextSecondary,
+                color: context.textSecondaryColor,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -196,13 +197,13 @@ class _MetaInfo extends StatelessWidget {
         Icon(
           icon,
           size: 16,
-          color: AppColors.darkTextTertiary,
+          color: context.textTertiaryColor,
         ),
         const SizedBox(width: AppSpacing.xs),
         Text(
           text,
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.darkTextSecondary,
+            color: context.textSecondaryColor,
           ),
         ),
       ],
@@ -262,7 +263,7 @@ class PresetRoutineCardCompact extends StatelessWidget {
                 Text(
                   routine.name,
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.darkText,
+                    color: context.textColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -271,7 +272,7 @@ class PresetRoutineCardCompact extends StatelessWidget {
                 Text(
                   '주 ${routine.daysPerWeek}회 • ${routine.estimatedDurationMinutes ?? 60}분',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.darkTextSecondary,
+                    color: context.textSecondaryColor,
                   ),
                 ),
               ],
@@ -281,7 +282,7 @@ class PresetRoutineCardCompact extends StatelessWidget {
           // 오른쪽: 화살표
           Icon(
             Icons.chevron_right,
-            color: AppColors.darkTextTertiary,
+            color: context.textTertiaryColor,
           ),
         ],
       ),

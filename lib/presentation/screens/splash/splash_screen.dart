@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/extensions/context_extension.dart';
 import '../../../data/services/local_storage_service.dart';
 import '../../../domain/providers/auth_provider.dart';
 
@@ -71,7 +72,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       }
     } catch (e) {
       // Supabase 미설정 시 바로 홈으로
-      debugPrint('Splash navigation error: $e');
+      print('Splash navigation error: $e');
       context.go('/home');
     }
   }
@@ -85,7 +86,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: context.bgColor,
       body: Center(
         child: AnimatedBuilder(
           animation: _controller,
@@ -121,7 +122,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               Text(
                 'V2log',
                 style: AppTypography.display1.copyWith(
-                  color: AppColors.darkText,
+                  color: context.textColor,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -131,7 +132,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               Text(
                 'AI가 루틴을 추천하고, 기록은 10초 만에',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.darkTextSecondary,
+                  color: context.textSecondaryColor,
                 ),
               ),
             ],
