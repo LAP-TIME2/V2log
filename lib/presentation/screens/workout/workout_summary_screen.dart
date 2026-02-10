@@ -31,9 +31,6 @@ class WorkoutSummaryScreen extends ConsumerStatefulWidget {
 }
 
 class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
-  /// 공용 캡처 키 (화면 전체 캡처용)
-  final GlobalKey _shareCardKey = GlobalKey();
-
   /// 공유 중 여부
   bool _isSharing = false;
 
@@ -515,8 +512,9 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
         prCount: prSets.isNotEmpty ? prSets.length : null,
       );
 
-      // 이미지 캡처 (RepaintBoundary)
-      final imageBytes = await WorkoutShareUtils.captureFromRenderBox(_shareCardKey);
+      // 이미지 캡처 (RepaintBoundary) - 다이얼로그에서 사용한 키와 동일한 키 사용
+      final captureKey = WorkoutShareUtils.getCaptureKey(widget.session.id);
+      final imageBytes = await WorkoutShareUtils.captureFromRenderBox(captureKey);
 
       if (imageBytes != null) {
         // 이미지와 함께 공유
@@ -572,79 +570,84 @@ class _SharePreviewDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+
     return Dialog(
-      backgroundColor: Colors.transparent,
+      backgroundColor: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 450),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 닫기 버튼
-            Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close, color: Colors.white),
-                style: IconButton.styleFrom(
-                  backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
+            // 헤더: 제목 + 닫기 버튼
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '운동 기록 공유',
+                  style: AppTypography.h3.copyWith(color: textColor),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(Icons.close, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                  style: IconButton.styleFrom(
+                    backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+
+            // 공유 카드 미리보기 (캡처 대상) - 스크롤 가능
+            Flexible(
+              child: SingleChildScrollView(
+                child: RepaintBoundary(
+                  key: WorkoutShareUtils.getCaptureKey(session.id),
+                  child: WorkoutShareCard(
+                    session: session,
+                    exerciseNames: exerciseNames,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-
-            // 제목
-            Text(
-              '운동 기록 공유',
-              style: AppTypography.h3.copyWith(
-                color: Colors.white,
-              ),
-            ),
             const SizedBox(height: AppSpacing.lg),
 
-            // 공유 카드 미리보기 (캡처 대상)
-            RepaintBoundary(
-              key: WorkoutShareUtils.getCaptureKey(session.id),
-              child: WorkoutShareCard(
-                session: session,
-                exerciseNames: exerciseNames,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // 공유 버튼
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.md,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                        ),
+            // 공유 버튼 (항상 하단 고정)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.md,
                       ),
-                      child: const Text('취소'),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      ),
                     ),
+                    child: const Text('취소'),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    flex: 2,
-                    child: V2Button.primary(
-                      text: '공유하기',
-                      icon: Icons.share,
-                      onPressed: onShare,
-                    ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: V2Button.primary(
+                    text: '공유하기',
+                    icon: Icons.share,
+                    onPressed: onShare,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/app_colors.dart';
+
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/history/history_screen.dart';
@@ -198,35 +200,41 @@ class _MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final navBgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF);
+    final indicatorColor = AppColors.primary500.withValues(alpha: 0.2);
+
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
         onDestinationSelected: (index) => _onItemTapped(index, context),
-        backgroundColor: const Color(0xFF1A1A1A),
-        indicatorColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
-        destinations: const [
+        backgroundColor: navBgColor,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: indicatorColor,
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon: Icon(Icons.home_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+            selectedIcon: const Icon(Icons.home, color: AppColors.primary500),
             label: '홈',
           ),
           NavigationDestination(
-            icon: Icon(Icons.calendar_today_outlined),
-            selectedIcon: Icon(Icons.calendar_today),
+            icon: Icon(Icons.calendar_today_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+            selectedIcon: const Icon(Icons.calendar_today, color: AppColors.primary500),
             label: '기록',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
+            icon: Icon(Icons.bar_chart_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+            selectedIcon: const Icon(Icons.bar_chart, color: AppColors.primary500),
             label: '통계',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+            icon: Icon(Icons.person_outline, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+            selectedIcon: const Icon(Icons.person, color: AppColors.primary500),
             label: '프로필',
           ),
         ],
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
     );
   }

@@ -12,6 +12,7 @@ import '../../../domain/providers/user_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
 import '../../widgets/atoms/v2_switch.dart';
+import 'edit_profile_screen.dart';
 import 'notification_settings_screen.dart';
 
 /// 프로필 화면
@@ -344,7 +345,11 @@ class ProfileScreen extends ConsumerWidget {
             title: '프로필 수정',
             isDark: isDark,
             onTap: () {
-              // TODO: 프로필 수정 화면
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const EditProfileScreen(),
+                ),
+              );
             },
           ),
           Divider(color: borderColor, height: 1),

@@ -783,9 +783,6 @@ Future<Map<String, String>> exerciseNamesMap(ExerciseNamesMapRef ref) async {
     for (final ex in DummyExercises.exercises) {
       map[ex.id] = ex.name;
     }
-    for (final ex in DummyPresetRoutines.exercises) {
-      map[ex.id] = ex.name;
-    }
     return map;
   }
 }
