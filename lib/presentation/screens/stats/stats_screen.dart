@@ -361,8 +361,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       enabled: true,
                       handleBuiltInTouches: false,
                       touchTooltipData: BarTouchTooltipData(
-                        tooltipPadding: EdgeInsets.zero,
-                        tooltipMargin: 8,
+                        tooltipPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        tooltipMargin: 4,
+                        fitInsideHorizontally: true,
+                        fitInsideVertically: true,
                         getTooltipColor: (_) => Colors.transparent,
                         getTooltipItem: (group, x, rod, rodIndex) {
                           final index = group.x.toInt();
@@ -371,10 +373,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           final totalVolume = volumeByMuscle.values.fold<double>(0, (a, b) => a + b);
                           if (totalVolume == 0) return null;
                           return BarTooltipItem(
-                            '${Formatters.number(totalVolume, decimals: 0)}kg',
+                            _formatVolumeCompact(totalVolume),
                             TextStyle(
                               color: isDark ? AppColors.darkText : AppColors.lightText,
-                              fontSize: 14,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
                             ),
                           );
@@ -582,8 +584,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       enabled: true,
                       handleBuiltInTouches: false,
                       touchTooltipData: BarTouchTooltipData(
-                        tooltipPadding: EdgeInsets.zero,
-                        tooltipMargin: 8,
+                        tooltipPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        tooltipMargin: 4,
+                        fitInsideHorizontally: true,
+                        fitInsideVertically: true,
                         getTooltipColor: (_) => Colors.transparent,
                         getTooltipItem: (group, x, rod, rodIndex) {
                           final index = group.x.toInt();
@@ -592,10 +596,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           final totalVolume = volumeByMuscle.values.fold<double>(0, (a, b) => a + b);
                           if (totalVolume == 0) return null;
                           return BarTooltipItem(
-                            '${Formatters.number(totalVolume, decimals: 0)}kg',
+                            _formatVolumeCompact(totalVolume),
                             TextStyle(
                               color: isDark ? AppColors.darkText : AppColors.lightText,
-                              fontSize: 14,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
                             ),
                           );
@@ -1000,6 +1004,19 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         ),
       ),
     );
+  }
+
+  /// 볼륨을 컴팩트하게 포맷 (예: 3.3K, 709K, 1.2M)
+  String _formatVolumeCompact(double volume) {
+    if (volume >= 1000000) {
+      final v = volume / 1000000;
+      return '${v.toStringAsFixed(v >= 10 ? 0 : 1)}M';
+    } else if (volume >= 1000) {
+      final v = volume / 1000;
+      return '${v.toStringAsFixed(v >= 100 ? 0 : v >= 10 ? 0 : 1)}K';
+    } else {
+      return '${volume.toStringAsFixed(0)}kg';
+    }
   }
 
   String _formatDurationShort(Duration duration) {

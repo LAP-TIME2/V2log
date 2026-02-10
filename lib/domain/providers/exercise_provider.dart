@@ -10,13 +10,15 @@ part 'exercise_provider.g.dart';
 /// 모든 운동 목록 Provider
 @riverpod
 Future<List<ExerciseModel>> exercises(ExercisesRef ref) async {
+  List<ExerciseModel> results;
   try {
     final repository = ref.watch(exerciseRepositoryProvider);
-    return await repository.getAllExercises();
+    results = await repository.getAllExercises();
   } catch (e) {
     print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
-    return DummyExercises.exercises;
+    results = DummyExercises.exercises;
   }
+  return _deduplicateExercises(results);
 }
 
 /// 근육 부위별 운동 목록 Provider
@@ -103,19 +105,39 @@ class ExerciseFilterState extends _$ExerciseFilterState {
   ExerciseFilter build() => const ExerciseFilter();
 
   void setMuscle(MuscleGroup? muscle) {
-    state = state.copyWith(primaryMuscle: muscle);
+    state = ExerciseFilter(
+      primaryMuscle: muscle,
+      category: state.category,
+      difficulty: state.difficulty,
+      searchQuery: state.searchQuery,
+    );
   }
 
   void setCategory(ExerciseCategory? category) {
-    state = state.copyWith(category: category);
+    state = ExerciseFilter(
+      primaryMuscle: state.primaryMuscle,
+      category: category,
+      difficulty: state.difficulty,
+      searchQuery: state.searchQuery,
+    );
   }
 
   void setDifficulty(ExperienceLevel? difficulty) {
-    state = state.copyWith(difficulty: difficulty);
+    state = ExerciseFilter(
+      primaryMuscle: state.primaryMuscle,
+      category: state.category,
+      difficulty: difficulty,
+      searchQuery: state.searchQuery,
+    );
   }
 
   void setSearchQuery(String? query) {
-    state = state.copyWith(searchQuery: query);
+    state = ExerciseFilter(
+      primaryMuscle: state.primaryMuscle,
+      category: state.category,
+      difficulty: state.difficulty,
+      searchQuery: query,
+    );
   }
 
   void clearFilters() {
@@ -123,28 +145,65 @@ class ExerciseFilterState extends _$ExerciseFilterState {
   }
 }
 
+/// 운동 이름 정규화 (동의어 통합)
+String _canonicalName(String name) {
+  // "트라이셉" → "트라이셉스" (뒤에 "스"가 없는 경우만)
+  return name.replaceAllMapped(
+    RegExp(r'트라이셉(?!스)'),
+    (m) => '트라이셉스',
+  );
+}
+
+/// 이름 기반 중복 제거 헬퍼 (정규화 + 정식 이름 우선)
+List<ExerciseModel> _deduplicateExercises(List<ExerciseModel> exercises) {
+  // 1단계: 정규화 키별로 가장 정식(긴) 이름을 가진 운동 선택
+  final bestByKey = <String, ExerciseModel>{};
+  for (final e in exercises) {
+    final key = _canonicalName(e.name);
+    final existing = bestByKey[key];
+    if (existing == null || e.name.length > existing.name.length) {
+      bestByKey[key] = e;
+    }
+  }
+
+  // 2단계: 원래 순서 유지하며 중복 제거
+  final seen = <String>{};
+  final result = <ExerciseModel>[];
+  for (final e in exercises) {
+    final key = _canonicalName(e.name);
+    if (seen.contains(key)) continue;
+    seen.add(key);
+    result.add(bestByKey[key]!);
+  }
+  return result;
+}
+
 /// 필터링된 운동 목록 Provider
 @riverpod
 Future<List<ExerciseModel>> filteredExercises(FilteredExercisesRef ref) async {
   final filter = ref.watch(exerciseFilterStateProvider);
 
+  List<ExerciseModel> results;
   try {
     final repository = ref.watch(exerciseRepositoryProvider);
 
     if (filter.isEmpty) {
-      return await repository.getAllExercises();
+      results = await repository.getAllExercises();
+    } else {
+      results = await repository.getFilteredExercises(
+        primaryMuscle: filter.primaryMuscle,
+        category: filter.category,
+        difficulty: filter.difficulty,
+        searchQuery: filter.searchQuery,
+      );
     }
-
-    return await repository.getFilteredExercises(
-      primaryMuscle: filter.primaryMuscle,
-      category: filter.category,
-      difficulty: filter.difficulty,
-      searchQuery: filter.searchQuery,
-    );
   } catch (e) {
     print('=== Supabase 연결 실패, 더미 데이터 사용: $e ===');
-    return DummyExercises.getFiltered(filter);
+    results = DummyExercises.getFiltered(filter);
   }
+
+  // 이름 기반 중복 제거
+  return _deduplicateExercises(results);
 }
 
 /// 근육 그룹별 운동 목록 (그룹화) Provider

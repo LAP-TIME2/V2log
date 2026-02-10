@@ -906,55 +906,64 @@ class _SharePreviewDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
+      backgroundColor: isDark ? AppColors.darkBg : Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 450),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 닫기 버튼
-            Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                icon: const Icon(Icons.close, color: Colors.white),
-                style: IconButton.styleFrom(
-                  backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 헤더: 제목 + 닫기
+              Row(
+                children: [
+                  Text(
+                    '운동 기록 공유',
+                    style: AppTypography.h3.copyWith(
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    icon: Icon(
+                      Icons.close,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // 공유 카드 미리보기 (캡처 대상 - 항상 다크 테마)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: RepaintBoundary(
+                  key: WorkoutShareUtils.getCaptureKey(session.id),
+                  child: WorkoutShareCard(
+                    session: session,
+                    exerciseNames: exerciseNames,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xl),
 
-            // 제목
-            Text(
-              '운동 기록 공유',
-              style: AppTypography.h3.copyWith(
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // 공유 카드 미리보기 (캡처 대상)
-            RepaintBoundary(
-              key: WorkoutShareUtils.getCaptureKey(session.id),
-              child: WorkoutShareCard(
-                session: session,
-                exerciseNames: exerciseNames,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // 공유 버튼
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Row(
+              // 액션 버튼
+              Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        ),
                         padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.md,
                         ),
@@ -976,9 +985,8 @@ class _SharePreviewDialog extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
+            ],
+          ),
         ),
       ),
     );

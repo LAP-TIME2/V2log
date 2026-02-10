@@ -174,18 +174,21 @@ class ExerciseRepository {
       var query = _supabase.from(SupabaseTables.exercises).select();
 
       if (primaryMuscle != null) {
-        // "하체" 카테고리는 관련 모든 하체 부위 운동을 포함
-        if (primaryMuscle == MuscleGroup.legs) {
-          const legMuscles = [
-            'LEGS',
-            'QUADRICEPS',
-            'QUADS',
-            'HAMSTRINGS',
-            'GLUTES',
-            'CALVES',
-            'HIP_FLEXORS',
-          ];
-          query = query.inFilter('primary_muscle', legMuscles);
+        // 상위 그룹 선택 시 관련 하위 근육 모두 포함
+        final groupMapping = <MuscleGroup, List<String>>{
+          MuscleGroup.legs: [
+            'LEGS', 'QUADRICEPS', 'QUADS', 'HAMSTRINGS',
+            'GLUTES', 'CALVES', 'HIP_FLEXORS',
+          ],
+          MuscleGroup.core: ['CORE', 'ABS', 'OBLIQUES'],
+          MuscleGroup.back: ['BACK', 'LATS', 'TRAPS', 'LOWER_BACK'],
+          MuscleGroup.shoulders: ['SHOULDERS', 'REAR_DELTS'],
+          MuscleGroup.biceps: ['BICEPS', 'FOREARMS'],
+        };
+
+        final muscles = groupMapping[primaryMuscle];
+        if (muscles != null) {
+          query = query.inFilter('primary_muscle', muscles);
         } else {
           query = query.eq('primary_muscle', primaryMuscle.value);
         }

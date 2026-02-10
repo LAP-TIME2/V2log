@@ -699,13 +699,13 @@ class DummyExercises {
       caloriesPerMinute: 3.0,
     ),
 
-    // ==================== 복근 운동 ====================
+    // ==================== 코어 운동 ====================
     const ExerciseModel(
       id: '10000000-0001-4000-8000-000000000050',
       name: '크런치',
       nameEn: 'Crunch',
       category: ExerciseCategory.strength,
-      primaryMuscle: MuscleGroup.abs,
+      primaryMuscle: MuscleGroup.core,
       secondaryMuscles: [],
       equipmentRequired: [],
       difficulty: ExperienceLevel.beginner,
@@ -726,7 +726,7 @@ class DummyExercises {
       name: '레그 레이즈',
       nameEn: 'Leg Raise',
       category: ExerciseCategory.strength,
-      primaryMuscle: MuscleGroup.abs,
+      primaryMuscle: MuscleGroup.core,
       secondaryMuscles: [],
       equipmentRequired: [],
       difficulty: ExperienceLevel.intermediate,
@@ -746,7 +746,7 @@ class DummyExercises {
       name: '플랭크',
       nameEn: 'Plank',
       category: ExerciseCategory.strength,
-      primaryMuscle: MuscleGroup.abs,
+      primaryMuscle: MuscleGroup.core,
       secondaryMuscles: [MuscleGroup.shoulders, MuscleGroup.back],
       equipmentRequired: [],
       difficulty: ExperienceLevel.beginner,
@@ -766,8 +766,8 @@ class DummyExercises {
       name: '러시안 트위스트',
       nameEn: 'Russian Twist',
       category: ExerciseCategory.strength,
-      primaryMuscle: MuscleGroup.obliques,
-      secondaryMuscles: [MuscleGroup.abs],
+      primaryMuscle: MuscleGroup.core,
+      secondaryMuscles: [MuscleGroup.core],
       equipmentRequired: ['덤벨'],
       difficulty: ExperienceLevel.intermediate,
       instructions: [
@@ -786,7 +786,7 @@ class DummyExercises {
       name: '행잉 레그 레이즈',
       nameEn: 'Hanging Leg Raise',
       category: ExerciseCategory.strength,
-      primaryMuscle: MuscleGroup.abs,
+      primaryMuscle: MuscleGroup.core,
       secondaryMuscles: [],
       equipmentRequired: ['풀업 바'],
       difficulty: ExperienceLevel.advanced,
@@ -903,18 +903,22 @@ class DummyExercises {
     var result = exercises;
 
     if (filter.primaryMuscle != null) {
-      // "하체" 카테고리는 관련 모든 하체 부위 운동을 포함
-      if (filter.primaryMuscle == MuscleGroup.legs) {
-        const legMuscles = [
-          MuscleGroup.legs,
-          MuscleGroup.quadriceps,
-          MuscleGroup.quads,
-          MuscleGroup.hamstrings,
-          MuscleGroup.glutes,
-          MuscleGroup.calves,
+      // 상위 그룹 선택 시 관련 하위 근육 모두 포함
+      const groupMapping = <MuscleGroup, List<MuscleGroup>>{
+        MuscleGroup.legs: [
+          MuscleGroup.legs, MuscleGroup.quadriceps, MuscleGroup.quads,
+          MuscleGroup.hamstrings, MuscleGroup.glutes, MuscleGroup.calves,
           MuscleGroup.hipFlexors,
-        ];
-        result = result.where((e) => legMuscles.contains(e.primaryMuscle)).toList();
+        ],
+        MuscleGroup.core: [MuscleGroup.core, MuscleGroup.abs, MuscleGroup.obliques],
+        MuscleGroup.back: [MuscleGroup.back, MuscleGroup.lats, MuscleGroup.traps, MuscleGroup.lowerBack],
+        MuscleGroup.shoulders: [MuscleGroup.shoulders, MuscleGroup.rearDelts],
+        MuscleGroup.biceps: [MuscleGroup.biceps, MuscleGroup.forearms],
+      };
+
+      final muscles = groupMapping[filter.primaryMuscle];
+      if (muscles != null) {
+        result = result.where((e) => muscles.contains(e.primaryMuscle)).toList();
       } else {
         result = result.where((e) => e.primaryMuscle == filter.primaryMuscle).toList();
       }
