@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/utils/haptic_feedback.dart';
+import 'animated_wrappers.dart';
 
 /// V2log 카드 위젯
 class V2Card extends StatelessWidget {
@@ -144,24 +145,20 @@ class V2Card extends StatelessWidget {
     );
 
     if (onTap != null || onLongPress != null) {
-      card = Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap != null
-              ? () {
-                  if (hapticFeedback) AppHaptics.lightImpact();
-                  onTap!();
-                }
-              : null,
-          onLongPress: onLongPress != null
-              ? () {
-                  if (hapticFeedback) AppHaptics.mediumImpact();
-                  onLongPress!();
-                }
-              : null,
-          borderRadius: BorderRadius.circular(effectiveBorderRadius),
-          child: card,
-        ),
+      card = ScaleTapWrapper(
+        onTap: onTap != null
+            ? () {
+                if (hapticFeedback) AppHaptics.lightImpact();
+                onTap!();
+              }
+            : null,
+        onLongPress: onLongPress != null
+            ? () {
+                if (hapticFeedback) AppHaptics.mediumImpact();
+                onLongPress!();
+              }
+            : null,
+        child: card,
       );
     }
 
@@ -230,7 +227,7 @@ class V2GradientCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveBorderRadius = borderRadius ?? AppSpacing.radiusLg;
 
-    return Container(
+    Widget card = Container(
       margin: margin,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -240,22 +237,22 @@ class V2GradientCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(effectiveBorderRadius),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap != null
-              ? () {
-                  if (hapticFeedback) AppHaptics.mediumImpact();
-                  onTap!();
-                }
-              : null,
-          borderRadius: BorderRadius.circular(effectiveBorderRadius),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
-            child: child,
-          ),
-        ),
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
+        child: child,
       ),
     );
+
+    if (onTap != null) {
+      card = ScaleTapWrapper(
+        onTap: () {
+          if (hapticFeedback) AppHaptics.mediumImpact();
+          onTap!();
+        },
+        child: card,
+      );
+    }
+
+    return card;
   }
 }

@@ -15,6 +15,7 @@ import '../../../core/utils/workout_share_utils.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/workout_provider.dart';
+import '../../widgets/atoms/animated_wrappers.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
 import '../../widgets/molecules/set_row.dart';
@@ -41,8 +42,14 @@ class HistoryScreen extends ConsumerWidget {
       ),
       body: historyAsync.when(
         data: (sessions) => _buildHistoryList(context, sessions),
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary500),
+        loading: () => const Padding(
+          padding: EdgeInsets.all(AppSpacing.screenPadding),
+          child: ShimmerLoadingList(
+            itemCount: 5,
+            itemHeight: 120,
+            spacing: AppSpacing.md,
+            borderRadius: 12,
+          ),
         ),
         error: (error, _) => Center(
           child: Column(
@@ -142,9 +149,12 @@ class HistoryScreen extends ConsumerWidget {
             ),
 
             // 해당 날짜의 운동 세션들
-            ...daySessions.map((session) => Padding(
+            ...daySessions.asMap().entries.map((entry) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: _WorkoutSessionCard(session: session),
+                  child: FadeSlideIn(
+                    index: entry.key,
+                    child: _WorkoutSessionCard(session: entry.value),
+                  ),
                 )),
           ],
         );

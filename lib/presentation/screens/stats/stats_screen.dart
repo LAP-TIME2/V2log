@@ -5,9 +5,11 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/utils/animation_config.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/exercise_model.dart';
 import '../../../domain/providers/user_provider.dart';
+import '../../widgets/atoms/animated_wrappers.dart';
 import '../../widgets/atoms/v2_card.dart';
 
 /// 통계 화면
@@ -58,8 +60,24 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 weeklyStatsAsync.when(
                   data: (stats) => _buildWeeklyStats(context, stats),
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary500),
+                  loading: () => Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: ShimmerLoading(height: 100, borderRadius: 12)),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(child: ShimmerLoading(height: 100, borderRadius: 12)),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          Expanded(child: ShimmerLoading(height: 100, borderRadius: 12)),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(child: ShimmerLoading(height: 100, borderRadius: 12)),
+                        ],
+                      ),
+                    ],
                   ),
                   error: (_, __) => _buildErrorCard(isDark),
                 ),
@@ -255,7 +273,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
               date.year == now.year;
           final hasWorkout = workoutDateSet.contains(date);
 
-          return Column(
+          return FadeSlideIn(
+            index: index,
+            child: Column(
             children: [
               Text(
                 weekDays[index],
@@ -294,6 +314,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 ),
               ),
             ],
+          ),
           );
         }),
       ),
@@ -513,6 +534,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       );
                     }).toList(),
                   ),
+                  swapAnimationDuration: AnimationConfig.slow,
+                  swapAnimationCurve: AnimationConfig.defaultCurve,
                 ),
               ),
         ),
@@ -731,6 +754,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       );
                     }).toList(),
                   ),
+                  swapAnimationDuration: AnimationConfig.slow,
+                  swapAnimationCurve: AnimationConfig.defaultCurve,
                 ),
               ),
         ),

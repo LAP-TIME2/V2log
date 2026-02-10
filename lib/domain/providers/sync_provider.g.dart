@@ -44,7 +44,7 @@ final syncSummaryProvider = AutoDisposeProvider<SyncSummary>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SyncSummaryRef = AutoDisposeProviderRef<SyncSummary>;
-String _$connectionStateHash() => r'106baff2d375f05f161eeb245cb87002b3ed5db5';
+String _$connectionStateHash() => r'5d7d55847ada64da51310ef6cd39f5a76d15b114';
 
 /// 연결 상태 Provider
 ///
@@ -80,7 +80,7 @@ final syncStateProvider =
     );
 
 typedef _$SyncState = AutoDisposeNotifier<SyncStatus>;
-String _$syncControllerHash() => r'216f39ed20085590f50698e14d5a294697455abc';
+String _$syncControllerHash() => r'e2d3de14c8649e1a030e77853affb4a2f796d1ac';
 
 /// 동기화 컨트롤러 Provider
 ///

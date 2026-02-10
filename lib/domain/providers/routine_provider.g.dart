@@ -6,7 +6,7 @@ part of 'routine_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$userRoutinesHash() => r'c187e76016886e1da1f9ca7c75687c34e592ab4d';
+String _$userRoutinesHash() => r'7fe63fce540e572461254f02dc7414165b659568';
 
 /// 사용자의 모든 루틴 목록 Provider
 ///
@@ -26,7 +26,7 @@ final userRoutinesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserRoutinesRef = AutoDisposeFutureProviderRef<List<RoutineModel>>;
-String _$routineDetailHash() => r'dfddae09b213e3728a5457337b4144df67f2d4b2';
+String _$routineDetailHash() => r'8b5dfda7ffc08ff7d8a7dfd343838ba80ace3819';
 
 /// Copied from Dart SDK
 class _SystemHash {

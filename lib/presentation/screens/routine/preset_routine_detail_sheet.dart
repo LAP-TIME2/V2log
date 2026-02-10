@@ -10,6 +10,7 @@ import '../../../data/models/user_model.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../domain/providers/preset_routine_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
+import '../../widgets/atoms/animated_wrappers.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
 
@@ -300,10 +301,13 @@ class _PresetRoutineDetailSheetState extends ConsumerState<PresetRoutineDetailSh
           padding: EdgeInsets.only(
             bottom: index < exercises.length - 1 ? AppSpacing.md : 0,
           ),
-          child: _ExerciseItem(
-            index: index + 1,
-            exercise: exercise,
-            isDark: isDark,
+          child: FadeSlideIn(
+            index: index,
+            child: _ExerciseItem(
+              index: index + 1,
+              exercise: exercise,
+              isDark: isDark,
+            ),
           ),
         );
       }).toList(),

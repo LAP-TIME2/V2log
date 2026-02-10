@@ -13,6 +13,7 @@ import '../../../data/dummy/dummy_preset_routines.dart';
 import '../../../data/models/workout_session_model.dart';
 import '../../../data/models/workout_set_model.dart';
 import '../../../domain/providers/workout_provider.dart';
+import '../../widgets/atoms/animated_wrappers.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/atoms/v2_card.dart';
 import '../../widgets/molecules/workout_share_card.dart';
@@ -30,9 +31,44 @@ class WorkoutSummaryScreen extends ConsumerStatefulWidget {
   ConsumerState<WorkoutSummaryScreen> createState() => _WorkoutSummaryScreenState();
 }
 
-class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
+class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen>
+    with TickerProviderStateMixin {
   /// 공유 중 여부
   bool _isSharing = false;
+
+  late final AnimationController _badgeController;
+  late final Animation<double> _badgeScale;
+  late final AnimationController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _badgeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _badgeScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _badgeController, curve: Curves.elasticOut),
+    );
+    _confettiController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    // 순차 실행
+    _badgeController.forward().then((_) {
+      if (widget.session.sets.any((s) => s.isPr)) {
+        _confettiController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _badgeController.dispose();
+    _confettiController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,28 +139,37 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
   }
 
   Widget _buildCompletionBadge() {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.success, AppColors.success.withValues(alpha: 0.7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.success.withValues(alpha: 0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+    return AnimatedBuilder(
+      animation: _badgeScale,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _badgeScale.value,
+          child: child,
+        );
+      },
+      child: Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.success, AppColors.success.withValues(alpha: 0.7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: const Icon(
-        Icons.check,
-        size: 64,
-        color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.success.withValues(alpha: 0.3),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.check,
+          size: 64,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -150,6 +195,8 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
             icon: Icons.timer_outlined,
             label: '운동 시간',
             value: Formatters.duration(duration),
+            numericValue: duration.inMinutes.toDouble(),
+            suffix: '분',
             color: AppColors.primary500,
           ),
         ),
@@ -159,6 +206,8 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
             icon: Icons.fitness_center,
             label: '총 볼륨',
             value: Formatters.volume(volume),
+            numericValue: volume,
+            suffix: 'kg',
             color: AppColors.secondary500,
           ),
         ),
@@ -168,6 +217,8 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen> {
             icon: Icons.repeat,
             label: '총 세트',
             value: '$sets세트',
+            numericValue: sets.toDouble(),
+            suffix: '세트',
             color: AppColors.success,
           ),
         ),
@@ -661,17 +712,27 @@ class _StatBox extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
+  final double? numericValue;
+  final String? suffix;
+  final int decimals;
 
   const _StatBox({
     required this.icon,
     required this.label,
     required this.value,
     required this.color,
+    this.numericValue,
+    this.suffix,
+    this.decimals = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textStyle = AppTypography.h4.copyWith(
+      color: isDark ? AppColors.darkText : AppColors.lightText,
+      fontWeight: FontWeight.w700,
+    );
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -686,14 +747,18 @@ class _StatBox extends StatelessWidget {
             height: 28,
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                style: AppTypography.h4.copyWith(
-                  color: isDark ? AppColors.darkText : AppColors.lightText,
-                  fontWeight: FontWeight.w700,
-                ),
-                maxLines: 1,
-              ),
+              child: numericValue != null
+                  ? CountUpText(
+                      endValue: numericValue!,
+                      suffix: suffix,
+                      decimals: decimals,
+                      style: textStyle,
+                    )
+                  : Text(
+                      value,
+                      style: textStyle,
+                      maxLines: 1,
+                    ),
             ),
           ),
           const SizedBox(height: AppSpacing.xs),

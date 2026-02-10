@@ -9,12 +9,24 @@ import '../constants/app_spacing.dart';
 class AppTheme {
   AppTheme._();
 
+  /// 공통 페이지 전환 테마
+  static const _pageTransitionsTheme = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+    },
+  );
+
   /// 다크 테마 (기본)
   static ThemeData get dark {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       fontFamily: AppTypography.fontFamily,
+      pageTransitionsTheme: _pageTransitionsTheme,
 
       // Colors
       colorScheme: const ColorScheme.dark(
@@ -283,6 +295,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       fontFamily: AppTypography.fontFamily,
+      pageTransitionsTheme: _pageTransitionsTheme,
 
       // Colors
       colorScheme: const ColorScheme.light(

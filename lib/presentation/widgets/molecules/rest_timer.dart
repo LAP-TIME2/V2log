@@ -7,6 +7,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/haptic_feedback.dart';
 import '../../../domain/providers/timer_provider.dart';
+import '../../../core/utils/animation_config.dart';
 
 /// 휴식 타이머 위젯
 class RestTimerWidget extends ConsumerWidget {
@@ -26,11 +27,17 @@ class RestTimerWidget extends ConsumerWidget {
       return _buildCompact(context, ref, timerState);
     }
 
-    return Container(
+    final isComplete = isRunning && timerState.remainingSeconds <= 0;
+
+    return AnimatedContainer(
+      duration: AnimationConfig.fast,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: isComplete
+            ? Border.all(color: AppColors.success, width: 2)
+            : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

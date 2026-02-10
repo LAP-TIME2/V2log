@@ -233,6 +233,10 @@ class _RoutineList extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      transitionAnimationController: AnimationController(
+        vsync: Navigator.of(context),
+        duration: const Duration(milliseconds: 400),
+      ),
       builder: (context) => PresetRoutineDetailSheet(routineId: routine.id),
     );
   }

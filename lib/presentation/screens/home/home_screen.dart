@@ -13,6 +13,7 @@ import '../../../data/models/workout_session_model.dart';
 import '../../../domain/providers/sync_provider.dart';
 import '../../../domain/providers/user_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
+import '../../widgets/atoms/animated_wrappers.dart';
 import '../../widgets/atoms/v2_card.dart';
 
 // 운동 이름 추출 헬퍼 함수
@@ -284,7 +285,9 @@ class HomeScreen extends ConsumerWidget {
                 child: _StatCard(
                   icon: Icons.fitness_center,
                   label: '운동 횟수',
-                  value: '${stats.workoutCount}회',
+                  value: '${stats.workoutCount}',
+                  unit: '회',
+                  numericValue: stats.workoutCount.toDouble(),
                   color: AppColors.primary500,
                 ),
               ),
@@ -295,6 +298,7 @@ class HomeScreen extends ConsumerWidget {
                   label: '총 볼륨',
                   value: Formatters.number(stats.totalVolume, decimals: 0, round: true),
                   unit: 'kg',
+                  numericValue: stats.totalVolume,
                   color: AppColors.secondary500,
                 ),
               ),
@@ -304,13 +308,21 @@ class HomeScreen extends ConsumerWidget {
                   icon: Icons.timer,
                   label: '운동 시간',
                   value: Formatters.durationCompact(stats.totalDuration),
+                  numericValue: stats.totalDuration.inMinutes.toDouble(),
+                  unit: '분',
                   color: AppColors.success,
                 ),
               ),
             ],
           ),
-          loading: () => const Center(
-            child: CircularProgressIndicator(),
+          loading: () => Row(
+            children: [
+              Expanded(child: ShimmerLoading(height: 80, borderRadius: 12)),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: ShimmerLoading(height: 80, borderRadius: 12)),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: ShimmerLoading(height: 80, borderRadius: 12)),
+            ],
           ),
           error: (_, __) => const SizedBox.shrink(),
         ),
@@ -380,7 +392,9 @@ class HomeScreen extends ConsumerWidget {
               );
             }
             return Column(
-              children: recentWorkouts.map((session) {
+              children: recentWorkouts.asMap().entries.map((entry) {
+                final i = entry.key;
+                final session = entry.value;
                 final workout = _RecentWorkoutData(
                   date: session.startedAt,
                   name: _getWorkoutName(session, exerciseNames),
@@ -389,16 +403,20 @@ class HomeScreen extends ConsumerWidget {
                 );
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: _RecentWorkoutCard(workout: workout),
+                  child: FadeSlideIn(
+                    index: i,
+                    child: _RecentWorkoutCard(workout: workout),
+                  ),
                 );
               }).toList(),
             );
           },
-          loading: () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(AppSpacing.xxl),
-              child: CircularProgressIndicator(),
-            ),
+          loading: () => const ShimmerLoadingList(
+            itemCount: 3,
+            itemHeight: 72,
+            spacing: AppSpacing.sm,
+            borderRadius: 12,
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
           ),
           error: (_, __) => V2Card(
             padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -494,6 +512,8 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String? unit;
   final Color color;
+  final double? numericValue;
+  final int decimals;
 
   const _StatCard({
     required this.icon,
@@ -501,10 +521,17 @@ class _StatCard extends StatelessWidget {
     required this.value,
     this.unit,
     required this.color,
+    this.numericValue,
+    this.decimals = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final valueStyle = AppTypography.bodyLarge.copyWith(
+      color: context.textColor,
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
     return V2Card(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -527,16 +554,18 @@ class _StatCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Flexible(
-                child: Text(
-                  value,
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: context.textColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: numericValue != null
+                    ? CountUpText(
+                        endValue: numericValue!,
+                        decimals: decimals,
+                        style: valueStyle,
+                      )
+                    : Text(
+                        value,
+                        style: valueStyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
               ),
               if (unit != null) ...[
                 const SizedBox(width: 2),

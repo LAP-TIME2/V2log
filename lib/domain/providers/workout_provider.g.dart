@@ -374,7 +374,7 @@ final currentExercisesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentExercisesRef = AutoDisposeProviderRef<List<ExerciseModel>>;
-String _$recentWorkoutsHash() => r'154a4a2748b71f163eb1029d93e01d286110da97';
+String _$recentWorkoutsHash() => r'0ad6af18a05203a11814a71424aa85edd1757d33';
 
 /// 최근 운동 기록 Provider
 ///
@@ -395,7 +395,7 @@ final recentWorkoutsProvider =
 // ignore: unused_element
 typedef RecentWorkoutsRef =
     AutoDisposeFutureProviderRef<List<WorkoutSessionModel>>;
-String _$workoutHistoryHash() => r'00831635c9d3363fd02e83fa00702f562c78a55b';
+String _$workoutHistoryHash() => r'22298e89d278ab0d75dc9c14a208d1878b572395';
 
 /// 운동 기록 히스토리 Provider (월별 그룹화)
 ///
@@ -548,7 +548,7 @@ class _WorkoutHistoryProviderElement
 }
 
 String _$workoutSessionDetailHash() =>
-    r'20a1e4d8357217404dd411eb7584a4de3eaa9cbc';
+    r'9b3d1dc56f87802376e2a49b916209b42330d269';
 
 /// 특정 세션 상세 조회 Provider
 ///
@@ -686,7 +686,7 @@ class _WorkoutSessionDetailProviderElement
   String get sessionId => (origin as WorkoutSessionDetailProvider).sessionId;
 }
 
-String _$exerciseNamesMapHash() => r'7ae7f27e044aac73f3e9b3bb56e9a4c99259b440';
+String _$exerciseNamesMapHash() => r'98607d292f5c4e134bac451c94d68c5bb4a64cc6';
 
 /// 운동 이름 맵 Provider (exercise_id -> name)
 ///
@@ -706,7 +706,7 @@ final exerciseNamesMapProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ExerciseNamesMapRef = AutoDisposeFutureProviderRef<Map<String, String>>;
-String _$activeWorkoutHash() => r'1ce148157f693458eee1d1393d18d829221152b9';
+String _$activeWorkoutHash() => r'eec276990e538fa34eb758f1f8df7fa14571ef04';
 
 /// 활성 운동 세션 Provider
 ///
@@ -724,7 +724,7 @@ final activeWorkoutProvider =
     );
 
 typedef _$ActiveWorkout = Notifier<WorkoutSessionModel?>;
-String _$routineExercisesHash() => r'5b0ff5d5aa50dd4d1af6659283631a760ef8d290';
+String _$routineExercisesHash() => r'c123c758be2b53aea4c2970fc6005563f623fc25';
 
 /// 현재 루틴 운동 목록 Provider (프리셋 루틴 모드일 때)
 ///

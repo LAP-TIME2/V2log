@@ -3,6 +3,12 @@
 .env
 *.env
 
+# 개인 설정 (git에 올리지 않음)
+CLAUDE.local.md
+.claude/hooks/.env
+.claude/hooks/.last-compact-state.json
+.claude/session-log.md
+
 # Flutter 빌드 artifacts
 build/
 .dart_tool/flutter_build/

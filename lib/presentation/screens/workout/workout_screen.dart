@@ -17,6 +17,7 @@ import '../../../domain/providers/timer_provider.dart';
 import '../../../domain/providers/user_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
+import '../../widgets/molecules/exercise_animation_widget.dart';
 import '../../widgets/molecules/quick_input_control.dart';
 import '../../widgets/molecules/rest_timer.dart';
 import '../../widgets/molecules/set_row.dart';
@@ -1327,19 +1328,10 @@ class _ExerciseGuideCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 운동 아이콘
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: exercise.primaryMuscle.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            ),
-            child: Icon(
-              Icons.fitness_center,
-              color: exercise.primaryMuscle.color,
-              size: 20,
-            ),
+          // 운동 아이콘 (호흡 애니메이션)
+          ExerciseAnimationWidget(
+            exercise: exercise,
+            size: 40,
           ),
           const SizedBox(width: AppSpacing.sm),
 

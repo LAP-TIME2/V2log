@@ -6,6 +6,8 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/exercise_model.dart';
 import '../../../domain/providers/exercise_provider.dart';
+import '../../widgets/atoms/animated_wrappers.dart';
+import '../../widgets/molecules/exercise_animation_widget.dart';
 
 /// 운동 상세 화면
 class ExerciseDetailScreen extends ConsumerWidget {
@@ -38,8 +40,17 @@ class ExerciseDetailScreen extends ConsumerWidget {
           }
           return _buildContent(exercise, isDark);
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary500),
+        loading: () => Padding(
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
+          child: Column(
+            children: [
+              ShimmerLoading(height: 120, borderRadius: 12),
+              const SizedBox(height: AppSpacing.xl),
+              ShimmerLoading(height: 100, borderRadius: 12),
+              const SizedBox(height: AppSpacing.xl),
+              ShimmerLoading(height: 200, borderRadius: 12),
+            ],
+          ),
         ),
         error: (error, _) {
           print('=== 에러: $error ===');
@@ -127,6 +138,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(ExerciseModel exercise, bool isDark) {
+    final hasImage = exercise.animationUrl != null && exercise.animationUrl!.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
@@ -134,61 +147,72 @@ class ExerciseDetailScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // 운동 아이콘
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: exercise.primaryMuscle.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          // 운동 시범 이미지 (이미지가 있으면 크게 표시)
+          if (hasImage) ...[
+            ExerciseAnimationWidget(
+              exercise: exercise,
+              size: 200,
             ),
-            child: Icon(
-              Icons.fitness_center,
-              color: exercise.primaryMuscle.color,
-              size: 40,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.lg),
+          ],
 
-          // 운동 이름
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  exercise.name,
-                  style: AppTypography.h2.copyWith(
-                    color: isDark ? AppColors.darkText : AppColors.lightText,
-                  ),
+          // 운동 이름 + 아이콘 (이미지 없으면 기존 레이아웃)
+          Row(
+            children: [
+              if (!hasImage) ...[
+                ExerciseAnimationWidget(
+                  exercise: exercise,
+                  size: 80,
                 ),
-                if (exercise.nameEn != null) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    exercise.nameEn!,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.sm),
-                // 카테고리 & 난이도
-                Row(
+                const SizedBox(width: AppSpacing.lg),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: hasImage
+                      ? CrossAxisAlignment.center
+                      : CrossAxisAlignment.start,
                   children: [
-                    _buildBadge(
-                      exercise.category.label,
-                      AppColors.primary500,
+                    Text(
+                      exercise.name,
+                      style: AppTypography.h2.copyWith(
+                        color: isDark ? AppColors.darkText : AppColors.lightText,
+                      ),
+                      textAlign: hasImage ? TextAlign.center : TextAlign.start,
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    _buildBadge(
-                      _getDifficultyLabel(exercise.difficulty),
-                      _getDifficultyColor(exercise.difficulty),
+                    if (exercise.nameEn != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        exercise.nameEn!,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
+                        textAlign: hasImage ? TextAlign.center : TextAlign.start,
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.sm),
+                    // 카테고리 & 난이도
+                    Row(
+                      mainAxisAlignment: hasImage
+                          ? MainAxisAlignment.center
+                          : MainAxisAlignment.start,
+                      children: [
+                        _buildBadge(
+                          exercise.category.label,
+                          AppColors.primary500,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _buildBadge(
+                          _getDifficultyLabel(exercise.difficulty),
+                          _getDifficultyColor(exercise.difficulty),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

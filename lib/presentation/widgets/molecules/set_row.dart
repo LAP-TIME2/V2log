@@ -6,6 +6,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/extensions/context_extension.dart';
 import '../../../core/utils/haptic_feedback.dart';
 import '../../../data/models/workout_set_model.dart';
+import '../atoms/animated_wrappers.dart';
 
 /// 세트 기록 행
 class SetRow extends StatelessWidget {
@@ -154,18 +155,20 @@ class SetRow extends StatelessWidget {
 
   Widget _buildStatusIcon(BuildContext context) {
     if (isPr) {
-      return const Icon(
-        Icons.emoji_events,
-        color: AppColors.warning,
+      return AnimatedTrophy(
         size: 20,
+        color: AppColors.warning,
       );
     }
 
     if (isCompleted) {
-      return const Icon(
-        Icons.check_circle,
-        color: AppColors.success,
-        size: 20,
+      return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: AnimatedCheckmark(
+          key: const ValueKey('completed'),
+          size: 20,
+          color: AppColors.success,
+        ),
       );
     }
 

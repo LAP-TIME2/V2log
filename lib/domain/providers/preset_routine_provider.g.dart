@@ -6,7 +6,7 @@ part of 'preset_routine_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$presetRoutinesHash() => r'81be67bf3452fdefa79aca490e99f2228b77b3c8';
+String _$presetRoutinesHash() => r'2ed1314ac516bc20ff2178d306afb2bed9bb21e6';
 
 /// 모든 프리셋 루틴 목록 Provider
 /// Supabase 실패 시 더미 데이터 반환
@@ -29,7 +29,7 @@ final presetRoutinesProvider =
 typedef PresetRoutinesRef =
     AutoDisposeFutureProviderRef<List<PresetRoutineModel>>;
 String _$featuredPresetRoutinesHash() =>
-    r'c4a28891644d24d294a8e5ce96e15576a327a266';
+    r'a4406b96560c71add91925299d96e7f219069356';
 
 /// 추천(Featured) 프리셋 루틴 목록 Provider
 ///
@@ -51,7 +51,7 @@ final featuredPresetRoutinesProvider =
 typedef FeaturedPresetRoutinesRef =
     AutoDisposeFutureProviderRef<List<PresetRoutineModel>>;
 String _$presetRoutinesByDifficultyHash() =>
-    r'd8b683b263d9542add2d5086cf1224979953e0b0';
+    r'd80d54bd271b1036758d21f2ad81c7510f82dfe1';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -216,7 +216,7 @@ class _PresetRoutinesByDifficultyProviderElement
 }
 
 String _$presetRoutinesByGoalHash() =>
-    r'6ca4076d18fb868d73e1c7b646c6dc931a60acef';
+    r'9a652e9a45415a3c099bd40499aceb5e246909f8';
 
 /// 목표별 프리셋 루틴 Provider
 ///
@@ -358,7 +358,7 @@ class _PresetRoutinesByGoalProviderElement
 }
 
 String _$filteredPresetRoutinesHash() =>
-    r'921d21bf507532d354b457eac59203ac4f72f6ce';
+    r'215077668e802e85fffc6f05d7d29fbaa9ca1dc0';
 
 /// 필터링된 프리셋 루틴 목록 Provider
 ///
@@ -380,7 +380,7 @@ final filteredPresetRoutinesProvider =
 typedef FilteredPresetRoutinesRef =
     AutoDisposeFutureProviderRef<List<PresetRoutineModel>>;
 String _$presetRoutineDetailHash() =>
-    r'7fdd11a34e0ec69b09e98b26904a849db5e49c93';
+    r'185a21205ad2b63164d756a3ea456e0f19f7a61f';
 
 /// 프리셋 루틴 상세 Provider (운동 포함)
 ///
@@ -516,7 +516,7 @@ class _PresetRoutineDetailProviderElement
 }
 
 String _$presetRoutineDayExercisesHash() =>
-    r'20a705d9214a41417d8d1d1e6ad61fd15f414d52';
+    r'fc1fbf428a8b7b1262d940b57e8ae886f76cbe16';
 
 /// 프리셋 루틴의 특정 Day 운동 목록 Provider
 ///

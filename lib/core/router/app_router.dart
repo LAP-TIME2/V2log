@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/app_colors.dart';
+import '../utils/animation_config.dart';
 
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
@@ -128,19 +129,28 @@ class AppRouter {
           GoRoute(
             path: 'ai',
             name: 'workout-ai',
-            builder: (context, state) => const WorkoutScreen(),
+            pageBuilder: (context, state) => _slideUpPage(
+              key: state.pageKey,
+              child: const WorkoutScreen(),
+            ),
           ),
           GoRoute(
             path: 'free',
             name: 'workout-free',
-            builder: (context, state) => const WorkoutScreen(),
+            pageBuilder: (context, state) => _slideUpPage(
+              key: state.pageKey,
+              child: const WorkoutScreen(),
+            ),
           ),
           GoRoute(
             path: 'session/:sessionId',
             name: 'workout-session',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final sessionId = state.pathParameters['sessionId'];
-              return WorkoutScreen(sessionId: sessionId);
+              return _slideUpPage(
+                key: state.pageKey,
+                child: WorkoutScreen(sessionId: sessionId),
+              );
             },
           ),
         ],
@@ -183,12 +193,66 @@ class AppRouter {
       GoRoute(
         path: '/exercise/:exerciseId',
         name: 'exercise-detail',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final exerciseId = state.pathParameters['exerciseId']!;
-          return ExerciseDetailScreen(exerciseId: exerciseId);
+          return _fadePage(
+            key: state.pageKey,
+            child: ExerciseDetailScreen(exerciseId: exerciseId),
+          );
         },
       ),
     ],
+  );
+}
+
+/// 아래에서 위로 슬라이드 + 페이드 전환 (운동 화면용)
+CustomTransitionPage<void> _slideUpPage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: AnimationConfig.slow,
+    reverseTransitionDuration: AnimationConfig.normal,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: AnimationConfig.defaultCurve,
+      );
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.15),
+          end: Offset.zero,
+        ).animate(curved),
+        child: FadeTransition(
+          opacity: curved,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+/// 페이드 전환 (운동 상세 화면용)
+CustomTransitionPage<void> _fadePage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: AnimationConfig.normal,
+    reverseTransitionDuration: AnimationConfig.fast,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurvedAnimation(
+          parent: animation,
+          curve: AnimationConfig.defaultCurve,
+        ),
+        child: child,
+      );
+    },
   );
 }
 
