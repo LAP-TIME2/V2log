@@ -20,7 +20,6 @@ extension ContextExtension on BuildContext {
   double get statusBarHeight => padding.top;
   double get bottomSafeArea => padding.bottom;
   bool get isKeyboardVisible => viewInsets.bottom > 0;
-  Brightness get platformBrightness => mediaQuery.platformBrightness;
   bool get isDarkMode => theme.brightness == Brightness.dark;
 
   // Theme-responsive color getters
