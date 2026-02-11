@@ -19,6 +19,7 @@ import '../../../domain/providers/user_provider.dart';
 import '../../../domain/providers/workout_provider.dart';
 import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/molecules/exercise_animation_widget.dart';
+import '../../widgets/molecules/mini_muscle_map.dart';
 import '../../widgets/molecules/quick_input_control.dart';
 import '../../widgets/molecules/rest_timer.dart';
 import '../../widgets/molecules/set_row.dart';
@@ -1515,6 +1516,13 @@ class _ExerciseGuideCard extends StatelessWidget {
               ],
             ),
           ),
+
+          // 미니 근육 맵
+          MiniMuscleMap(
+            primaryMuscle: exercise.primaryMuscle,
+            secondaryMuscles: exercise.secondaryMuscles,
+          ),
+          const SizedBox(width: 4),
 
           // 메모 아이콘
           IconButton(
