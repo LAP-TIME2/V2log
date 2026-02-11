@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:gal/gal.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// 운동 기록 공유 유틸리티
@@ -78,9 +79,38 @@ class WorkoutShareUtils {
         text: sessionSummary,
         subject: subject,
       );
+
+      // 임시 파일 정리
+      try {
+        await file.delete();
+      } catch (_) {}
     } catch (e) {
       print('=== 공유 실패: $e ===');
       rethrow;
+    }
+  }
+
+  /// 이미지를 갤러리에 저장
+  static Future<bool> saveToGallery(Uint8List imageBytes) async {
+    try {
+      // 갤러리 접근 권한 확인 및 요청
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess();
+        if (!granted) {
+          print('=== 갤러리 권한 거부됨 ===');
+          return false;
+        }
+      }
+
+      await Gal.putImageBytes(imageBytes, album: 'V2log');
+      return true;
+    } on GalException catch (e) {
+      print('=== 갤러리 저장 실패: ${e.type} ===');
+      return false;
+    } catch (e) {
+      print('=== 갤러리 저장 에러: $e ===');
+      return false;
     }
   }
 

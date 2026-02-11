@@ -120,9 +120,9 @@ class WorkoutShareCard extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        // 날짜
+        // 날짜 + 요일
         Text(
-          Formatters.monthDay(session.startedAt),
+          '${Formatters.monthDay(session.startedAt)} ${Formatters.weekday(session.startedAt)}',
           style: AppTypography.labelMedium.copyWith(
             color: _cardTextSecondary,
           ),

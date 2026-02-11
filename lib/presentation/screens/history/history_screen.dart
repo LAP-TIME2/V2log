@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -514,85 +515,156 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
     );
   }
 
-  /// 운동 기록 공유
+  /// 공유 텍스트 생성 헬퍼
+  String _buildShareText(WorkoutSessionModel session) {
+    final duration = session.duration ?? Duration.zero;
+    final totalVolume = session.calculatedVolume;
+    final totalSets = session.sets.length;
+    final prSets = session.sets.where((s) => s.isPr).toList();
+
+    return WorkoutShareUtils.generateShareSummary(
+      date: session.startedAt,
+      duration: duration,
+      volume: totalVolume,
+      sets: totalSets,
+      prCount: prSets.isNotEmpty ? prSets.length : null,
+    );
+  }
+
+  /// 운동 기록 공유 다이얼로그 표시
   Future<void> _shareWorkout(
     BuildContext context,
     WorkoutSessionModel session,
     AsyncValue<Map<String, String>> exerciseNamesAsync,
   ) async {
+    final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
+
+    if (!mounted) return;
+
+    // dialog 바깥에서 scaffoldMessenger 캡처 (Known Pitfall 방지)
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => _SharePreviewDialog(
+        session: session,
+        exerciseNames: exerciseNames,
+        onShare: () async {
+          // 1. dialog 살아있을 때 캡처
+          final captureKey = WorkoutShareUtils.getCaptureKey(session.id);
+          final imageBytes = await WorkoutShareUtils.captureFromRenderBox(captureKey);
+          // 2. dialog 닫기
+          Navigator.of(dialogContext).pop();
+          // 3. 공유 실행
+          await _doShare(session, imageBytes, scaffoldMessenger);
+        },
+        onSave: () async {
+          // 1. dialog 살아있을 때 캡처
+          final captureKey = WorkoutShareUtils.getCaptureKey(session.id);
+          final imageBytes = await WorkoutShareUtils.captureFromRenderBox(captureKey);
+          // 2. dialog 닫기
+          Navigator.of(dialogContext).pop();
+          // 3. 갤러리 저장 실행
+          await _doSaveToGallery(session, imageBytes, scaffoldMessenger);
+        },
+      ),
+    );
+  }
+
+  /// 이미지 공유 실행
+  Future<void> _doShare(
+    WorkoutSessionModel session,
+    Uint8List? imageBytes,
+    ScaffoldMessengerState messenger,
+  ) async {
     setState(() => _isSharing = true);
 
     try {
-      final exerciseNames = exerciseNamesAsync.valueOrNull ?? {};
+      final shareText = _buildShareText(session);
 
-      // 공유 텍스트 생성
-      final duration = session.duration ?? Duration.zero;
-      final totalVolume = session.calculatedVolume;
-      final totalSets = session.sets.length;
-      final prSets = session.sets.where((s) => s.isPr).toList();
+      if (imageBytes != null) {
+        await WorkoutShareUtils.shareImageFile(
+          imageBytes,
+          shareText,
+          subject: 'V2log 운동 기록',
+        );
+      } else {
+        await Share.share(shareText, subject: 'V2log 운동 기록');
+      }
 
-      final shareText = WorkoutShareUtils.generateShareSummary(
-        date: session.startedAt,
-        duration: duration,
-        volume: totalVolume,
-        sets: totalSets,
-        prCount: prSets.isNotEmpty ? prSets.length : null,
-      );
-
-      // 공유 다이얼로그 표시
-      if (!mounted) return;
-
-      final result = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => _SharePreviewDialog(
-          session: session,
-          exerciseNames: exerciseNames,
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('공유 완료!'),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 2),
         ),
       );
-
-      // 사용자가 공유를 확인한 경우
-      if (result == true) {
-        // 이미지 캡처
-        final imageBytes = await WorkoutShareUtils.captureFromRenderBox(
-          WorkoutShareUtils.getCaptureKey(session.id),
-        );
-
-        if (imageBytes != null) {
-          // 이미지와 함께 공유
-          await WorkoutShareUtils.shareImageFile(
-            imageBytes,
-            shareText,
-            subject: 'V2log 운동 기록',
-          );
-        } else {
-          // 이미지 캡처 실패 시 텍스트만 공유
-          await Share.share(shareText, subject: 'V2log 운동 기록');
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('공유 완료!'),
-              backgroundColor: AppColors.success,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
     } catch (e) {
       print('=== 공유 실패: $e ===');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('공유에 실패했어요: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('공유에 실패했어요: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSharing = false);
       }
+      WorkoutShareUtils.clearCaptureKey(session.id);
+    }
+  }
+
+  /// 갤러리에 이미지 저장
+  Future<void> _doSaveToGallery(
+    WorkoutSessionModel session,
+    Uint8List? imageBytes,
+    ScaffoldMessengerState messenger,
+  ) async {
+    setState(() => _isSharing = true);
+
+    try {
+      if (imageBytes == null) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('이미지 생성에 실패했어요'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      final success = await WorkoutShareUtils.saveToGallery(imageBytes);
+
+      if (success) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('갤러리에 저장 완료!'),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('저장에 실패했어요. 갤러리 권한을 확인해주세요.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      print('=== 갤러리 저장 실패: $e ===');
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('저장에 실패했어요: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSharing = false);
+      }
+      WorkoutShareUtils.clearCaptureKey(session.id);
     }
   }
 
@@ -903,14 +975,25 @@ class _HistoryDetailScreenState extends ConsumerState<HistoryDetailScreen> {
 }
 
 /// 공유 미리보기 다이얼로그
-class _SharePreviewDialog extends StatelessWidget {
+class _SharePreviewDialog extends StatefulWidget {
   final WorkoutSessionModel session;
   final Map<String, String> exerciseNames;
+  final Future<void> Function() onShare;
+  final Future<void> Function() onSave;
 
   const _SharePreviewDialog({
     required this.session,
     required this.exerciseNames,
+    required this.onShare,
+    required this.onSave,
   });
+
+  @override
+  State<_SharePreviewDialog> createState() => _SharePreviewDialogState();
+}
+
+class _SharePreviewDialogState extends State<_SharePreviewDialog> {
+  bool _isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -940,7 +1023,7 @@ class _SharePreviewDialog extends StatelessWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(false),
+                    onPressed: _isProcessing ? null : () => Navigator.of(context).pop(),
                     icon: Icon(
                       Icons.close,
                       color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
@@ -954,47 +1037,74 @@ class _SharePreviewDialog extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: RepaintBoundary(
-                  key: WorkoutShareUtils.getCaptureKey(session.id),
+                  key: WorkoutShareUtils.getCaptureKey(widget.session.id),
                   child: WorkoutShareCard(
-                    session: session,
-                    exerciseNames: exerciseNames,
+                    session: widget.session,
+                    exerciseNames: widget.exerciseNames,
                   ),
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // 액션 버튼
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        side: BorderSide(
-                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              // 저장 + 공유 버튼
+              if (_isProcessing)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                Row(
+                  children: [
+                    // 저장하기 버튼
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          setState(() => _isProcessing = true);
+                          await widget.onSave();
+                        },
+                        icon: Icon(
+                          Icons.download,
+                          size: 18,
+                          color: isDark ? AppColors.darkText : AppColors.lightText,
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.md,
+                        label: Text(
+                          '저장',
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkText : AppColors.lightText,
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.md,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          ),
                         ),
                       ),
-                      child: const Text('취소'),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    flex: 2,
-                    child: V2Button.primary(
-                      text: '공유하기',
-                      icon: Icons.share,
-                      onPressed: () => Navigator.of(context).pop(true),
+                    const SizedBox(width: AppSpacing.md),
+                    // 공유하기 버튼
+                    Expanded(
+                      flex: 2,
+                      child: V2Button.primary(
+                        text: '공유하기',
+                        icon: Icons.share,
+                        onPressed: () async {
+                          setState(() => _isProcessing = true);
+                          await widget.onShare();
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
