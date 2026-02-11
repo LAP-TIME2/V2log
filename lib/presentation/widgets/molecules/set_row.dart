@@ -68,7 +68,9 @@ class SetRow extends StatelessWidget {
             ),
             left: isCurrent
                 ? BorderSide(color: AppColors.primary500, width: 3)
-                : BorderSide.none,
+                : (isCompleted && setType == SetType.superset)
+                    ? BorderSide(color: AppColors.setSuperset, width: 3)
+                    : BorderSide.none,
           ),
         ),
         child: Row(

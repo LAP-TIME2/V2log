@@ -15,6 +15,8 @@ import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/screens/stats/stats_screen.dart';
 import '../../presentation/screens/exercise/exercise_detail_screen.dart';
 import '../../presentation/screens/workout/workout_screen.dart';
+import '../../presentation/screens/workout/workout_summary_screen.dart';
+import '../../data/models/workout_session_model.dart';
 
 /// V2log 앱 라우터
 class AppRouter {
@@ -150,6 +152,22 @@ class AppRouter {
               return _slideUpPage(
                 key: state.pageKey,
                 child: WorkoutScreen(sessionId: sessionId),
+              );
+            },
+          ),
+          GoRoute(
+            path: 'summary',
+            name: 'workout-summary',
+            redirect: (context, state) {
+              // extra 없이 직접 접근 시 홈으로 리다이렉트
+              if (state.extra == null) return '/home';
+              return null;
+            },
+            pageBuilder: (context, state) {
+              final session = state.extra! as WorkoutSessionModel;
+              return _fadePage(
+                key: state.pageKey,
+                child: WorkoutSummaryScreen(session: session),
               );
             },
           ),

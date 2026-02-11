@@ -615,6 +615,32 @@ List<WorkoutSetModel> exerciseSets(ExerciseSetsRef ref, String exerciseId) {
   return sets.where((s) => s.exerciseId == exerciseId).toList();
 }
 
+/// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+@riverpod
+Future<double?> exerciseEstimated1rm(
+  ExerciseEstimated1rmRef ref,
+  String exerciseId,
+) async {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.exerciseRecords)
+        .select('estimated_1rm')
+        .eq('user_id', userId)
+        .eq('exercise_id', exerciseId)
+        .maybeSingle();
+
+    if (response == null) return null;
+    return (response['estimated_1rm'] as num?)?.toDouble();
+  } catch (e) {
+    print('=== 1RM 조회 실패: $e ===');
+    return null;
+  }
+}
+
 /// 운동별 마지막 세트 정보 Provider
 @riverpod
 Future<Map<String, dynamic>?> lastSetInfo(

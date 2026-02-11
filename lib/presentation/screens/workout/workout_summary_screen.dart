@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/utils/fitness_calculator.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/workout_share_utils.dart';
 import '../../../data/dummy/dummy_exercises.dart';
@@ -335,6 +336,24 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen>
             // exercise_id로 메모 매칭
             final exerciseNote = parsedNotes[exerciseId];
 
+            // 강도 존 계산: working set 평균 무게 기준
+            final workingSets = sets.where((s) => s.setType != SetType.warmup && (s.weight ?? 0) > 0).toList();
+            IntensityZone? intensityZone;
+            if (workingSets.isNotEmpty && maxWeight > 0) {
+              final avgWeight = workingSets.fold<double>(0, (sum, s) => sum + (s.weight ?? 0)) / workingSets.length;
+              // 세션 내 best set 기반 1RM 추정
+              double best1rm = 0;
+              for (final s in workingSets) {
+                if ((s.weight ?? 0) > 0 && (s.reps ?? 0) > 0) {
+                  final est = FitnessCalculator.calculate1RM(s.weight!, s.reps!);
+                  if (est > best1rm) best1rm = est;
+                }
+              }
+              if (best1rm > 0) {
+                intensityZone = FitnessCalculator.analyzeIntensity(avgWeight, best1rm);
+              }
+            }
+
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: Column(
@@ -360,12 +379,39 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              exerciseName,
-                              style: AppTypography.labelLarge.copyWith(
-                                color: isDark ? AppColors.darkText : AppColors.lightText,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    exerciseName,
+                                    style: AppTypography.labelLarge.copyWith(
+                                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (intensityZone != null) ...[
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: intensityZone.color.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      intensityZone.label,
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: intensityZone.color,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             Text(
                               '${sets.length}세트 • 최고 ${maxWeight}kg • 볼륨 ${Formatters.volume(totalVolume)}',
@@ -481,9 +527,9 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen>
           text: '홈으로 돌아가기',
           icon: Icons.home,
           onPressed: () {
-            // Navigator 스택을 모두 제거하고 GoRouter로 홈 이동
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            context.go('/home');
+            // GoRouter.go()가 선언적으로 전체 라우트 스택 교체
+            // popUntil 사용 금지: MaterialPageRoute + ProviderScope 충돌로 _dependents.isEmpty 에러 발생
+            GoRouter.of(context).go('/home');
           },
           fullWidth: true,
         ),
@@ -492,9 +538,7 @@ class _WorkoutSummaryScreenState extends ConsumerState<WorkoutSummaryScreen>
           text: '기록 상세 보기',
           icon: Icons.history,
           onPressed: () {
-            // Navigator 스택을 모두 제거하고 GoRouter로 히스토리 이동
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            context.go('/history');
+            GoRouter.of(context).go('/history');
           },
           fullWidth: true,
         ),

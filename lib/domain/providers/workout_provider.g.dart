@@ -222,6 +222,141 @@ class _ExerciseSetsProviderElement
   String get exerciseId => (origin as ExerciseSetsProvider).exerciseId;
 }
 
+String _$exerciseEstimated1rmHash() =>
+    r'dabea0441944d1fd1b2aec223e7b53e86b65f537';
+
+/// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+///
+/// Copied from [exerciseEstimated1rm].
+@ProviderFor(exerciseEstimated1rm)
+const exerciseEstimated1rmProvider = ExerciseEstimated1rmFamily();
+
+/// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+///
+/// Copied from [exerciseEstimated1rm].
+class ExerciseEstimated1rmFamily extends Family<AsyncValue<double?>> {
+  /// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+  ///
+  /// Copied from [exerciseEstimated1rm].
+  const ExerciseEstimated1rmFamily();
+
+  /// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+  ///
+  /// Copied from [exerciseEstimated1rm].
+  ExerciseEstimated1rmProvider call(String exerciseId) {
+    return ExerciseEstimated1rmProvider(exerciseId);
+  }
+
+  @override
+  ExerciseEstimated1rmProvider getProviderOverride(
+    covariant ExerciseEstimated1rmProvider provider,
+  ) {
+    return call(provider.exerciseId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'exerciseEstimated1rmProvider';
+}
+
+/// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+///
+/// Copied from [exerciseEstimated1rm].
+class ExerciseEstimated1rmProvider extends AutoDisposeFutureProvider<double?> {
+  /// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+  ///
+  /// Copied from [exerciseEstimated1rm].
+  ExerciseEstimated1rmProvider(String exerciseId)
+    : this._internal(
+        (ref) =>
+            exerciseEstimated1rm(ref as ExerciseEstimated1rmRef, exerciseId),
+        from: exerciseEstimated1rmProvider,
+        name: r'exerciseEstimated1rmProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$exerciseEstimated1rmHash,
+        dependencies: ExerciseEstimated1rmFamily._dependencies,
+        allTransitiveDependencies:
+            ExerciseEstimated1rmFamily._allTransitiveDependencies,
+        exerciseId: exerciseId,
+      );
+
+  ExerciseEstimated1rmProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.exerciseId,
+  }) : super.internal();
+
+  final String exerciseId;
+
+  @override
+  Override overrideWith(
+    FutureOr<double?> Function(ExerciseEstimated1rmRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: ExerciseEstimated1rmProvider._internal(
+        (ref) => create(ref as ExerciseEstimated1rmRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        exerciseId: exerciseId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<double?> createElement() {
+    return _ExerciseEstimated1rmProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ExerciseEstimated1rmProvider &&
+        other.exerciseId == exerciseId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, exerciseId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ExerciseEstimated1rmRef on AutoDisposeFutureProviderRef<double?> {
+  /// The parameter `exerciseId` of this provider.
+  String get exerciseId;
+}
+
+class _ExerciseEstimated1rmProviderElement
+    extends AutoDisposeFutureProviderElement<double?>
+    with ExerciseEstimated1rmRef {
+  _ExerciseEstimated1rmProviderElement(super.provider);
+
+  @override
+  String get exerciseId => (origin as ExerciseEstimated1rmProvider).exerciseId;
+}
+
 String _$lastSetInfoHash() => r'f16d21a1de8208875f13f3621a8ab7a530bb678e';
 
 /// 운동별 마지막 세트 정보 Provider

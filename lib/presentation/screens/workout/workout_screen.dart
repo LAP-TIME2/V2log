@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/utils/fitness_calculator.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/haptic_feedback.dart';
 import '../../../data/dummy/dummy_exercises.dart';
@@ -21,7 +22,6 @@ import '../../widgets/molecules/exercise_animation_widget.dart';
 import '../../widgets/molecules/quick_input_control.dart';
 import '../../widgets/molecules/rest_timer.dart';
 import '../../widgets/molecules/set_row.dart';
-import 'workout_summary_screen.dart';
 
 /// 운동 진행 화면 (빠른 기록 UI)
 class WorkoutScreen extends ConsumerStatefulWidget {
@@ -44,6 +44,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
   // 현재 운동 (자유 모드용)
   ExerciseModel? _freeExercise;
+
+  // 슈퍼세트 파트너 운동 (자유 모드 전용)
+  ExerciseModel? _supersetPartnerExercise;
+  bool _supersetIsOnPartner = false; // false=메인 운동, true=파트너 운동
 
   // 운동별 메모 (운동 ID: 메모)
   final Map<String, String> _exerciseNotes = {};
@@ -163,6 +167,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                 padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 child: RestTimerWidget(expanded: false),
               ),
+
+              // 강도 존 표시바
+              if (currentExerciseId != null && _currentWeight > 0)
+                _IntensityZoneIndicator(
+                  currentWeight: _currentWeight,
+                  exerciseId: currentExerciseId,
+                  currentSets: currentSets,
+                ),
 
               // 빠른 입력 컨트롤
               QuickInputControl(
@@ -335,6 +347,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       routineExercise: session.mode == WorkoutMode.preset
           ? ref.watch(currentRoutineExerciseProvider)
           : null,
+      supersetPartner: _supersetPartnerExercise,
       isDark: isDark,
     );
   }
@@ -532,8 +545,26 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             setType: _currentSetType,
           );
 
-      // 휴식 타이머 자동 시작
-      ref.read(restTimerProvider.notifier).start();
+      // 슈퍼세트 모드: 운동 A ↔ B 자동 전환
+      if (_currentSetType == SetType.superset &&
+          _supersetPartnerExercise != null &&
+          session.mode == WorkoutMode.free) {
+        setState(() {
+          // 메인 ↔ 파트너 스왑
+          final temp = _freeExercise;
+          _freeExercise = _supersetPartnerExercise;
+          _supersetPartnerExercise = temp;
+          _supersetIsOnPartner = !_supersetIsOnPartner;
+        });
+
+        // 파트너 운동 완료 후(=메인으로 돌아올 때)만 휴식 타이머 시작
+        if (!_supersetIsOnPartner) {
+          ref.read(restTimerProvider.notifier).start();
+        }
+      } else {
+        // 일반 모드: 항상 휴식 타이머 시작
+        ref.read(restTimerProvider.notifier).start();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -578,12 +609,38 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                         color: isDark ? AppColors.darkText : AppColors.lightText,
                       ),
                     ),
+                    subtitle: type == SetType.superset
+                        ? Text(
+                            '두 운동을 번갈아 수행',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                            ),
+                          )
+                        : null,
                     trailing: isSelected
                         ? const Icon(Icons.check, color: AppColors.primary500)
                         : null,
                     onTap: () {
                       setState(() => _currentSetType = type);
                       Navigator.pop(context);
+
+                      // 슈퍼세트 선택 시 파트너 운동 선택 (자유 모드 + 파트너 미선택)
+                      if (type == SetType.superset && _supersetPartnerExercise == null) {
+                        final session = ref.read(activeWorkoutProvider);
+                        if (session?.mode == WorkoutMode.free) {
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            if (mounted) _showSupersetPartnerSelector();
+                          });
+                        }
+                      }
+
+                      // 슈퍼세트가 아닌 타입 선택 시 파트너 초기화
+                      if (type != SetType.superset) {
+                        setState(() {
+                          _supersetPartnerExercise = null;
+                          _supersetIsOnPartner = false;
+                        });
+                      }
                     },
                   );
                 }),
@@ -640,6 +697,46 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     );
   }
 
+  /// 슈퍼세트 파트너 운동 선택
+  void _showSupersetPartnerSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.radiusXl),
+        ),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return _ExerciseSelectorSheet(
+              scrollController: scrollController,
+              onSelect: (exercise) {
+                setState(() {
+                  _supersetPartnerExercise = exercise;
+                  _supersetIsOnPartner = false;
+                });
+                Navigator.pop(context);
+              },
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // 파트너 선택 안 하고 닫으면 세트 타입 복원
+      if (_supersetPartnerExercise == null && _currentSetType == SetType.superset) {
+        setState(() => _currentSetType = SetType.working);
+      }
+    });
+  }
+
   void _showExerciseSelector() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
@@ -663,6 +760,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               onSelect: (exercise) {
                 setState(() {
                   _freeExercise = exercise;
+                  // 운동 변경 시 슈퍼세트 상태 초기화
+                  _supersetPartnerExercise = null;
+                  _supersetIsOnPartner = false;
+                  _currentSetType = SetType.working;
                 });
                 Navigator.pop(context);
               },
@@ -839,8 +940,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       return;
     }
 
-    // WorkoutScreen의 Navigator를 미리 캡처 (다이얼로그 pop 후 stale context 방지)
-    final screenNavigator = Navigator.of(context);
+    // WorkoutScreen의 GoRouter를 미리 캡처 (다이얼로그 pop 후 stale context 방지)
+    final router = GoRouter.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
@@ -918,15 +1019,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                               this.ref.invalidate(userStatsProvider);
                             }
 
-                            // 요약 화면으로 먼저 이동 (state 정리 전에 캡처된 navigator 사용)
+                            // 요약 화면으로 이동 (GoRouter로 관리되는 라우트)
                             if (mounted) {
-                              screenNavigator.pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (_) => WorkoutSummaryScreen(
-                                    session: finishedSession,
-                                  ),
-                                ),
-                              );
+                              router.go('/workout/summary', extra: finishedSession);
                             }
 
                             // 이동 후 활성 운동 정리 (WorkoutScreen은 이미 대체됨)
@@ -1295,6 +1390,7 @@ class _ExerciseGuideCard extends StatelessWidget {
   final VoidCallback onEditNotes;
   final VoidCallback? onChangeExercise;
   final dynamic routineExercise;
+  final ExerciseModel? supersetPartner;
   final bool isDark;
 
   const _ExerciseGuideCard({
@@ -1304,6 +1400,7 @@ class _ExerciseGuideCard extends StatelessWidget {
     required this.onEditNotes,
     this.onChangeExercise,
     this.routineExercise,
+    this.supersetPartner,
     required this.isDark,
   });
 
@@ -1360,6 +1457,42 @@ class _ExerciseGuideCard extends StatelessWidget {
                         fontSize: 11,
                       ),
                     ),
+                    // 슈퍼세트 파트너 표시
+                    if (supersetPartner != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: AppColors.setSuperset.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'SS',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.setSuperset,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Icon(Icons.swap_horiz, size: 10, color: AppColors.setSuperset),
+                            const SizedBox(width: 3),
+                            Text(
+                              supersetPartner!.name,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.setSuperset,
+                                fontSize: 10,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (routineExercise != null) ...[
                       const SizedBox(width: 8),
                       Container(
@@ -1411,5 +1544,122 @@ class _ExerciseGuideCard extends StatelessWidget {
       ),
     );
   }
+}
 
+/// 실시간 강도 존 표시바
+class _IntensityZoneIndicator extends ConsumerWidget {
+  final double currentWeight;
+  final String exerciseId;
+  final List<WorkoutSetModel> currentSets;
+
+  const _IntensityZoneIndicator({
+    required this.currentWeight,
+    required this.exerciseId,
+    required this.currentSets,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final estimated1rmAsync = ref.watch(exerciseEstimated1rmProvider(exerciseId));
+
+    return estimated1rmAsync.when(
+      data: (stored1rm) {
+        // 저장된 1RM 사용, 없으면 현재 세션 최고 기록으로 추정
+        double? estimated1rm = stored1rm;
+        if (estimated1rm == null && currentSets.isNotEmpty) {
+          double maxCalc = 0;
+          for (final s in currentSets) {
+            if (s.weight != null && s.reps != null && s.reps! > 0) {
+              final calc = FitnessCalculator.calculate1RM(s.weight!, s.reps!);
+              if (calc > maxCalc) maxCalc = calc;
+            }
+          }
+          if (maxCalc > 0) estimated1rm = maxCalc;
+        }
+
+        if (estimated1rm == null || estimated1rm <= 0) {
+          return _buildNoData(isDark);
+        }
+
+        final zone = FitnessCalculator.analyzeIntensity(currentWeight, estimated1rm);
+        final percent = (currentWeight / estimated1rm * 100).clamp(0, 120).toInt();
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: zone.color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: zone.color.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              // 존 컬러 도트
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: zone.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 존 이름 + 추천 횟수
+              Text(
+                zone.label,
+                style: AppTypography.labelMedium.copyWith(
+                  color: zone.color,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                zone.suggestedReps,
+                style: AppTypography.bodySmall.copyWith(
+                  color: zone.color.withValues(alpha: 0.7),
+                  fontSize: 11,
+                ),
+              ),
+              const Spacer(),
+              // 1RM 대비 퍼센트
+              Text(
+                '$percent% 1RM',
+                style: AppTypography.labelMedium.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => _buildNoData(isDark),
+    );
+  }
+
+  Widget _buildNoData(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: (isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 14,
+            color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+          const SizedBox(width: 6),
+          Text(
+            '1RM 데이터 없음 — 운동 기록이 쌓이면 강도 분석이 표시됩니다',
+            style: AppTypography.bodySmall.copyWith(
+              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

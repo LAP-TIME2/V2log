@@ -45,8 +45,8 @@ class HistoryScreen extends ConsumerWidget {
         loading: () => const Padding(
           padding: EdgeInsets.all(AppSpacing.screenPadding),
           child: ShimmerLoadingList(
-            itemCount: 5,
-            itemHeight: 120,
+            itemCount: 3,
+            itemHeight: 100,
             spacing: AppSpacing.md,
             borderRadius: 12,
           ),

@@ -202,7 +202,7 @@ class CountUpText extends StatefulWidget {
 class _CountUpTextState extends State<CountUpText>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _animation;
+  late Animation<double> _animation;
 
   @override
   void initState() {
@@ -376,16 +376,28 @@ class ShimmerLoadingList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding ?? EdgeInsets.zero,
-      child: Column(
-        children: List.generate(itemCount, (index) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: index < itemCount - 1 ? spacing : 0),
-            child: ShimmerLoading(
-              height: itemHeight,
-              borderRadius: borderRadius,
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 가용 높이에 맞는 아이템 수만 표시 (overflow 방지)
+          int visibleCount = itemCount;
+          if (constraints.maxHeight.isFinite) {
+            final itemTotalHeight = itemHeight + spacing;
+            visibleCount = (constraints.maxHeight / itemTotalHeight).floor().clamp(1, itemCount);
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(visibleCount, (index) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: index < visibleCount - 1 ? spacing : 0),
+                child: ShimmerLoading(
+                  height: itemHeight,
+                  borderRadius: borderRadius,
+                ),
+              );
+            }),
           );
-        }),
+        },
       ),
     );
   }
