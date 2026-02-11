@@ -350,6 +350,29 @@ final exerciseFrequencyProvider =
 // ignore: unused_element
 typedef ExerciseFrequencyRef =
     AutoDisposeFutureProviderRef<List<ExerciseFrequency>>;
+String _$intensityZoneDistributionHash() =>
+    r'5cb90e842367ad04e7bb0fc8c57bb9c9730e5d18';
+
+/// 강도 존 분포 Provider (최근 30일)
+/// 각 세트를 1RM 대비 강도 존으로 분류
+///
+/// Copied from [intensityZoneDistribution].
+@ProviderFor(intensityZoneDistribution)
+final intensityZoneDistributionProvider =
+    AutoDisposeFutureProvider<IntensityZoneDistribution>.internal(
+      intensityZoneDistribution,
+      name: r'intensityZoneDistributionProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$intensityZoneDistributionHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef IntensityZoneDistributionRef =
+    AutoDisposeFutureProviderRef<IntensityZoneDistribution>;
 String _$userProfileHash() => r'ec764767cecaaaf97fba916f43ba1b95a7c6fd0d';
 
 /// 사용자 프로필 업데이트 Provider

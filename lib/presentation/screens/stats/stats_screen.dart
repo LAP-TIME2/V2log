@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/animation_config.dart';
+import '../../../core/utils/fitness_calculator.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/exercise_model.dart';
 import '../../../domain/providers/user_provider.dart';
@@ -131,6 +132,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   ),
                   error: (_, __) => _buildErrorCard(isDark),
                 ),
+
+                const SizedBox(height: AppSpacing.xxxl),
+
+                // 강도 분석
+                _buildSectionTitle('강도 분석 (최근 30일)', isDark),
+                const SizedBox(height: AppSpacing.lg),
+                _buildIntensityZoneSection(context, isDark),
 
                 const SizedBox(height: AppSpacing.xxxl),
 
@@ -1054,6 +1062,154 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     return '$minutes분';
   }
 
+  /// 강도 분석 섹션
+  Widget _buildIntensityZoneSection(BuildContext context, bool isDark) {
+    final intensityAsync = ref.watch(intensityZoneDistributionProvider);
+
+    return intensityAsync.when(
+      data: (distribution) => _buildIntensityZoneCard(context, distribution, isDark),
+      loading: () => const SizedBox(
+        height: 200,
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.primary500),
+        ),
+      ),
+      error: (_, __) => _buildErrorCard(isDark),
+    );
+  }
+
+  /// 강도 분석 카드
+  Widget _buildIntensityZoneCard(
+    BuildContext context,
+    IntensityZoneDistribution distribution,
+    bool isDark,
+  ) {
+    if (distribution.totalSets == 0) {
+      return V2Card(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Center(
+          child: Text(
+            '최근 30일 운동 기록이 없어요',
+            style: AppTypography.bodyMedium.copyWith(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 존 순서: 근비대 → 근력 → 최대근력 → 근지구력 → 웜업 (많이 쓰는 순 정렬)
+    final zoneOrder = [
+      IntensityZone.hypertrophy,
+      IntensityZone.strength,
+      IntensityZone.maxStrength,
+      IntensityZone.endurance,
+      IntensityZone.warmup,
+    ];
+
+    // 세트 수 기준 내림차순 정렬
+    final sortedZones = [...zoneOrder]..sort((a, b) {
+      final countA = distribution.setCountByZone[a] ?? 0;
+      final countB = distribution.setCountByZone[b] ?? 0;
+      return countB.compareTo(countA);
+    });
+
+    final total = distribution.totalSets;
+    final maxCount = sortedZones
+        .map((z) => distribution.setCountByZone[z] ?? 0)
+        .fold<int>(0, (max, count) => count > max ? count : max);
+
+    return V2Card(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 가로 누적 막대
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 28,
+              child: Row(
+                children: zoneOrder.map((zone) {
+                  final count = distribution.setCountByZone[zone] ?? 0;
+                  if (count == 0) return const SizedBox.shrink();
+                  final ratio = count / total;
+                  return Expanded(
+                    flex: (ratio * 1000).round().clamp(1, 1000),
+                    child: Container(
+                      color: zone.color,
+                      alignment: Alignment.center,
+                      child: ratio >= 0.1
+                          ? Text(
+                              '${(ratio * 100).round()}%',
+                              style: AppTypography.caption.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                              ),
+                            )
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
+          // 존 범례 (가로)
+          Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.xs,
+            children: zoneOrder.map((zone) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: zone.color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    zone.label,
+                    style: AppTypography.caption.copyWith(
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: AppSpacing.xl),
+          Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 존별 상세 리스트 (세트 수 내림차순)
+          ...sortedZones.map((zone) {
+            final count = distribution.setCountByZone[zone] ?? 0;
+            final percentage = total > 0 ? (count / total) : 0.0;
+            final barRatio = maxCount > 0 ? (count / maxCount) : 0.0;
+
+            return _IntensityZoneRow(
+              zone: zone,
+              count: count,
+              percentage: percentage,
+              barRatio: barRatio,
+              isDark: isDark,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   /// 운동별 1RM 추이 섹션
   Widget _buildExercise1RMSection(BuildContext context, bool isDark) {
     // 운동 선택 드롭다운
@@ -1691,6 +1847,87 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 강도 존 행 위젯
+class _IntensityZoneRow extends StatelessWidget {
+  final IntensityZone zone;
+  final int count;
+  final double percentage;
+  final double barRatio;
+  final bool isDark;
+
+  const _IntensityZoneRow({
+    required this.zone,
+    required this.count,
+    required this.percentage,
+    required this.barRatio,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: zone.color,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  zone.label,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
+                  ),
+                ),
+              ),
+              Text(
+                zone.suggestedReps,
+                style: AppTypography.caption.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${count}세트',
+                style: AppTypography.labelMedium.copyWith(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '(${(percentage * 100).round()}%)',
+                style: AppTypography.caption.copyWith(
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: barRatio,
+              backgroundColor: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
+              valueColor: AlwaysStoppedAnimation<Color>(zone.color),
+              minHeight: 8,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

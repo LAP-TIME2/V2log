@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/fitness_calculator.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/exercise_model.dart';
 import '../../data/services/supabase_service.dart';
@@ -978,5 +979,152 @@ Future<List<ExerciseFrequency>> exerciseFrequency(ExerciseFrequencyRef ref) asyn
   } catch (e) {
     print('=== exerciseFrequency 조회 실패: $e ===');
     return const [];
+  }
+}
+
+/// 강도 존 분포 데이터 모델
+class IntensityZoneDistribution {
+  final Map<IntensityZone, int> setCountByZone;
+  final int totalSets;
+
+  const IntensityZoneDistribution({
+    required this.setCountByZone,
+    required this.totalSets,
+  });
+}
+
+/// 강도 존 분포 Provider (최근 30일)
+/// 각 세트를 1RM 대비 강도 존으로 분류
+@riverpod
+Future<IntensityZoneDistribution> intensityZoneDistribution(
+  IntensityZoneDistributionRef ref,
+) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  if (userId == null) {
+    return const IntensityZoneDistribution(
+      setCountByZone: {},
+      totalSets: 0,
+    );
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+
+    final now = DateTime.now();
+    final thirtyDaysAgo = DateTime(now.year, now.month, now.day - 29);
+
+    print('=== intensityZoneDistribution 조회: userId=$userId, 기간=${thirtyDaysAgo.toIso8601String()} ~ ${now.toIso8601String()} ===');
+
+    // 1. exercise_records에서 운동별 저장된 1RM 가져오기
+    final recordsResponse = await supabase
+        .from('exercise_records')
+        .select('exercise_id, estimated_1rm')
+        .eq('user_id', userId);
+
+    final records = recordsResponse as List;
+    final Map<String, double> stored1RMByExercise = {};
+    for (final record in records) {
+      final exerciseId = record['exercise_id'] as String?;
+      final estimated1rm = (record['estimated_1rm'] as num?)?.toDouble();
+      if (exerciseId != null && estimated1rm != null && estimated1rm > 0) {
+        stored1RMByExercise[exerciseId] = estimated1rm;
+      }
+    }
+
+    // 2. 최근 30일 세트 데이터 가져오기
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          id,
+          workout_sets (
+            weight,
+            reps,
+            exercise_id,
+            set_type
+          )
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .gte('started_at', thirtyDaysAgo.toIso8601String());
+
+    final sessions = response as List;
+    print('=== intensityZoneDistribution 세션: ${sessions.length}건 ===');
+
+    // 3. 운동별 세트 모으기 (1RM 없는 운동용 best set 계산)
+    final Map<String, List<Map<String, dynamic>>> setsByExercise = {};
+
+    for (final session in sessions) {
+      final sets = session['workout_sets'] as List? ?? [];
+      for (final set in sets) {
+        final exerciseId = set['exercise_id'] as String?;
+        if (exerciseId != null) {
+          setsByExercise.putIfAbsent(exerciseId, () => []);
+          setsByExercise[exerciseId]!.add(set as Map<String, dynamic>);
+        }
+      }
+    }
+
+    // 4. 운동별 1RM 결정 (저장된 값 우선, 없으면 best set으로 추정)
+    final Map<String, double> effective1RM = {};
+    for (final entry in setsByExercise.entries) {
+      final exerciseId = entry.key;
+
+      if (stored1RMByExercise.containsKey(exerciseId)) {
+        effective1RM[exerciseId] = stored1RMByExercise[exerciseId]!;
+      } else {
+        // best set으로 1RM 추정
+        double maxCalc = 0;
+        for (final set in entry.value) {
+          final weight = (set['weight'] as num?)?.toDouble() ?? 0;
+          final reps = (set['reps'] as num?)?.toInt() ?? 0;
+          if (weight > 0 && reps > 0) {
+            final calc = FitnessCalculator.calculate1RM(weight, reps);
+            if (calc > maxCalc) maxCalc = calc;
+          }
+        }
+        if (maxCalc > 0) effective1RM[exerciseId] = maxCalc;
+      }
+    }
+
+    // 5. 각 세트를 강도 존으로 분류
+    final Map<IntensityZone, int> zoneCount = {
+      IntensityZone.maxStrength: 0,
+      IntensityZone.strength: 0,
+      IntensityZone.hypertrophy: 0,
+      IntensityZone.endurance: 0,
+      IntensityZone.warmup: 0,
+    };
+    int totalSets = 0;
+
+    for (final entry in setsByExercise.entries) {
+      final exerciseId = entry.key;
+      final e1rm = effective1RM[exerciseId];
+      if (e1rm == null || e1rm <= 0) continue;
+
+      for (final set in entry.value) {
+        final weight = (set['weight'] as num?)?.toDouble() ?? 0;
+        final reps = (set['reps'] as num?)?.toInt() ?? 0;
+        if (weight <= 0 || reps <= 0) continue;
+
+        final zone = FitnessCalculator.analyzeIntensity(weight, e1rm);
+        zoneCount[zone] = (zoneCount[zone] ?? 0) + 1;
+        totalSets++;
+      }
+    }
+
+    print('=== intensityZoneDistribution 결과: totalSets=$totalSets, zones=$zoneCount ===');
+
+    return IntensityZoneDistribution(
+      setCountByZone: zoneCount,
+      totalSets: totalSets,
+    );
+  } catch (e) {
+    print('=== intensityZoneDistribution 조회 실패: $e ===');
+    return const IntensityZoneDistribution(
+      setCountByZone: {},
+      totalSets: 0,
+    );
   }
 }
