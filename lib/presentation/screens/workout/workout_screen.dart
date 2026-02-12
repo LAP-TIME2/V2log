@@ -21,6 +21,7 @@ import '../../widgets/atoms/v2_button.dart';
 import '../../widgets/molecules/exercise_animation_widget.dart';
 import '../../widgets/molecules/mini_muscle_map.dart';
 import '../../widgets/molecules/quick_input_control.dart';
+import '../../widgets/molecules/camera_overlay.dart';
 import '../../widgets/molecules/rest_timer.dart';
 import '../../widgets/molecules/set_row.dart';
 
@@ -52,6 +53,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
   // 운동별 메모 (운동 ID: 메모)
   final Map<String, String> _exerciseNotes = {};
+
+  // CV 모드 (카메라 횟수 자동 카운팅)
+  bool _cvModeEnabled = false;
 
   // _isFinishing 제거: Provider.isFinishing을 SSOT로 사용
 
@@ -153,6 +157,22 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               _buildExerciseHeader(session, currentExercise, isDark),
             ],
           ),
+
+          // CV 카메라 오버레이 (AI 횟수 카운팅)
+          if (_cvModeEnabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+              child: CameraOverlay(
+                exerciseNameEn: currentExercise?.nameEn,
+                exerciseName: currentExercise?.name,
+                completedSets: currentSets.length,
+                onRepsDetected: (reps, confidence) {
+                  if (confidence >= 0.7) {
+                    setState(() => _currentReps = reps);
+                  }
+                },
+              ),
+            ),
 
           // 세트 기록 리스트 (스크롤 가능)
           Expanded(
@@ -272,6 +292,15 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         ],
       ),
       actions: [
+        // CV 모드 토글
+        IconButton(
+          icon: Icon(
+            _cvModeEnabled ? Icons.videocam : Icons.videocam_off_outlined,
+            color: _cvModeEnabled ? AppColors.primary500 : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+          ),
+          onPressed: () => setState(() => _cvModeEnabled = !_cvModeEnabled),
+          tooltip: 'AI 횟수 카운팅',
+        ),
         TextButton(
           onPressed: () => _showFinishDialog(context),
           child: Text(

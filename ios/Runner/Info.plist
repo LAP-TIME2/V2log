@@ -43,6 +43,8 @@
 	</array>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>운동 기록 이미지를 갤러리에 저장합니다</string>
+	<key>NSCameraUsageDescription</key>
+	<string>운동 자세 감지 및 횟수 자동 카운팅에 카메라를 사용합니다</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
