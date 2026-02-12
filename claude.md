@@ -15,6 +15,7 @@
 - **Animations**: Rive, Lottie
 - **Router**: GoRouter
 - **Code Gen**: Freezed, json_serializable, riverpod_generator
+- **CV/ML**: MediaPipe BlazePose, YOLO11 nano → **상세는 `CLAUDE-CV.md` 참조**
 
 ### Git / GitHub
 - **Remote**: `https://github.com/LAP-TIME2/V2log.git` (LAP-TIME**2** 계정)
@@ -413,6 +414,9 @@ CREATE TABLE body_records (
 4. Exercise ID는 반드시 **UUID** 형식 (ex-001 스타일 금지)
 5. `debugPrint()` 사용 금지 → `print('=== 에러: $e ===')` 사용 (터미널에 보임)
 
+### CV 작업 시
+- **반드시 `CLAUDE-CV.md` 참조** (CV 기술 스택, 코딩 규칙, 통합 포인트, 성능 최적화)
+
 ### 코드 작성 규칙
 - Provider: `@riverpod` 어노테이션 사용
 - 에러 처리: 비동기 작업에 try-catch + AsyncValue 활용
@@ -522,3 +526,9 @@ flutter build apk --release
 - [x] **슈퍼세트** (세트 타입 선택 + 파트너 운동 선택 + A↔B 자동 전환)
 - [x] **이미지 저장/공유** (RepaintBoundary 캡처 + gal 갤러리 저장 + share_plus 공유)
 - [x] **로컬 알림** (flutter_local_notifications + 요일별 시간 설정 + 테스트 알림)
+
+### Phase 3: CV 기능 — **진행 예정** (상세: `CLAUDE-CV.md`)
+- [ ] 횟수 자동 카운팅 (MediaPipe BlazePose + 관절 각도 Peak/Valley)
+- [ ] 운동 화면 카메라 모드 토글
+- [ ] YOLO11 기본 모델 학습 + 무게 자동 감지
+- [ ] 플레이트 등록 앱 기능 (B2B)
