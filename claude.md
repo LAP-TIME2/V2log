@@ -527,8 +527,19 @@ flutter build apk --release
 - [x] **이미지 저장/공유** (RepaintBoundary 캡처 + gal 갤러리 저장 + share_plus 공유)
 - [x] **로컬 알림** (flutter_local_notifications + 요일별 시간 설정 + 테스트 알림)
 
-### Phase 3: CV 기능 — **진행 예정** (상세: `CLAUDE-CV.md`)
-- [ ] 횟수 자동 카운팅 (MediaPipe BlazePose + 관절 각도 Peak/Valley)
-- [ ] 운동 화면 카메라 모드 토글
+### Phase 3: CV 기능 — **진행 중** (상세: `CLAUDE-CV.md`, 수정노트: `docs/CV_수정노트.md`)
+
+#### CV Phase 1: 카메라 기반 횟수 카운팅 - **완료**
+- [x] 패키지 설치 (camera, google_mlkit_pose_detection)
+- [x] 플랫폼 권한 (Android CAMERA, iOS NSCameraUsageDescription)
+- [x] `exercise_angles.dart` — 운동 10개 각도 규칙 + 키워드 매칭
+- [x] `pose_detection_service.dart` — MediaPipe BlazePose 래퍼 (프레임 스킵, 각도 계산)
+- [x] `rep_counter_service.dart` v5.2 — One Euro Filter + Velocity Gate + 확인 시스템
+- [x] `pose_overlay.dart` — 33개 관절 CustomPainter
+- [x] `camera_overlay.dart` — 카메라+포즈+카운팅 위젯 (촬영 방향 표시)
+- [x] `workout_screen.dart` 통합 — CV 토글 + 콜백
+- [x] 실기기 테스트 + 정확도 검증 (정지 오카운팅 방지, 세트 간 정확도 유지, 준비 동작 필터링)
+
+#### CV Phase 2: 무게 자동 감지 - **미착수**
 - [ ] YOLO11 기본 모델 학습 + 무게 자동 감지
 - [ ] 플레이트 등록 앱 기능 (B2B)

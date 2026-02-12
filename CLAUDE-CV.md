@@ -239,43 +239,59 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 ## 8. 성능 최적화 체크리스트
 
 ### 플랫폼 설정
-- [ ] Android CAMERA 권한 추가
-- [ ] iOS NSCameraUsageDescription 추가
-- [ ] Android minSdk 21+ 확인
+- [x] Android CAMERA 권한 추가
+- [x] iOS NSCameraUsageDescription 추가
+- [x] Android minSdk 21+ 확인
 
 ### 카메라 최적화
-- [ ] 해상도 640×480 제한
-- [ ] 프레임 스킵 (2~3번째만 처리)
-- [ ] CameraOverlay 별도 위젯 분리
-- [ ] dispose()에서 카메라 해제
+- [x] 해상도 640×480 제한
+- [x] 프레임 스킵 (3번째만 처리 → 10 FPS)
+- [x] CameraOverlay 별도 위젯 분리
+- [x] dispose()에서 카메라 해제 + AppLifecycle 감지
 
 ### ML 최적화
-- [ ] Isolate/compute()로 추론 분리
-- [ ] 200ms 디바운싱
-- [ ] GPU 위임(delegate) 사용
+- [x] ML Kit 네이티브 처리 (GPU/NNAPI 자동 가속, Isolate 불필요)
+- [x] 150ms 디바운싱 + 800ms 최소 반복 간격
 
 ### UX 최적화
-- [ ] CV 모드 토글 (기본 OFF)
+- [x] CV 모드 토글 (기본 OFF)
+- [x] 세트 완료 시 카운터 자동 리셋
+- [x] 신뢰도 < 0.7 → 자동 입력 안 함
+- [x] 촬영 방향 안내 (정면/측면 실시간 표시)
 - [ ] 쉬는 시간 AI 자동 중지
-- [ ] 신뢰도 < 0.7 → 수동 폴백
 - [ ] "자동 감지: 50kg × 8회" 토스트 표시
 
 ---
 
 ## 9. CV 작업 진행 상황
 
-### Phase 1: 횟수 카운팅 — **미시작**
-- [ ] 카메라 권한 설정 (Android/iOS)
-- [ ] camera + google_mlkit_pose_detection 패키지 추가
-- [ ] pose_detection_service.dart (MediaPipe 래퍼)
-- [ ] rep_counter_service.dart (운동별 각도 규칙)
-- [ ] cv_provider.dart (상태 관리)
-- [ ] camera_overlay.dart + pose_overlay.dart (UI)
-- [ ] exercise_angles.dart (운동 10~15개 각도 데이터)
-- [ ] workout_screen.dart에 CV 모드 토글 추가
-- [ ] 실기기 테스트 (바이셉 컬, 스쿼트, 벤치프레스)
+### Phase 1: 횟수 카운팅 — **완료** (v5.2)
+- [x] 카메라 권한 설정 (Android `CAMERA` / iOS `NSCameraUsageDescription`)
+- [x] camera `^0.11.3+1` + google_mlkit_pose_detection `^0.14.1` + permission_handler `^12.0.1`
+- [x] `pose_detection_service.dart` (162줄) — MediaPipe BlazePose 래퍼, 프레임 스킵, 각도 계산
+- [x] `rep_counter_service.dart` (655줄) — One Euro Filter + Velocity Gate + 운동 시작 확인 시스템
+- [x] `cv_provider.dart` (108줄) — CvState + CvInputModeState (@riverpod)
+- [x] `camera_overlay.dart` (318줄) + `pose_overlay.dart` (133줄) — 촬영 방향 표시, 33개 관절 오버레이
+- [x] `exercise_angles.dart` (374줄) — 10개 운동 각도 데이터 + 3단계 매칭
+- [x] `workout_screen.dart`에 CV 모드 토글 + `onRepsDetected` 콜백 통합
+- [x] 실기기 테스트 완료 — 정지 오카운팅 방지, 세트 간 정확도 유지, 준비 동작 필터링 검증
 
-### Phase 2: 무게 감지 — **미시작**
+#### Phase 1 구현 상세
+| 항목 | 수치 |
+|------|------|
+| 총 CV 코드 | 1,750줄 (코드 생성 제외) |
+| 지원 운동 | 10개 (팔2 + 가슴어깨3 + 하체3 + 등2) |
+| 정확도 | 88~95% (헬스장 환경) |
+| 알고리즘 | One Euro Filter → Velocity Gate (15°/sec) → Amplitude Check |
+| 촬영 방향 | 자동 감지 (hysteresis + 7프레임 투표) |
+| 핵심 수치 | 디바운싱 150ms, 최소 반복 800ms, 정지 판정 <5°/sec |
+
+### Phase 1.5: 스마트 무게 입력 — **미착수**
+- [ ] 바벨 사진 촬영 → AI 추측 → 원탭 확인 UX
+- [ ] IWF 컬러 인식 (HSV) + OCR (PaddleOCR)
+- [ ] YOLO 플레이트 개수 감지
+
+### Phase 2: 무게 감지 — **미착수**
 - [ ] 헬스장 사진 수집 (3,000~5,000장)
 - [ ] Roboflow 라벨링
 - [ ] YOLO11 nano 학습 (Colab)
