@@ -356,6 +356,19 @@ class ExerciseAngles {
     ),
   ];
 
+  /// 부분 매칭 제외 목록 (생체역학적으로 반대인 운동)
+  ///
+  /// 예: "Rear Delt Fly"는 이름에 "Fly"가 포함되지만
+  /// Fly(수평 내전)와 Rear Delt Fly(수평 외전)는 각도가 정반대.
+  /// {운동 이름 키워드 → 매칭 제외할 규칙 이름}
+  static const _partialMatchExclusionsEn = {
+    'rear delt': 'Fly',
+  };
+
+  static const _partialMatchExclusionsKo = {
+    '리어 델트': 'Fly',
+  };
+
   /// 운동 이름(영어)으로 각도 규칙 찾기
   ///
   /// 1차: 정확한 이름 매칭
@@ -370,9 +383,15 @@ class ExerciseAngles {
       if (rule.nameEn.toLowerCase() == lower) return rule;
     }
 
-    // 2차: 부분 매칭
+    // 2차: 부분 매칭 (생체역학적으로 잘못된 매칭 제외)
     for (final rule in rules) {
-      if (lower.contains(rule.nameEn.toLowerCase())) return rule;
+      if (lower.contains(rule.nameEn.toLowerCase())) {
+        final excluded = _partialMatchExclusionsEn.entries.any(
+          (e) => lower.contains(e.key) && rule.nameEn == e.value,
+        );
+        if (excluded) continue;
+        return rule;
+      }
     }
 
     // 3차: 키워드 매칭
@@ -386,9 +405,15 @@ class ExerciseAngles {
       if (rule.name == name) return rule;
     }
 
-    // 2차: 부분 매칭
+    // 2차: 부분 매칭 (생체역학적으로 잘못된 매칭 제외)
     for (final rule in rules) {
-      if (name.contains(rule.name)) return rule;
+      if (name.contains(rule.name)) {
+        final excluded = _partialMatchExclusionsKo.entries.any(
+          (e) => name.contains(e.key) && rule.nameEn == e.value,
+        );
+        if (excluded) continue;
+        return rule;
+      }
     }
 
     // 3차: 키워드 매칭
@@ -460,7 +485,7 @@ class ExerciseAngles {
       'preacher': 'Bicep Curl',
       'concentration': 'Bicep Curl',
       'arnold': 'Shoulder Press',
-      'fly': 'Fly', // 어깨 피벗 (기존 Bench Press → Fly로 수정!)
+      'fly': 'Fly', // 어깨 피벗 (기존 Bench Press → Fly로 수정!) — 단, rear delt 제외
       'flye': 'Fly',
       'pullover': 'Straight Arm Pull',
       'hyperextension': 'Deadlift',
@@ -468,6 +493,8 @@ class ExerciseAngles {
 
     for (final entry in shortKeywordMap.entries) {
       if (lower.contains(entry.key)) {
+        // 생체역학적 제외: rear delt + fly 조합은 Fly 규칙 적용 안 함
+        if (entry.value == 'Fly' && lower.contains('rear delt')) continue;
         return rules.firstWhere((r) => r.nameEn == entry.value);
       }
     }
@@ -519,12 +546,14 @@ class ExerciseAngles {
       '크런치': 'Deadlift',
       '킥백': 'Tricep Pushdown',
       '프리쳐': 'Bicep Curl',
-      '플라이': 'Fly', // 어깨 피벗 (기존 Bench Press → Fly로 수정!)
+      '플라이': 'Fly', // 어깨 피벗 (기존 Bench Press → Fly로 수정!) — 단, 리어 델트 제외
       '풀오버': 'Straight Arm Pull',
     };
 
     for (final entry in shortKeywordMap.entries) {
       if (name.contains(entry.key)) {
+        // 생체역학적 제외: 리어 델트 + 플라이 조합은 Fly 규칙 적용 안 함
+        if (entry.value == 'Fly' && name.contains('리어 델트')) continue;
         return rules.firstWhere((r) => r.nameEn == entry.value);
       }
     }

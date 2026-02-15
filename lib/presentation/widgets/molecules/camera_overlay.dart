@@ -143,7 +143,7 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
   /// - WeightDetectionService: 매 5번째 프레임 (내부 스킵)
   /// - PoseDetectionService: 매 3번째 프레임 (내부 스킵)
   void _onCameraFrame(CameraImage image) async {
-    if (_cameraController == null) return;
+    if (_cameraController == null || !_isInitialized) return;
     final camera = _cameraController!.description;
 
     // Phase 2B: 무게 감지 (프레임 스킵은 서비스 내부에서 처리)
@@ -195,12 +195,12 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
   }
 
   void _disposeCamera() {
+    _isInitialized = false; // 프레임 콜백 즉시 차단 (Race Condition 방지)
     _cameraController?.stopImageStream().catchError((_) {});
     _cameraController?.dispose();
     _cameraController = null;
     _poseService.dispose();
     _weightService.dispose();
-    _isInitialized = false;
   }
 
   @override
