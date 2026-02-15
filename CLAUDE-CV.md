@@ -11,7 +11,7 @@
 |------|------|------|
 | 횟수 카운팅 | **MediaPipe BlazePose** (33개 3D 관절) | 구글 완성 모델, 바로 사용 |
 | 무게 감지 | **YOLO26-N** (커스텀 학습) | 직접 학습 필요 (CPU 43% 빨라짐, NMS-free) |
-| Flutter 카메라 | `camera` ^0.10.6 | 추가 필요 |
+| Flutter 카메라 | `camera` ^0.11.3+1 | 추가 필요 |
 | 포즈 감지 | `google_mlkit_pose_detection` ^0.14.1 | 추가 필요 |
 | 커스텀 모델 | `tflite_flutter` ^0.10.4 | Phase 2에서 추가 |
 | 이미지 처리 | `image` ^4.1.0 | Phase 2에서 추가 |
@@ -297,11 +297,12 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 - ~~IWF 컬러 인식~~: 보너스 경로 (일반 헬스장 80-90% 검정 플레이트)
 - ~~PaddleOCR~~: Google ML Kit v2로 대체 검토 중
 
-### Phase 2A: 모델 학습 — **미착수** (Python/Colab)
-- [ ] 헬스장 사진 수집 (3,000~5,000장)
-- [ ] Roboflow 라벨링
-- [ ] YOLO26-N 학습 (Colab)
-- [ ] model.tflite 변환
+### Phase 2A: 모델 학습 — **진행 중** (Python/Colab)
+- [x] 헬스장 사진 촬영 완료 (20kg/15kg/10kg/5kg/2.5kg)
+- [x] Roboflow 프로젝트 생성 + 926장 업로드 + 537장 라벨링
+- [x] Dataset v2 생성 (YOLOv8 포맷, 5클래스)
+- [ ] YOLO26-N 학습 (Colab) — 진행 중
+- [ ] mAP50 ≥ 80% 검증 → model.tflite 변환
 
 ### Phase 2B: 앱 통합 — **미착수**
 - [ ] Two-Stage 파이프라인 구현 (무게 감지 → Pose-only)

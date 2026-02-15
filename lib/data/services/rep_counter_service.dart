@@ -26,7 +26,7 @@ enum RepPhase { extending, contracting }
 
 /// 운동 횟수 자동 카운팅 서비스
 ///
-/// **One Euro Filter + Velocity Gate + 방향 전환 감지** (v5)
+/// **One Euro Filter + Velocity Gate + 방향 전환 감지** (v5.2)
 ///
 /// 3층 방어 구조:
 /// 1. **One Euro Filter**: 적응형 노이즈 제거 (정지 시 95%+, 운동 시 최소 지연)
