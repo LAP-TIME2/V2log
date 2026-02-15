@@ -15,7 +15,7 @@
 - **Animations**: Rive, Lottie
 - **Router**: GoRouter
 - **Code Gen**: Freezed, json_serializable, riverpod_generator
-- **CV/ML**: MediaPipe BlazePose, YOLO11 nano → **상세는 `CLAUDE-CV.md` 참조**
+- **CV/ML**: MediaPipe BlazePose, YOLO26-N → **상세는 `CLAUDE-CV.md` 참조**
 
 ### Git / GitHub
 - **Remote**: `https://github.com/LAP-TIME2/V2log.git` (LAP-TIME**2** 계정)
@@ -540,6 +540,14 @@ flutter build apk --release
 - [x] `workout_screen.dart` 통합 — CV 토글 + 콜백
 - [x] 실기기 테스트 + 정확도 검증 (정지 오카운팅 방지, 세트 간 정확도 유지, 준비 동작 필터링)
 
-#### CV Phase 2: 무게 자동 감지 - **미착수**
-- [ ] YOLO11 기본 모델 학습 + 무게 자동 감지
-- [ ] 플레이트 등록 앱 기능 (B2B)
+#### CV Phase 2A: YOLO26 모델 학습 - **미착수** (별도 프로젝트: `C:\Dev\V2log-CV-Training\`)
+- [ ] 클래스 구조 확정 (3개 클래스+OCR vs 9개 클래스)
+- [ ] 데이터 수집 + Roboflow 라벨링
+- [ ] YOLO26-N 학습 (Google Colab)
+- [ ] mAP50 ≥ 80% 검증 → .tflite 변환
+
+#### CV Phase 2B: 앱 통합 - **미착수**
+- [ ] Two-Stage 파이프라인 (무게 감지 → Pose-only 분리)
+- [ ] 버튼 0개 자동 UX (자동 감지 → 자동 시작 → 자동 종료)
+- [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자용)
+- [ ] OCR 무게 읽기 (Google ML Kit Text v2)

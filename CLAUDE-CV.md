@@ -10,7 +10,7 @@
 | 용도 | 기술 | 상태 |
 |------|------|------|
 | 횟수 카운팅 | **MediaPipe BlazePose** (33개 3D 관절) | 구글 완성 모델, 바로 사용 |
-| 무게 감지 | **YOLO11 nano** (커스텀 학습) | 직접 학습 필요 |
+| 무게 감지 | **YOLO26-N** (커스텀 학습) | 직접 학습 필요 (CPU 43% 빨라짐, NMS-free) |
 | Flutter 카메라 | `camera` ^0.10.6 | 추가 필요 |
 | 포즈 감지 | `google_mlkit_pose_detection` ^0.11.0 | 추가 필요 |
 | 커스텀 모델 | `tflite_flutter` ^0.10.4 | Phase 2에서 추가 |
@@ -30,29 +30,30 @@ Phase 1 (횟수 카운팅) — 지금 바로 가능
 ├── 비용: 0원 (구글 완성 모델, 학습 불필요)
 └── 앱 작업만: 패키지 설치 + 서비스/위젯 추가
 
-Phase 1.5 (스마트 무게 입력) — 3~6개월 후
-├── 방식: 바벨 사진 촬영 → AI 추측 → "60kg 맞나요?" → 원탭 확인
-├── 기술: IWF 컬러 인식 (HSV) + OCR (PaddleOCR) + YOLO 플레이트 개수
-├── 정확도: 70~85%
-└── 80%만 맞춰도 수동 입력보다 빠름 = 충분한 가치
-
-Phase 2 작업 A (기본 모델 학습) — 앱 바깥, Python/Colab
+Phase 2A (기본 모델 학습) — 앱 바깥, Python/Colab
 ├── 사진 3,000~5,000장 촬영 (여러 헬스장)
-├── Roboflow 라벨링 → YOLO11 nano 학습 (코드 3줄)
+├── Roboflow 라벨링 → YOLO26-N 학습 (코드 3줄)
 ├── 변환: .pt → .tflite (코드 1줄)
 ├── 비용: 0원
 └── 결과물: model.tflite 파일 1개
 
-Phase 2 작업 B (앱 통합) — 기존 V2log 앱에 추가
+Phase 2B (앱 통합) — 기존 V2log 앱에 추가
+├── Two-Stage 파이프라인: 무게 감지 모드 → Pose-only 모드
 ├── tflite_flutter로 model.tflite 실행
-├── 플레이트 등록 UI (관리자용)
-├── 무게 계산 로직 (플레이트 종류 × 개수)
-└── B2B: 헬스장별 Fine-tuning (관리자 200~300장 촬영)
+├── 무게 자동 적용 (확인 팝업 없음, 틀리면 수동 수정)
+├── 자동 시작/종료 (첫 동작 감지 = 세트 시작, 무동작 = 세트 종료)
+├── 플레이트 등록 (B2C 선택사항 / B2B 관리자용)
+├── OCR 숫자 읽기 (보조 수단)
+└── 80%만 맞춰도 수동 입력보다 빠름 = 충분한 가치
 
 Phase 3 (미래, 12개월+)
 ├── LLM 기반 범용 카운팅 (CountLLM)
 ├── SAM 2 바벨 정밀 추적
-└── 1,900+ 운동 지원 (LiFT 모델)
+├── 1,900+ 운동 지원 (LiFT 모델)
+└── B2B 헬스장 설치형 카메라 시스템
+
+※ IWF 컬러 인식 (HSV): 보너스 경로 (일반 헬스장 80-90%가 검정 플레이트)
+※ Phase 1.5 (별도 스마트 무게): Phase 2A 직행 시 불필요
 ```
 
 ---
@@ -92,21 +93,27 @@ lib/core/utils/
 | `AndroidManifest.xml` | `<uses-permission android:name="android.permission.CAMERA"/>` |
 | `Info.plist` | `NSCameraUsageDescription` 추가 |
 
-### 데이터 흐름
+### 데이터 흐름 — Two-Stage 파이프라인
 
 ```
-카메라 스트림 (30fps)
-    ↓ 프레임 스킵 (2~3번째만)
-프레임 전처리 (640×480 리사이즈)
-    ↓ Isolate로 분리
-ML 추론 (MediaPipe 또는 YOLO)
-    ↓ 200ms 디바운싱
-결과 → _onCvDetected(weight, reps)
-    ↓ setState
-_currentWeight / _currentReps 갱신
-    ↓
-기존 addSet() 로직 그대로 사용
+[1단계: 무게 감지 모드]           [2단계: 운동 모드 (Pose-only)]
+카메라 스트림 (30fps)             카메라 스트림 (30fps)
+    ↓ YOLO26-N + OCR 전력 투입       ↓ 프레임 스킵 (3번째만)
+플레이트 감지 + 숫자 읽기         MediaPipe BlazePose 추론
+    ↓                                 ↓ 150ms 디바운싱
+_currentWeight 자동 적용          _currentReps 갱신 (카운팅)
+(화면에 조용히 표시)              (1... 2... 3...)
+    ↓ 첫 동작 감지 시                 ↓ 무동작 감지 시
+   → 2단계로 전환                    → 세트 종료 + 휴식 타이머
+                                      → 무게 변경 시 1단계로 복귀
 ```
+
+### 부분 촬영 원칙 (전신 촬영 아님!)
+- 대부분 운동은 **움직이는 관절 + 무게**만 화면에 잡히면 됨
+- 벤치프레스: 바벨 + 어깨~손목 → 1~1.5m
+- 레그프레스: 플레이트 + 대퇴~발목 → 1~1.5m
+- 스쿼트: 거의 전신 → 가장 넓은 범위 필요
+- **1~1.5m 거리면 플레이트 숫자 OCR 가능 + YOLO 감지 정확도 UP**
 
 ---
 
@@ -181,7 +188,7 @@ notes: "CV감지: 신뢰도 ${(confidence * 100).toInt()}%",
 ### 학습 (코드 3줄)
 ```python
 from ultralytics import YOLO
-model = YOLO('yolo11n.pt')
+model = YOLO('yolo26n.pt')
 model.train(data='data.yaml', epochs=100, imgsz=640, batch=16)
 ```
 
@@ -193,8 +200,8 @@ model.export(format='tflite')
 ### 환경: Google Colab 무료 (5,000장 기준 2~4시간)
 
 ### B2B Fine-tuning 전략
-- 헬스장 관리자가 앱에서 플레이트 촬영 200~300장
-- 사진마다 터치로 무게 선택 (라벨링)
+- 헬스장 관리자가 앱에서 플레이트 촬영 (각 무게 앞면 1장씩, 2분)
+- 또는 플레이트 등록 기능으로 시각적 프로필 저장
 - 서버에서 기본 모델 + 관리자 데이터 → 맞춤 모델 자동 생성
 - 해당 헬스장에서 90~95% 정확도
 
@@ -286,18 +293,22 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 | 촬영 방향 | 자동 감지 (hysteresis + 7프레임 투표) |
 | 핵심 수치 | 디바운싱 150ms, 최소 반복 800ms, 정지 판정 <5°/sec |
 
-### Phase 1.5: 스마트 무게 입력 — **미착수**
-- [ ] 바벨 사진 촬영 → AI 추측 → 원탭 확인 UX
-- [ ] IWF 컬러 인식 (HSV) + OCR (PaddleOCR)
-- [ ] YOLO 플레이트 개수 감지
+### ~~Phase 1.5: 스마트 무게 입력~~ — **Phase 2A 직행으로 불필요**
+- ~~IWF 컬러 인식~~: 보너스 경로 (일반 헬스장 80-90% 검정 플레이트)
+- ~~PaddleOCR~~: Google ML Kit v2로 대체 검토 중
 
-### Phase 2: 무게 감지 — **미착수**
+### Phase 2A: 모델 학습 — **미착수** (Python/Colab)
 - [ ] 헬스장 사진 수집 (3,000~5,000장)
 - [ ] Roboflow 라벨링
-- [ ] YOLO11 nano 학습 (Colab)
-- [ ] model.tflite 변환 + 앱 내장
-- [ ] 플레이트 등록 UI
-- [ ] 무게 계산 로직
+- [ ] YOLO26-N 학습 (Colab)
+- [ ] model.tflite 변환
+
+### Phase 2B: 앱 통합 — **미착수**
+- [ ] Two-Stage 파이프라인 구현 (무게 감지 → Pose-only)
+- [ ] 무게 자동 적용 UX (확인 팝업 없음)
+- [ ] 자동 세트 시작 (첫 동작 감지) / 자동 종료 (무동작 감지)
+- [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자)
+- [ ] OCR 숫자 읽기 (보조)
 - [ ] B2B Fine-tuning 파이프라인
 
 ---
@@ -306,6 +317,7 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 
 ### 기술 조사
 - `docs/reference/CV_무게측정_횟수카운팅_최신기술_보고서_2026.md` — 모델 비교, 정확도, 오픈소스 목록
+- `docs/reference/02-13_CV_무게자동감지_실현가능성_종합분석_2026.md` — 3명 전문가 에이전트 현장 검증 (경쟁사, 광학, UX, B2B)
 
 ### 사업 전략
 - `docs/reference/CV_피벗_사업계획서_Fica_2026.md` — 시장 분석, 경쟁사, 비즈니스 모델
