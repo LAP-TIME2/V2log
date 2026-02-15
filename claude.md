@@ -540,10 +540,11 @@ flutter build apk --release
 - [x] `workout_screen.dart` 통합 — CV 토글 + 콜백
 - [x] 실기기 테스트 + 정확도 검증 (정지 오카운팅 방지, 세트 간 정확도 유지, 준비 동작 필터링)
 
-#### CV Phase 2A: YOLO26 모델 학습 - **미착수** (별도 프로젝트: `C:\Dev\V2log-CV-Training\`)
-- [ ] 클래스 구조 확정 (3개 클래스+OCR vs 9개 클래스)
-- [ ] 데이터 수집 + Roboflow 라벨링
-- [ ] YOLO26-N 학습 (Google Colab)
+#### CV Phase 2A: YOLO26 모델 학습 - **진행 중** (별도 프로젝트: `C:\Dev\V2log-CV-Training\`)
+- [x] 사진 촬영 완료 (20kg/15kg/10kg/5kg/2.5kg)
+- [x] Roboflow 프로젝트 생성 + 926장 업로드 + 537장 라벨링
+- [x] Dataset v2 생성 (YOLOv8 포맷, 5클래스)
+- [ ] YOLO26-N 학습 (Google Colab) — 진행 중
 - [ ] mAP50 ≥ 80% 검증 → .tflite 변환
 
 #### CV Phase 2B: 앱 통합 - **미착수**

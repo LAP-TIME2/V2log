@@ -24,6 +24,7 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 
 ### 2단계: Phase 1 (횟수 카운팅) 체크 — 환경 설정
 - `pubspec.yaml`에서 Grep: `camera`, `google_mlkit_pose_detection`, `permission_handler` → 버전 추출
+- **패키지 버전 크로스체크**: pubspec.yaml 실제 버전 vs CLAUDE-CV.md 표기 버전 비교 (불일치 시 ❌)
 - `android/app/src/main/AndroidManifest.xml`에서 Grep: `android.permission.CAMERA`
 - `ios/Runner/Info.plist`에서 Grep: `NSCameraUsageDescription`
 
@@ -48,6 +49,7 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 `lib/data/services/rep_counter_service.dart` 상단 50줄 Read:
 - 버전 정보 (v5.x)
 - 사용 중인 필터 (One Euro, Velocity Gate 등)
+- **버전 크로스체크**: 코드 버전 주석 vs CLAUDE.md "v5.2" 표기 비교
 
 ### 7단계: Phase 1 — 운동 목록 체크
 `lib/core/utils/exercise_angles.dart`에서 Grep:
@@ -72,9 +74,16 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 
 ### 10단계: Phase 2A (모델 학습) 체크
 - `C:\Dev\V2log-CV-Training\` 폴더 존재?
-- `data.yaml` (YOLO 학습 설정) 존재?
-- `scripts/train.py`에서 YOLO 모델 버전 확인 (YOLO26-N이어야 함)
-- Roboflow 데이터셋 다운로드 여부
+- `data.yaml` (YOLO 학습 설정) 존재? → 클래스 수(nc), 클래스명 출력
+- **YOLO 버전 크로스체크** (모든 실행 파일에서 확인):
+  - `scripts/train.py`에서 Grep: `yolo26n` → 있어야 함 + `yolo11` → 없어야 함
+  - `scripts/export.py` docstring에서 Grep: `YOLO11` → 없어야 함
+  - `notebooks/colab_setup.md`에서 Grep: `yolo11` → 없어야 함
+  - `notebooks/Colab_학습_초상세_가이드.md`에서 Grep: `yolo11` → 없어야 함
+  - `notebooks/V2log_YOLO_Training.ipynb`에서 Grep: `yolo11n\.pt` → 없어야 함
+  - `Phase2A_행동가이드.md`에서 Grep: `yolo11` → 없어야 함
+- **YOLO11 잔여물 전수 검사**: Grep `yolo11` in V2log-CV-Training (.gitignore, docs/reference 제외) → 0건
+- Roboflow 프로젝트 상태 (MEMORY.md에서 확인)
 - 프로젝트 내 `*.tflite` 파일 존재? (Glob: `**/*.tflite`)
 
 ### 11단계: Phase 2B (앱 통합) 체크
@@ -86,6 +95,25 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 - 플레이트 등록 UI 파일 존재?
 - OCR 숫자 읽기 구현 여부
 - B2B Fine-tuning 관련 코드?
+
+### 12단계: 결정사항 반영 일관성 체크
+MEMORY.md의 CV 관련 결정을 실제 코드와 크로스체크:
+
+**[YOLO26-N 일관성]** — 아래 모든 위치에서 YOLO26이 명시되어야 함:
+- `V2log/CLAUDE.md` Phase 2A 섹션
+- `V2log/CLAUDE-CV.md` 기술 스택
+- `V2log-CV-Training/CLAUDE.md` 기술 스택
+- `V2log-CV-Training/scripts/train.py`
+- `cv-status/SKILL.md` Phase 2A 섹션
+
+**[문서 간 정보 불일치 감지]**:
+- CLAUDE.md의 "Phase 2A" ↔ CLAUDE-CV.md의 "Phase 2A" → 상태 일치?
+- CLAUDE-CV.md의 "지원 운동 N개" ↔ exercise_angles.dart 실제 운동 수 → 일치?
+- pubspec.yaml 패키지 버전 ↔ CLAUDE-CV.md 표기 → 일치?
+
+**[YOLO11 잔여물 전수 검사]**:
+- Grep `yolo11|YOLO11|yolo11n|yolov11` in V2log-CV-Training (.gitignore, docs/reference 제외)
+- 0건이면 ✅, 1건 이상이면 ❌ + 파일:라인 목록 출력
 
 ### 13단계: Phase 3 (미래) 체크
 - LLM 기반 카운팅 관련 코드?
@@ -247,6 +275,15 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 | 파일 | 설명 |
 |------|------|
 | `경로` | 설명 |
+
+### 결정사항 반영 일관성 ✅/❌
+| # | 체크 항목 | 상태 | 상세 |
+|---|----------|------|------|
+| 1 | YOLO 버전 크로스체크 (6개 파일) | ✅/❌ | 위반 목록 |
+| 2 | YOLO11 잔여물 (0건이어야) | ✅/❌ | N건: [파일:라인] |
+| 3 | 패키지 버전 문서↔코드 일치 | ✅/❌ | pubspec vs CLAUDE-CV.md |
+| 4 | Phase 진행 상황 문서 일치 | ✅/❌ | CLAUDE.md vs 실제 |
+| 5 | 지원 운동 수 문서↔코드 일치 | ✅/❌ | 코드 N개 vs 문서 M개 |
 
 ### 다음 작업 제안
 1. ...

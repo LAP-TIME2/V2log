@@ -12,7 +12,7 @@
 | 횟수 카운팅 | **MediaPipe BlazePose** (33개 3D 관절) | 구글 완성 모델, 바로 사용 |
 | 무게 감지 | **YOLO26-N** (커스텀 학습) | 직접 학습 필요 (CPU 43% 빨라짐, NMS-free) |
 | Flutter 카메라 | `camera` ^0.10.6 | 추가 필요 |
-| 포즈 감지 | `google_mlkit_pose_detection` ^0.11.0 | 추가 필요 |
+| 포즈 감지 | `google_mlkit_pose_detection` ^0.14.1 | 추가 필요 |
 | 커스텀 모델 | `tflite_flutter` ^0.10.4 | Phase 2에서 추가 |
 | 이미지 처리 | `image` ^4.1.0 | Phase 2에서 추가 |
 | 권한 관리 | `permission_handler` ^11.4.0 | 추가 필요 |
