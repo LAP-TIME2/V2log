@@ -297,12 +297,12 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 - ~~IWF 컬러 인식~~: 보너스 경로 (일반 헬스장 80-90% 검정 플레이트)
 - ~~PaddleOCR~~: Google ML Kit v2로 대체 검토 중
 
-### Phase 2A: 모델 학습 — **진행 중** (Python/Colab)
+### Phase 2A: 모델 학습 — **완료**
 - [x] 헬스장 사진 촬영 완료 (20kg/15kg/10kg/5kg/2.5kg)
 - [x] Roboflow 프로젝트 생성 + 926장 업로드 + 537장 라벨링
 - [x] Dataset v2 생성 (YOLOv8 포맷, 5클래스)
-- [ ] YOLO26-N 학습 (Colab) — 진행 중
-- [ ] mAP50 ≥ 80% 검증 → model.tflite 변환
+- [x] YOLO26-N 학습 완료 — mAP50: 96.2%, mAP50-95: 85.3% (목표 80% 초과 달성)
+- [ ] .tflite 변환 → V2log 앱으로 전달 → Phase 2B 시작
 
 ### Phase 2B: 앱 통합 — **미착수**
 - [ ] Two-Stage 파이프라인 구현 (무게 감지 → Pose-only)

@@ -2,6 +2,21 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'cv_provider.g.dart';
 
+/// CV 파이프라인 단계 (Phase 2B: Two-Stage)
+enum CvPipelineStage {
+  /// CV 모드 꺼짐
+  idle,
+
+  /// Stage 1: YOLO26-N으로 무게 플레이트 감지 중
+  weightDetecting,
+
+  /// 무게 확정됨, 운동 시작 대기 중
+  weightConfirmed,
+
+  /// Stage 2: Pose 기반 횟수 카운팅 중
+  repCounting,
+}
+
 /// CV 입력 모드
 enum CvInputMode {
   /// 기존 수동 입력만
@@ -20,12 +35,18 @@ class CvDetectionResult {
   final double currentAngle;
   final double confidence;
   final bool isActive;
+  final double? detectedWeight;
+  final double weightConfidence;
+  final CvPipelineStage pipelineStage;
 
   const CvDetectionResult({
     this.reps = 0,
     this.currentAngle = 0.0,
     this.confidence = 0.0,
     this.isActive = false,
+    this.detectedWeight,
+    this.weightConfidence = 0.0,
+    this.pipelineStage = CvPipelineStage.idle,
   });
 
   CvDetectionResult copyWith({
@@ -33,12 +54,18 @@ class CvDetectionResult {
     double? currentAngle,
     double? confidence,
     bool? isActive,
+    double? detectedWeight,
+    double? weightConfidence,
+    CvPipelineStage? pipelineStage,
   }) {
     return CvDetectionResult(
       reps: reps ?? this.reps,
       currentAngle: currentAngle ?? this.currentAngle,
       confidence: confidence ?? this.confidence,
       isActive: isActive ?? this.isActive,
+      detectedWeight: detectedWeight ?? this.detectedWeight,
+      weightConfidence: weightConfidence ?? this.weightConfidence,
+      pipelineStage: pipelineStage ?? this.pipelineStage,
     );
   }
 }
@@ -86,6 +113,22 @@ class CvState extends _$CvState {
   /// 횟수 초기화 (새 세트 시작)
   void resetReps() {
     state = state.copyWith(reps: 0, currentAngle: 0.0, confidence: 0.0);
+  }
+
+  /// 무게 감지 결과 업데이트
+  void updateWeightDetection({
+    required double weight,
+    required double confidence,
+  }) {
+    state = state.copyWith(
+      detectedWeight: weight,
+      weightConfidence: confidence,
+    );
+  }
+
+  /// 파이프라인 단계 변경
+  void setPipelineStage(CvPipelineStage stage) {
+    state = state.copyWith(pipelineStage: stage);
   }
 }
 

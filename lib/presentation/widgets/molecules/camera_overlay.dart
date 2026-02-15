@@ -7,6 +7,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/utils/exercise_angles.dart';
 import '../../../data/services/pose_detection_service.dart';
 import '../../../data/services/rep_counter_service.dart';
+import '../../../data/services/weight_detection_service.dart';
 import 'pose_overlay.dart';
 
 /// CV 카메라 프리뷰 + 포즈 오버레이 + 횟수 카운팅
@@ -16,6 +17,12 @@ import 'pose_overlay.dart';
 class CameraOverlay extends StatefulWidget {
   /// 횟수 감지 콜백 (reps, confidence)
   final void Function(int reps, double confidence)? onRepsDetected;
+
+  /// 무게 감지 콜백 (weight kg, confidence)
+  final void Function(double weight, double confidence)? onWeightDetected;
+
+  /// 무게 감지 활성화 여부 (Phase 2B)
+  final bool enableWeightDetection;
 
   /// 운동 이름 (영어) — 각도 규칙 자동 매칭
   final String? exerciseNameEn;
@@ -28,6 +35,8 @@ class CameraOverlay extends StatefulWidget {
 
   const CameraOverlay({
     this.onRepsDetected,
+    this.onWeightDetected,
+    this.enableWeightDetection = false,
     this.exerciseNameEn,
     this.exerciseName,
     this.completedSets = 0,
@@ -46,9 +55,15 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
 
   final PoseDetectionService _poseService = PoseDetectionService();
   final RepCounterService _repCounter = RepCounterService();
+  final WeightDetectionService _weightService = WeightDetectionService();
 
   List<Pose> _currentPoses = [];
   int _lastReportedReps = 0;
+
+  /// 무게 감지 결과 (카메라 UI 표시용)
+  double? _detectedWeight;
+  double _weightConfidence = 0.0;
+  bool _weightIsStable = false;
 
   @override
   void initState() {
@@ -106,6 +121,11 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
       await _cameraController!.initialize();
       _poseService.initialize();
 
+      // Phase 2B: 무게 감지 모델 초기화
+      if (widget.enableWeightDetection) {
+        await _weightService.initialize();
+      }
+
       // 카메라 스트림 시작
       await _cameraController!.startImageStream(_onCameraFrame);
 
@@ -119,11 +139,35 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
 
   /// 카메라 프레임 콜백
   ///
-  /// PoseDetectionService가 내부적으로 프레임 스킵 처리
+  /// Phase 2B: 무게 감지 + Pose 동시 처리
+  /// - WeightDetectionService: 매 5번째 프레임 (내부 스킵)
+  /// - PoseDetectionService: 매 3번째 프레임 (내부 스킵)
   void _onCameraFrame(CameraImage image) async {
     if (_cameraController == null) return;
     final camera = _cameraController!.description;
 
+    // Phase 2B: 무게 감지 (프레임 스킵은 서비스 내부에서 처리)
+    if (widget.enableWeightDetection && _weightService.isInitialized) {
+      final weightResult = await _weightService.processFrame(image);
+      if (weightResult != null && weightResult.plates.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _detectedWeight = weightResult.totalWeight;
+            _weightConfidence = weightResult.confidence;
+            _weightIsStable = weightResult.isStable;
+          });
+        }
+        // 안정적인 감지 결과만 상위로 콜백
+        if (weightResult.isStable) {
+          widget.onWeightDetected?.call(
+            weightResult.totalWeight,
+            weightResult.confidence,
+          );
+        }
+      }
+    }
+
+    // Pose 감지 + 횟수 카운팅 (기존 로직 유지)
     final poses = await _poseService.processFrame(image, camera);
     if (poses.isEmpty) return;
 
@@ -155,6 +199,7 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
     _cameraController?.dispose();
     _cameraController = null;
     _poseService.dispose();
+    _weightService.dispose();
     _isInitialized = false;
   }
 
@@ -238,6 +283,54 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
                 ),
               ),
             ),
+
+            // 무게 감지 결과 (좌하단) — Phase 2B
+            if (widget.enableWeightDetection && _detectedWeight != null)
+              Positioned(
+                bottom: AppSpacing.sm,
+                left: AppSpacing.sm,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _weightIsStable
+                        ? Colors.green.withValues(alpha: 0.8)
+                        : Colors.orange.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _weightIsStable ? Icons.check_circle : Icons.pending,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_detectedWeight!.toStringAsFixed(1)}kg',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (!_weightIsStable) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '${(_weightConfidence * 100).toInt()}%',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
 
             // 운동 매칭 + 추천 촬영 방향 (우상단)
             Positioned(

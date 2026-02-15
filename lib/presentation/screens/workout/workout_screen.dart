@@ -57,6 +57,10 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   // CV 모드 (카메라 횟수 자동 카운팅)
   bool _cvModeEnabled = false;
 
+  // Phase 2B: AI 무게 감지 상태
+  bool _weightAutoDetected = false;
+  double _detectedWeightConfidence = 0.0;
+
   // _isFinishing 제거: Provider.isFinishing을 SSOT로 사용
 
   @override
@@ -166,10 +170,18 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                 exerciseNameEn: currentExercise?.nameEn,
                 exerciseName: currentExercise?.name,
                 completedSets: currentSets.length,
+                enableWeightDetection: true,
                 onRepsDetected: (reps, confidence) {
                   if (confidence >= 0.7) {
                     setState(() => _currentReps = reps);
                   }
+                },
+                onWeightDetected: (weight, confidence) {
+                  setState(() {
+                    _currentWeight = weight;
+                    _weightAutoDetected = true;
+                    _detectedWeightConfidence = confidence;
+                  });
                 },
               ),
             ),
@@ -197,13 +209,47 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   currentSets: currentSets,
                 ),
 
+              // AI 무게 감지 뱃지 (Phase 2B)
+              if (_weightAutoDetected)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary500.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(color: AppColors.primary500.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.auto_awesome, size: 14, color: AppColors.primary500),
+                      const SizedBox(width: 4),
+                      Text(
+                        'AI 감지 ${(_detectedWeightConfidence * 100).toInt()}%',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.primary500,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => setState(() => _weightAutoDetected = false),
+                        child: Icon(Icons.close, size: 14, color: AppColors.primary500.withValues(alpha: 0.6)),
+                      ),
+                    ],
+                  ),
+                ),
+
               // 빠른 입력 컨트롤
               QuickInputControl(
                 weight: _currentWeight,
                 reps: _currentReps,
                 previousWeight: currentSets.isNotEmpty ? currentSets.last.weight : null,
                 previousReps: currentSets.isNotEmpty ? currentSets.last.reps : null,
-                onWeightChanged: (value) => setState(() => _currentWeight = value),
+                onWeightChanged: (value) => setState(() {
+                  _currentWeight = value;
+                  _weightAutoDetected = false; // 수동 조작 시 AI 뱃지 해제
+                }),
                 onRepsChanged: (value) => setState(() => _currentReps = value),
               ),
 
@@ -298,8 +344,13 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             _cvModeEnabled ? Icons.videocam : Icons.videocam_off_outlined,
             color: _cvModeEnabled ? AppColors.primary500 : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
           ),
-          onPressed: () => setState(() => _cvModeEnabled = !_cvModeEnabled),
-          tooltip: 'AI 횟수 카운팅',
+          onPressed: () => setState(() {
+            _cvModeEnabled = !_cvModeEnabled;
+            if (!_cvModeEnabled) {
+              _weightAutoDetected = false; // CV 끄면 AI 뱃지도 해제
+            }
+          }),
+          tooltip: 'AI 횟수 카운팅 + 무게 감지',
         ),
         TextButton(
           onPressed: () => _showFinishDialog(context),
