@@ -6,6 +6,11 @@
 #   .\setup_desktop.ps1
 # ===========================================
 
+# --- UTF-8 한글 깨짐 방지 ---
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+
 $ErrorActionPreference = "Stop"
 $projectDir = "C:\Users\mal03\Dev\In_desktop_V2log"
 $memoryDir = "C:\Users\mal03\.claude\projects\C--Users-mal03-Dev-In_desktop_V2log\memory"
