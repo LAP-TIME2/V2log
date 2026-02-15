@@ -273,6 +273,87 @@ class ExerciseAngles {
       valleyAngle: 90.0,
       recommendedView: RecommendedView.side, // 측면에서 엉덩이 힌지가 잘 보임
     ),
+
+    // ========== 어깨 피벗 운동 (신규 4개) ==========
+    // 기존 10개 규칙은 팔꿈치/무릎/엉덩이 피벗만 지원
+    // 레이즈/플라이 계열은 어깨가 피벗 → H→S←E 축 사용
+
+    // 어깨 외전 (abduction) — 팔을 옆으로 올리는 운동
+    ExerciseAngleRule(
+      name: '레터럴 레이즈',
+      nameEn: 'Lateral Raise',
+      leftJoints: AngleJoints(
+        first: PoseLandmarkIndex.leftHip,
+        middle: PoseLandmarkIndex.leftShoulder,
+        last: PoseLandmarkIndex.leftElbow,
+      ),
+      rightJoints: AngleJoints(
+        first: PoseLandmarkIndex.rightHip,
+        middle: PoseLandmarkIndex.rightShoulder,
+        last: PoseLandmarkIndex.rightElbow,
+      ),
+      peakAngle: 95.0, // 어깨 높이까지 올린 상태
+      valleyAngle: 15.0, // 팔이 몸통 옆에 붙은 상태
+      recommendedView: RecommendedView.front, // 정면에서 양팔 외전이 잘 보임
+    ),
+
+    // 어깨 굴곡 (flexion) — 팔을 앞으로 올리는 운동
+    ExerciseAngleRule(
+      name: '프론트 레이즈',
+      nameEn: 'Front Raise',
+      leftJoints: AngleJoints(
+        first: PoseLandmarkIndex.leftHip,
+        middle: PoseLandmarkIndex.leftShoulder,
+        last: PoseLandmarkIndex.leftElbow,
+      ),
+      rightJoints: AngleJoints(
+        first: PoseLandmarkIndex.rightHip,
+        middle: PoseLandmarkIndex.rightShoulder,
+        last: PoseLandmarkIndex.rightElbow,
+      ),
+      peakAngle: 95.0,
+      valleyAngle: 15.0,
+      recommendedView: RecommendedView.side, // 측면에서 시상면 굴곡이 잘 보임
+    ),
+
+    // 어깨 수평 내전 (horizontal adduction) — 팔을 벌렸다 모으는 운동
+    ExerciseAngleRule(
+      name: '플라이',
+      nameEn: 'Fly',
+      leftJoints: AngleJoints(
+        first: PoseLandmarkIndex.leftHip,
+        middle: PoseLandmarkIndex.leftShoulder,
+        last: PoseLandmarkIndex.leftElbow,
+      ),
+      rightJoints: AngleJoints(
+        first: PoseLandmarkIndex.rightHip,
+        middle: PoseLandmarkIndex.rightShoulder,
+        last: PoseLandmarkIndex.rightElbow,
+      ),
+      peakAngle: 150.0, // 팔 벌린 상태
+      valleyAngle: 40.0, // 팔 모은 상태
+      tolerance: 25.0, // 2D 투영 한계로 기본값(20)보다 넓게
+      recommendedView: RecommendedView.front,
+    ),
+
+    // 어깨 신전 (extension) — 팔을 위에서 아래로 당기는 운동
+    ExerciseAngleRule(
+      name: '스트레이트 암 풀',
+      nameEn: 'Straight Arm Pull',
+      leftJoints: AngleJoints(
+        first: PoseLandmarkIndex.leftHip,
+        middle: PoseLandmarkIndex.leftShoulder,
+        last: PoseLandmarkIndex.leftElbow,
+      ),
+      rightJoints: AngleJoints(
+        first: PoseLandmarkIndex.rightHip,
+        middle: PoseLandmarkIndex.rightShoulder,
+        last: PoseLandmarkIndex.rightElbow,
+      ),
+      peakAngle: 160.0, // 팔이 위로 올라간 상태
+      valleyAngle: 30.0, // 팔이 아래로 내려온 상태
+      recommendedView: RecommendedView.side,
+    ),
   ];
 
   /// 운동 이름(영어)으로 각도 규칙 찾기
@@ -281,7 +362,8 @@ class ExerciseAngles {
   /// 2차: 이름에 포함 매칭 (Dumbbell Bicep Curl → Bicep Curl)
   /// 3차: 키워드 매칭 (Seated Cable Row → "row" 키워드 → 바벨 로우 규칙)
   static ExerciseAngleRule? findByNameEn(String nameEn) {
-    final lower = nameEn.toLowerCase();
+    // 하이픈을 공백으로 정규화 (Push-up → push up, Pull-up → pull up)
+    final lower = nameEn.toLowerCase().replaceAll('-', ' ');
 
     // 1차: 정확한 매칭
     for (final rule in rules) {
@@ -314,60 +396,139 @@ class ExerciseAngles {
   }
 
   /// 영어 키워드 → 대표 운동 규칙 매칭
+  ///
+  /// 2단계 검색: 긴 키워드 먼저 → 짧은 키워드 폴백
+  /// 긴 키워드 우선으로 모호한 매칭 방지
+  /// (예: 'lateral raise' → Lateral Raise, 'raise' 단독은 모호하므로 제거)
   static ExerciseAngleRule? _findByKeywordsEn(String lower) {
-    // 키워드 → 대표 운동 이름 (영어)
-    const keywordMap = {
-      'curl': 'Bicep Curl',
-      'row': 'Barbell Row',
-      'press': 'Bench Press',
-      'squat': 'Squat',
-      'deadlift': 'Deadlift',
-      'pulldown': 'Lat Pulldown',
-      'pull down': 'Lat Pulldown',
-      'extension': 'Leg Extension',
-      'pushdown': 'Tricep Pushdown',
-      'push down': 'Tricep Pushdown',
-      'fly': 'Bench Press',
-      'flye': 'Bench Press',
-      'raise': 'Shoulder Press',
-      'lunge': 'Squat',
+    // 1단계: 긴 키워드 (2단어 이상) — 우선 매칭
+    const longKeywordMap = {
+      'lateral raise': 'Lateral Raise',
+      'front raise': 'Front Raise',
+      'upright row': 'Lateral Raise', // 주 운동은 어깨 외전
+      'overhead triceps': 'Tricep Pushdown',
+      'overhead press': 'Shoulder Press',
+      'shoulder press': 'Shoulder Press',
+      'leg extension': 'Leg Extension',
+      'leg curl': 'Leg Curl',
       'leg press': 'Squat',
+      'hip thrust': 'Deadlift', // 엉덩이 힌지 패턴
+      'split squat': 'Squat',
+      'front squat': 'Squat',
+      'hack squat': 'Squat',
+      'goblet squat': 'Squat',
+      'stiff leg': 'Deadlift',
+      'skull crusher': 'Tricep Pushdown',
+      'pull down': 'Lat Pulldown',
+      'push down': 'Tricep Pushdown',
+      'push up': 'Bench Press',
+      'pull up': 'Lat Pulldown',
+      'chin up': 'Lat Pulldown',
+      'pec deck': 'Fly', // 어깨 수평 내전
+      'cable crossover': 'Fly',
+      'straight arm': 'Straight Arm Pull',
+      'ab slide': 'Deadlift', // S→H←K 패턴
+      'ab roller': 'Deadlift',
+      'cable crunch': 'Deadlift',
     };
 
-    for (final entry in keywordMap.entries) {
+    for (final entry in longKeywordMap.entries) {
       if (lower.contains(entry.key)) {
-        return rules.firstWhere(
-          (r) => r.nameEn == entry.value,
-        );
+        return rules.firstWhere((r) => r.nameEn == entry.value);
       }
     }
+
+    // 2단계: 짧은 키워드 (1단어) — 폴백
+    const shortKeywordMap = {
+      'curl': 'Bicep Curl',
+      'row': 'Barbell Row',
+      'squat': 'Squat',
+      'deadlift': 'Deadlift',
+      'romanian': 'Deadlift',
+      'rdl': 'Deadlift',
+      'pulldown': 'Lat Pulldown',
+      'pushdown': 'Tricep Pushdown',
+      'pushup': 'Bench Press',
+      'pullup': 'Lat Pulldown',
+      'chinup': 'Lat Pulldown',
+      'dip': 'Tricep Pushdown',
+      'dips': 'Tricep Pushdown',
+      'lunge': 'Squat',
+      'press': 'Bench Press', // 최후 폴백
+      'crunch': 'Deadlift', // S→H←K 패턴
+      'kickback': 'Tricep Pushdown',
+      'preacher': 'Bicep Curl',
+      'concentration': 'Bicep Curl',
+      'arnold': 'Shoulder Press',
+      'fly': 'Fly', // 어깨 피벗 (기존 Bench Press → Fly로 수정!)
+      'flye': 'Fly',
+      'pullover': 'Straight Arm Pull',
+      'hyperextension': 'Deadlift',
+    };
+
+    for (final entry in shortKeywordMap.entries) {
+      if (lower.contains(entry.key)) {
+        return rules.firstWhere((r) => r.nameEn == entry.value);
+      }
+    }
+
     return null;
   }
 
   /// 한국어 키워드 → 대표 운동 규칙 매칭
+  ///
+  /// 영어와 동일한 2단계 구조 (긴 키워드 우선)
   static ExerciseAngleRule? _findByKeywordsKo(String name) {
-    const keywordMap = {
+    // 1단계: 긴 키워드 (2단어 이상) — 우선 매칭
+    const longKeywordMap = {
+      '레터럴 레이즈': 'Lateral Raise',
+      '사이드 레이즈': 'Lateral Raise',
+      '프론트 레이즈': 'Front Raise',
+      '업라이트 로우': 'Lateral Raise', // 주 운동은 어깨 외전
+      '오버헤드 프레스': 'Shoulder Press',
+      '숄더 프레스': 'Shoulder Press',
+      '레그 익스텐션': 'Leg Extension',
+      '레그 컬': 'Leg Curl',
+      '레그 프레스': 'Squat',
+      '레그프레스': 'Squat',
+      '힙 스러스트': 'Deadlift',
+      '스컬 크러셔': 'Tricep Pushdown',
+      '케이블 크런치': 'Deadlift',
+      '스트레이트 암': 'Straight Arm Pull',
+      '펙 덱': 'Fly',
+      '펙덱': 'Fly',
+    };
+
+    for (final entry in longKeywordMap.entries) {
+      if (name.contains(entry.key)) {
+        return rules.firstWhere((r) => r.nameEn == entry.value);
+      }
+    }
+
+    // 2단계: 짧은 키워드 — 폴백
+    const shortKeywordMap = {
       '컬': 'Bicep Curl',
       '로우': 'Barbell Row',
-      '프레스': 'Bench Press',
       '스쿼트': 'Squat',
       '데드리프트': 'Deadlift',
       '풀다운': 'Lat Pulldown',
-      '익스텐션': 'Leg Extension',
       '푸시다운': 'Tricep Pushdown',
-      '플라이': 'Bench Press',
-      '레이즈': 'Shoulder Press',
+      '딥스': 'Tricep Pushdown',
       '런지': 'Squat',
-      '레그프레스': 'Squat',
+      '프레스': 'Bench Press', // 최후 폴백
+      '크런치': 'Deadlift',
+      '킥백': 'Tricep Pushdown',
+      '프리쳐': 'Bicep Curl',
+      '플라이': 'Fly', // 어깨 피벗 (기존 Bench Press → Fly로 수정!)
+      '풀오버': 'Straight Arm Pull',
     };
 
-    for (final entry in keywordMap.entries) {
+    for (final entry in shortKeywordMap.entries) {
       if (name.contains(entry.key)) {
-        return rules.firstWhere(
-          (r) => r.nameEn == entry.value,
-        );
+        return rules.firstWhere((r) => r.nameEn == entry.value);
       }
     }
+
     return null;
   }
 }
