@@ -226,6 +226,51 @@ function markdownToBlocks(md) {
 }
 
 
+// ── DEVLOG 자동 업데이트 ─────────────────────────────────────
+
+function updateDevlog(cwd, commits) {
+  const devlogPath = path.join(cwd, 'docs', 'DEVLOG.md');
+  if (!fs.existsSync(devlogPath) || commits.length === 0) return;
+
+  const content = fs.readFileSync(devlogPath, 'utf-8');
+  const today = formatDate(new Date());
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  const dayLabel = dayNames[new Date().getDay()];
+
+  const dateHeader = `### ${today} (${dayLabel})`;
+
+  if (content.includes(dateHeader)) {
+    // 기존 날짜 섹션에 커밋 추가 (중복 방지: 이미 있는 해시는 스킵)
+    const filteredEntries = commits
+      .filter((c) => !content.includes(c.hash))
+      .map((c) => `- \`${c.message}\` — ${c.hash}`)
+      .join('\n');
+    if (!filteredEntries) return;
+
+    const updated = content.replace(
+      dateHeader,
+      `${dateHeader}\n\n#### 커밋 (auto)\n${filteredEntries}`
+    );
+    fs.writeFileSync(devlogPath, updated, 'utf-8');
+  } else {
+    // 새 날짜 섹션 생성 → "Part 2: 개발 타임라인" 바로 아래 삽입
+    const marker = '# Part 2: 개발 타임라인';
+    let newEntries = '';
+    for (const c of commits) {
+      newEntries += `- \`${c.message}\` — ${c.hash}\n`;
+    }
+    const section = `\n${dateHeader}\n\n#### 커밋 (auto)\n${newEntries}\n---\n`;
+    const idx = content.indexOf(marker);
+    if (idx !== -1) {
+      const afterMarker = content.indexOf('\n', idx) + 1;
+      const updated = content.slice(0, afterMarker) + section + content.slice(afterMarker);
+      fs.writeFileSync(devlogPath, updated, 'utf-8');
+    }
+  }
+  console.log(`[pre-compact-notion] DEVLOG.md 업데이트: ${commits.length}개 커밋 추가`);
+}
+
+
 // ── 메인 ──────────────────────────────────────────────────────
 
 async function main() {
@@ -252,6 +297,9 @@ async function main() {
     const timeStr = formatTime(now);
     const commits = getGitCommits(cwd);
     const sessionLog = readSessionLog(cwd);
+
+    // ── DEVLOG.md 자동 업데이트 (Notion 전송 전) ──
+    updateDevlog(cwd, commits);
 
     // ── 블록 구성 ──
     const blocks = [];
