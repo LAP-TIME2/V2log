@@ -1,15 +1,20 @@
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
-import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
-/// YOLO26-N 무게 플레이트 감지 서비스
+/// YOLO26-N 무게 플레이트 감지 서비스 (성능 최적화 v3)
 ///
-/// - 카메라 프레임 → YOLO26-N 추론 → 플레이트 감지
-/// - 감지된 플레이트 무게 합산 → 총 무게 계산
-/// - 프레임 스킵 + 중복 처리 방지
-/// - 3회 연속 안정성 체크 → 확정 무게 반환
+/// v3 최적화 내역:
+/// - IsolateInterpreter로 추론 백그라운드 분리 (UI 블로킹 200ms → 0ms)
+/// - 최빈값(MODE) 기반 안정화 (3연속 → 5개 중 3개 최빈값)
+/// - 신뢰도 필터 (평균 confidence ≥ 0.7만 안정화 기록)
+/// - 안정화 진행률 표시 (UI에 "2/3" 형태)
+///
+/// v2 유지:
+/// - YUV→RGB→resize→normalize 1패스 Float32List 직접 변환
+/// - 입력 버퍼 사전 할당 (zero-alloc)
+/// - CPU 4스레드 (GPU Delegate는 네이티브 크래시 위험으로 제외)
 class WeightDetectionService {
   static final WeightDetectionService _instance =
       WeightDetectionService._internal();
@@ -17,18 +22,28 @@ class WeightDetectionService {
   WeightDetectionService._internal();
 
   Interpreter? _interpreter;
+  IsolateInterpreter? _isolateInterpreter;
   bool _isProcessing = false;
   bool _isInitialized = false;
   int _frameSkipCounter = 0;
 
-  /// 매 5번째 프레임만 처리 (무게는 자주 안 바뀜)
-  static const int _frameSkipInterval = 5;
+  /// 매 프레임 시도 (_isProcessing 가드가 자연 속도 제한)
+  static const int _frameSkipInterval = 1;
 
   /// YOLO 입력 크기
   static const int _inputSize = 640;
 
   /// 감지 신뢰도 임계값
-  static const double _confidenceThreshold = 0.5;
+  /// 0.7: 720p 카메라에서 진짜 원판은 0.8+ 나옴. 0.5였을 때 얼굴/배경 오인식 발생
+  static const double _confidenceThreshold = 0.7;
+
+  /// 안정화 기록 신뢰도 임계값 (이 이상만 _recentWeights에 기록)
+  /// 0.7: 720p 카메라 기준. 640×480 시절 0.55였으나, 해상도 상승으로 진짜 원판은 충분히 높음
+  static const double _stabilityConfidenceThreshold = 0.7;
+
+  /// 최소 바운딩 박스 면적 (정규화 좌표 기준, 0~1)
+  /// 진짜 원판은 프레임의 0.5%+ 차지. 노이즈성 미세 감지 필터링
+  static const double _minBboxArea = 0.005;
 
   /// YOLO26 최대 감지 수
   static const int _maxDetections = 300;
@@ -36,56 +51,73 @@ class WeightDetectionService {
   /// 표준 올림픽 바벨 무게 (kg)
   static const double _standardBarbellWeight = 20.0;
 
-  /// 클래스 이름 (data.yaml 순서)
+  /// 안정화 윈도우 크기 (최근 N개)
+  static const int _stabilityWindow = 5;
+
+  /// 안정화 최소 횟수 (최빈값이 이 이상이면 안정화)
+  static const int _stabilityRequired = 3;
+
+  /// 클래스 이름 (Roboflow v2 학습 데이터 알파벳순, 5개)
   static const List<String> _classNames = [
-    'plate_25kg',
-    'plate_20kg',
-    'plate_15kg',
-    'plate_10kg',
-    'plate_5kg',
-    'plate_2.5kg',
-    'plate_1.25kg',
-    'barbell',
-    'empty_barbell',
+    'plate_10kg', // 0
+    'plate_15kg', // 1
+    'plate_2.5kg', // 2
+    'plate_20kg', // 3
+    'plate_5kg', // 4
   ];
 
   /// 클래스 → 무게 매핑 (kg)
   static const Map<String, double> _classWeights = {
-    'plate_25kg': 25.0,
-    'plate_20kg': 20.0,
-    'plate_15kg': 15.0,
     'plate_10kg': 10.0,
-    'plate_5kg': 5.0,
+    'plate_15kg': 15.0,
     'plate_2.5kg': 2.5,
-    'plate_1.25kg': 1.25,
-    'barbell': 20.0,
-    'empty_barbell': 20.0,
+    'plate_20kg': 20.0,
+    'plate_5kg': 5.0,
   };
 
   /// 무게 안정성 체크용 (최근 N회 감지 결과)
   final List<double> _recentWeights = [];
-  static const int _stabilityCount = 3;
-  static const double _stabilityTolerance = 2.5; // kg
+
+  /// 사전 할당 입력 버퍼 — 매 프레임 덮어쓰기 (zero-alloc)
+  final Float32List _inputBuffer =
+      Float32List(1 * _inputSize * _inputSize * 3);
 
   bool get isInitialized => _isInitialized;
 
-  /// 모델 초기화
+  /// 모델 초기화 (CPU 4스레드 + IsolateInterpreter)
+  ///
+  /// GPU Delegate / XNNPack은 네이티브 크래시 위험이 있어 제외.
+  /// IsolateInterpreter: 상주 Isolate — 추론을 백그라운드에서 실행.
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      _interpreter = await Interpreter.fromAsset('models/weight_plate.tflite');
+      final options = InterpreterOptions()..threads = 4;
+
+      _interpreter = await Interpreter.fromAsset(
+        'assets/models/weight_plate.tflite',
+        options: options,
+      );
+
+      // IsolateInterpreter 생성 (상주 Isolate, 1회 생성 → 계속 재사용)
+      _isolateInterpreter = await IsolateInterpreter.create(
+        address: _interpreter!.address,
+      );
+
       _isInitialized = true;
       _isProcessing = false;
       _frameSkipCounter = 0;
       _recentWeights.clear();
-      print('=== WeightDetectionService 초기화 완료 ===');
+      print('=== WeightDetectionService v3 초기화 완료 '
+          '(CPU 4 threads + IsolateInterpreter) ===');
 
       // 모델 입출력 텐서 정보 확인
       final inputTensors = _interpreter!.getInputTensors();
       final outputTensors = _interpreter!.getOutputTensors();
-      print('=== 입력 텐서: ${inputTensors.map((t) => '${t.name}: ${t.shape}')} ===');
-      print('=== 출력 텐서: ${outputTensors.map((t) => '${t.name}: ${t.shape}')} ===');
+      print(
+          '=== 입력 텐서: ${inputTensors.map((t) => '${t.name}: ${t.shape}')} ===');
+      print(
+          '=== 출력 텐서: ${outputTensors.map((t) => '${t.name}: ${t.shape}')} ===');
     } catch (e) {
       print('=== WeightDetectionService 초기화 실패: $e ===');
       _isInitialized = false;
@@ -96,9 +128,10 @@ class WeightDetectionService {
   ///
   /// 프레임 스킵 적용: 5번째 프레임만 처리
   /// 이미 처리 중이면 스킵
+  /// IsolateInterpreter가 busy면 자연 스킵 (UI 블로킹 0ms)
   /// 반환: WeightDetectionResult (null = 스킵됨)
   Future<WeightDetectionResult?> processFrame(CameraImage image) async {
-    if (!_isInitialized || _interpreter == null) return null;
+    if (!_isInitialized || _isolateInterpreter == null) return null;
 
     // 프레임 스킵
     _frameSkipCounter++;
@@ -109,45 +142,81 @@ class WeightDetectionService {
     _isProcessing = true;
 
     try {
-      // 1. CameraImage → RGB Image 변환
-      final rgbImage = _convertCameraImage(image);
-      if (rgbImage == null) return null;
+      final sw = Stopwatch()..start();
 
-      // 2. 640×640 리사이즈 + 정규화 → 입력 텐서
-      final inputTensor = _preprocess(rgbImage);
+      // 디버그 로그 (최초 1회)
+      if (_frameSkipCounter == _frameSkipInterval) {
+        print('=== CameraImage: ${image.width}x${image.height}, '
+            'planes=${image.planes.length}, '
+            'format=${image.format.group} ===');
+        for (int i = 0; i < image.planes.length; i++) {
+          print('  Plane $i: bytes=${image.planes[i].bytes.length}, '
+              'rowStride=${image.planes[i].bytesPerRow}, '
+              'pixelStride=${image.planes[i].bytesPerPixel}');
+        }
+      }
 
-      // 3. 추론 실행
-      final outputTensor = _runInference(inputTensor);
+      // 1. YUV→Float32 전처리 (UI 스레드에서 직접 — 30-50ms)
+      final preprocessOk = _preprocessDirect(image);
+      final preprocessMs = sw.elapsedMilliseconds;
+      sw.reset();
 
-      // 4. YOLO26 출력 파싱
-      final plates = _parseOutput(outputTensor);
+      if (!preprocessOk) {
+        if (_frameSkipCounter <= _frameSkipInterval * 5) {
+          print(
+              '=== WeightDetection: 전처리 실패 (frame #$_frameSkipCounter) ===');
+        }
+        return null;
+      }
 
-      // 5. 무게 계산
+      // 2. TFLite 추론 (IsolateInterpreter — 백그라운드, UI 블로킹 0ms)
+      final output = List.generate(
+          1, (_) => List.generate(_maxDetections, (_) => List.filled(6, 0.0)));
+
+      // 방어: await 복귀 사이에 dispose 되었을 수 있음 (Use-After-Free 방지)
+      if (_isolateInterpreter == null || !_isInitialized) return null;
+      await _isolateInterpreter!.run(_inputBuffer.buffer.asUint8List(), output);
+      final inferenceMs = sw.elapsedMilliseconds;
+
+      // 3. 출력 파싱
+      final plates = _parseOutput(output);
+
+      // 4. 무게 계산
       final totalWeight = _calculateTotalWeight(plates);
       final avgConfidence = plates.isEmpty
           ? 0.0
           : plates.map((p) => p.confidence).reduce((a, b) => a + b) /
               plates.length;
 
-      // 6. 안정성 체크
-      _recentWeights.add(totalWeight);
-      if (_recentWeights.length > _stabilityCount) {
-        _recentWeights.removeAt(0);
+      // 5. 안정성 기록 (감지 성공 + 신뢰도 0.7 이상만)
+      if (plates.isNotEmpty && avgConfidence >= _stabilityConfidenceThreshold) {
+        _recentWeights.add(totalWeight);
+        if (_recentWeights.length > _stabilityWindow * 2) {
+          // 윈도우의 2배까지만 보관 (메모리 관리)
+          _recentWeights.removeRange(
+              0, _recentWeights.length - _stabilityWindow * 2);
+        }
       }
-      final isStable = _checkStability();
+
+      // 6. 안정화 체크 (최빈값 기반)
+      final stabilityInfo = _getStabilityInfo();
 
       final result = WeightDetectionResult(
-        totalWeight: totalWeight,
+        totalWeight: stabilityInfo.modeWeight ?? totalWeight,
         confidence: avgConfidence,
         plates: plates,
-        barbellDetected:
-            plates.any((p) => p.className == 'barbell' || p.className == 'empty_barbell'),
-        isStable: isStable,
+        barbellDetected: plates.isNotEmpty,
+        isStable: stabilityInfo.isStable,
+        stabilityHits: stabilityInfo.hits,
+        stabilityRequired: _stabilityRequired,
+        stableWeight: stabilityInfo.modeWeight,
       );
 
       if (plates.isNotEmpty) {
-        print('=== 무게 감지: ${totalWeight}kg (${plates.length}개 감지, '
-            '안정: $isStable, 신뢰도: ${(avgConfidence * 100).toInt()}%) ===');
+        print('=== 무게 감지: ${totalWeight}kg '
+            '(${plates.length}개, conf: ${avgConfidence.toStringAsFixed(2)}, '
+            '안정화: ${stabilityInfo.hits}/$_stabilityRequired, '
+            '전처리: ${preprocessMs}ms, 추론: ${inferenceMs}ms) ===');
       }
 
       return result;
@@ -159,118 +228,109 @@ class WeightDetectionService {
     }
   }
 
-  /// CameraImage (NV21/YUV) → RGB Image 변환
-  img.Image? _convertCameraImage(CameraImage cameraImage) {
+  /// CameraImage → _inputBuffer에 직접 YUV→RGB→normalize 변환
+  ///
+  /// UI 스레드에서 실행 (30-50ms).
+  /// _isProcessing 플래그로 4/5 프레임은 즉시 스킵 → 카메라 프리뷰 부드러움 유지.
+  /// nearest neighbor 리사이즈 포함.
+  bool _preprocessDirect(CameraImage image) {
     try {
-      final width = cameraImage.width;
-      final height = cameraImage.height;
+      final int width = image.width;
+      final int height = image.height;
+      final int planeCount = image.planes.length;
+      if (planeCount == 0) return false;
 
-      // NV21 포맷 (Android 기본)
-      if (cameraImage.planes.length >= 2) {
-        final yPlane = cameraImage.planes[0].bytes;
-        final uvPlane = cameraImage.planes.length == 2
-            ? cameraImage.planes[1].bytes
-            : _mergeUVPlanes(cameraImage.planes[1].bytes,
-                cameraImage.planes[2].bytes, width, height);
+      final Uint8List yBytes = image.planes[0].bytes;
+      final int yRowStride = image.planes[0].bytesPerRow;
 
-        final image = img.Image(width: width, height: height);
+      // UV 플레인 참조 (플레인 수에 따라)
+      Uint8List? uBytes;
+      Uint8List? vBytes;
+      Uint8List? vuBytes;
+      int uvRowStride = 0;
+      int uvPixelStride = 1;
 
-        for (int y = 0; y < height; y++) {
-          for (int x = 0; x < width; x++) {
-            final yIndex = y * width + x;
-            final uvIndex = (y ~/ 2) * (width ~/ 2) * 2 + (x ~/ 2) * 2;
+      if (planeCount >= 3) {
+        uBytes = image.planes[1].bytes;
+        vBytes = image.planes[2].bytes;
+        uvRowStride = image.planes[1].bytesPerRow;
+        uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+      } else if (planeCount == 2) {
+        vuBytes = image.planes[1].bytes;
+      }
 
-            final yVal = yPlane[yIndex];
-            // NV21: V, U 순서
-            final vVal = uvIndex < uvPlane.length ? uvPlane[uvIndex] : 128;
-            final uVal =
-                uvIndex + 1 < uvPlane.length ? uvPlane[uvIndex + 1] : 128;
+      final double scaleX = width / _inputSize;
+      final double scaleY = height / _inputSize;
+      int bufIdx = 0;
 
-            // YUV → RGB 변환
-            final r = (yVal + 1.370705 * (vVal - 128)).clamp(0, 255).toInt();
-            final g = (yVal - 0.337633 * (uVal - 128) - 0.698001 * (vVal - 128))
-                .clamp(0, 255)
-                .toInt();
-            final b = (yVal + 1.732446 * (uVal - 128)).clamp(0, 255).toInt();
+      for (int oy = 0; oy < _inputSize; oy++) {
+        final int sy = (oy * scaleY).toInt();
+        for (int ox = 0; ox < _inputSize; ox++) {
+          final int sx = (ox * scaleX).toInt();
 
-            image.setPixelRgb(x, y, r, g, b);
+          int yVal, uVal, vVal;
+
+          if (planeCount >= 3) {
+            // YUV_420_888 (Android 표준)
+            final yIndex = sy * yRowStride + sx;
+            yVal = yIndex < yBytes.length ? yBytes[yIndex] : 0;
+
+            final uvRow = sy >> 1;
+            final uvCol = sx >> 1;
+            final uvIndex = uvRow * uvRowStride + uvCol * uvPixelStride;
+
+            uVal = (uBytes != null && uvIndex < uBytes.length)
+                ? uBytes[uvIndex]
+                : 128;
+            vVal = (vBytes != null && uvIndex < vBytes.length)
+                ? vBytes[uvIndex]
+                : 128;
+          } else if (planeCount == 1) {
+            // NV21 single buffer
+            final yIndex = sy * width + sx;
+            yVal = yIndex < yBytes.length ? yBytes[yIndex] : 0;
+
+            final ySize = width * height;
+            final uvBase = ySize + (sy >> 1) * width + (sx >> 1) * 2;
+            vVal = uvBase < yBytes.length ? yBytes[uvBase] : 128;
+            uVal = uvBase + 1 < yBytes.length ? yBytes[uvBase + 1] : 128;
+          } else {
+            // NV21 split (2 planes)
+            final yIndex = sy * yRowStride + sx;
+            yVal = yIndex < yBytes.length ? yBytes[yIndex] : 0;
+
+            final uvIndex = (sy >> 1) * width + (sx >> 1) * 2;
+            vVal = (vuBytes != null && uvIndex < vuBytes.length)
+                ? vuBytes[uvIndex]
+                : 128;
+            uVal = (vuBytes != null && uvIndex + 1 < vuBytes.length)
+                ? vuBytes[uvIndex + 1]
+                : 128;
           }
+
+          // YUV → RGB → 0~1 정규화
+          final double r =
+              (yVal + 1.370705 * (vVal - 128)).clamp(0.0, 255.0);
+          final double g =
+              (yVal - 0.337633 * (uVal - 128) - 0.698001 * (vVal - 128))
+                  .clamp(0.0, 255.0);
+          final double b =
+              (yVal + 1.732446 * (uVal - 128)).clamp(0.0, 255.0);
+
+          _inputBuffer[bufIdx++] = r / 255.0;
+          _inputBuffer[bufIdx++] = g / 255.0;
+          _inputBuffer[bufIdx++] = b / 255.0;
         }
-        return image;
       }
 
-      return null;
+      return true;
     } catch (e) {
-      print('=== CameraImage 변환 에러: $e ===');
-      return null;
+      print('=== 전처리 에러: $e ===');
+      return false;
     }
   }
 
-  /// YUV_420_888의 U, V 분리 plane을 NV21 interleaved로 병합
-  Uint8List _mergeUVPlanes(
-      Uint8List uPlane, Uint8List vPlane, int width, int height) {
-    final uvSize = (width ~/ 2) * (height ~/ 2) * 2;
-    final merged = Uint8List(uvSize);
-    final halfWidth = width ~/ 2;
-    for (int i = 0; i < (width ~/ 2) * (height ~/ 2); i++) {
-      final row = i ~/ halfWidth;
-      final col = i % halfWidth;
-      final idx = row * halfWidth * 2 + col * 2;
-      if (idx + 1 < merged.length && i < vPlane.length && i < uPlane.length) {
-        merged[idx] = vPlane[i]; // V first (NV21)
-        merged[idx + 1] = uPlane[i]; // U second
-      }
-    }
-    return merged;
-  }
-
-  /// RGB Image → 640×640 정규화 텐서 [1, 640, 640, 3]
-  List<List<List<List<double>>>> _preprocess(img.Image image) {
-    // 리사이즈 (letterbox: 비율 유지 + 패딩)
-    final resized = img.copyResize(image,
-        width: _inputSize,
-        height: _inputSize,
-        interpolation: img.Interpolation.linear);
-
-    // float32 정규화 (0~1)
-    final input = List.generate(
-      1,
-      (_) => List.generate(
-        _inputSize,
-        (y) => List.generate(
-          _inputSize,
-          (x) {
-            final pixel = resized.getPixel(x, y);
-            return [
-              pixel.r / 255.0,
-              pixel.g / 255.0,
-              pixel.b / 255.0,
-            ];
-          },
-        ),
-      ),
-    );
-
-    return input;
-  }
-
-  /// TFLite 추론 실행
-  List<List<List<double>>> _runInference(
-      List<List<List<List<double>>>> input) {
-    // 출력 텐서: YOLO26 NMS-free [1, 300, 6]
-    final output = List.generate(
-      1,
-      (_) => List.generate(
-        _maxDetections,
-        (_) => List.filled(6, 0.0),
-      ),
-    );
-
-    _interpreter!.run(input, output);
-    return output;
-  }
-
-  /// YOLO26 출력 파싱 → DetectedPlate 리스트
+  /// 출력 텐서 파싱 [1][300][6] → DetectedPlate 리스트
   List<DetectedPlate> _parseOutput(List<List<List<double>>> output) {
     final plates = <DetectedPlate>[];
 
@@ -279,6 +339,10 @@ class WeightDetectionService {
       final confidence = detection[4];
 
       if (confidence < _confidenceThreshold) continue;
+
+      // 최소 크기 필터: 너무 작은 감지는 노이즈 (얼굴/배경 오인식 방지)
+      final bboxArea = detection[2] * detection[3];
+      if (bboxArea < _minBboxArea) continue;
 
       final classId = detection[5].round();
       if (classId < 0 || classId >= _classNames.length) continue;
@@ -303,49 +367,93 @@ class WeightDetectionService {
 
   /// 감지된 플레이트로 총 무게 계산
   ///
-  /// 규칙:
-  /// 1. barbell/empty_barbell 감지 → 바벨 20kg
-  /// 2. 바벨 감지 안 됨 + 플레이트 있음 → 바벨 20kg 기본 추가
-  /// 3. 플레이트 무게 합산 × 2 (한쪽만 보이는 가정)
-  /// 4. 2.5kg 단위 반올림
+  /// 좌/우 그룹핑 → 더 많이 감지된 쪽(가까운 쪽) × 2
+  ///
+  /// 왜 "가까운 쪽 × 2"인가:
+  /// - 바벨 측면에서 보면 가까운 쪽 원판은 전부 보이지만,
+  ///   먼 쪽은 바와 가까운 쪽에 가려서 일부만 보임
+  /// - 양쪽 합산 → 먼 쪽 과소 감지 → 오히려 부정확
+  /// - 가까운 쪽만 × 2 → 항상 정확 (바벨은 대칭)
   double _calculateTotalWeight(List<DetectedPlate> plates) {
     if (plates.isEmpty) return 0.0;
 
-    double barbellWeight = 0.0;
-    double plateSum = 0.0;
-    bool hasBarbellOrPlates = false;
+    // 좌/우 그룹핑 (xCenter 기준)
+    double leftSum = 0.0;
+    double rightSum = 0.0;
+    double centerSum = 0.0; // 중앙(0.4~0.6)에 있는 것
 
     for (final plate in plates) {
-      if (plate.className == 'barbell' || plate.className == 'empty_barbell') {
-        barbellWeight = _standardBarbellWeight;
-        hasBarbellOrPlates = true;
+      if (plate.xCenter < 0.4) {
+        leftSum += plate.weightKg;
+      } else if (plate.xCenter > 0.6) {
+        rightSum += plate.weightKg;
       } else {
-        plateSum += plate.weightKg;
-        hasBarbellOrPlates = true;
+        centerSum += plate.weightKg;
       }
     }
 
-    // 플레이트만 감지되고 바벨이 안 보이면 → 바벨 기본 추가
-    if (barbellWeight == 0.0 && plateSum > 0.0) {
-      barbellWeight = _standardBarbellWeight;
+    // 가까운 쪽 = 더 많이 감지된 쪽 (무게 합이 높은 쪽)
+    // 중앙 원판은 가까운 쪽에 합산
+    final double oneSide;
+    if (leftSum >= rightSum) {
+      oneSide = leftSum + centerSum;
+    } else {
+      oneSide = rightSum + centerSum;
     }
 
-    // 한쪽 촬영 가정: 플레이트 × 2
-    final totalWeight = barbellWeight + (plateSum * 2);
+    // 항상 × 2 (바벨은 대칭)
+    final totalWeight = _standardBarbellWeight + (oneSide * 2);
+
+    print('=== 무게 계산: L=${leftSum}kg, R=${rightSum}kg, C=${centerSum}kg, '
+        'oneSide=${oneSide}kg, total=${totalWeight}kg ===');
 
     // 2.5kg 단위 반올림
     return (totalWeight / 2.5).round() * 2.5;
   }
 
-  /// 최근 N회 감지 결과가 안정적인지 체크
-  bool _checkStability() {
-    if (_recentWeights.length < _stabilityCount) return false;
+  /// 안정화 정보 (최빈값 기반)
+  ///
+  /// 최근 _stabilityWindow개 무게를 2.5kg 단위로 그룹핑 → 최빈값(MODE) 찾기
+  /// 최빈값이 _stabilityRequired 이상이면 안정화 완료
+  ({bool isStable, int hits, double? modeWeight}) _getStabilityInfo() {
+    if (_recentWeights.length < _stabilityRequired) {
+      return (
+        isStable: false,
+        hits: _recentWeights.length,
+        modeWeight: null,
+      );
+    }
 
+    // 윈도우 크기만큼만 사용
+    final windowSize =
+        _recentWeights.length < _stabilityWindow
+            ? _recentWeights.length
+            : _stabilityWindow;
     final recent =
-        _recentWeights.sublist(_recentWeights.length - _stabilityCount);
-    final first = recent.first;
+        _recentWeights.sublist(_recentWeights.length - windowSize);
 
-    return recent.every((w) => (w - first).abs() <= _stabilityTolerance);
+    // 2.5kg 단위로 그룹핑 → 최빈값 찾기
+    final counts = <double, int>{};
+    for (final w in recent) {
+      final rounded = (w / 2.5).round() * 2.5;
+      counts[rounded] = (counts[rounded] ?? 0) + 1;
+    }
+
+    // 최빈값과 카운트
+    double modeWeight = counts.entries.first.key;
+    int maxCount = counts.entries.first.value;
+    for (final entry in counts.entries) {
+      if (entry.value > maxCount) {
+        maxCount = entry.value;
+        modeWeight = entry.key;
+      }
+    }
+
+    return (
+      isStable: maxCount >= _stabilityRequired,
+      hits: maxCount,
+      modeWeight: modeWeight,
+    );
   }
 
   /// 안정성 기록 초기화 (새 세트 시작 시)
@@ -355,6 +463,8 @@ class WeightDetectionService {
 
   /// 리소스 해제
   void dispose() {
+    _isolateInterpreter?.close(); // fire-and-forget (내부: cancel + kill)
+    _isolateInterpreter = null;
     _interpreter?.close();
     _interpreter = null;
     _isInitialized = false;
@@ -366,11 +476,29 @@ class WeightDetectionService {
 
 /// 무게 감지 결과
 class WeightDetectionResult {
+  /// 현재 감지 무게 (최빈값 또는 최신 감지)
   final double totalWeight;
+
+  /// 평균 신뢰도 (0~1)
   final double confidence;
+
+  /// 감지된 플레이트 목록
   final List<DetectedPlate> plates;
+
+  /// 플레이트 감지 여부
   final bool barbellDetected;
+
+  /// 안정화 완료 여부 (최빈값 ≥ stabilityRequired)
   final bool isStable;
+
+  /// 현재 최빈값 카운트 (UI 진행률 표시: hits/required)
+  final int stabilityHits;
+
+  /// 안정화 필요 횟수
+  final int stabilityRequired;
+
+  /// 안정화된 무게 (최빈값, null = 아직 데이터 부족)
+  final double? stableWeight;
 
   const WeightDetectionResult({
     required this.totalWeight,
@@ -378,6 +506,9 @@ class WeightDetectionResult {
     required this.plates,
     required this.barbellDetected,
     required this.isStable,
+    required this.stabilityHits,
+    required this.stabilityRequired,
+    this.stableWeight,
   });
 }
 

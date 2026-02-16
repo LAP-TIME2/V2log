@@ -504,7 +504,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   Widget _buildEmptySetMessage(bool isDark) {
-    return Center(
+    return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -517,7 +517,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             isCurrent: true,
             onTap: () => _showSetTypeSelector(),
           ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.md),
           Text(
             '첫 세트를 완료해보세요!',
             style: AppTypography.bodyMedium.copyWith(

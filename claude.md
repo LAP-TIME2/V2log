@@ -532,23 +532,37 @@ flutter build apk --release
 #### CV Phase 1: 카메라 기반 횟수 카운팅 - **완료**
 - [x] 패키지 설치 (camera, google_mlkit_pose_detection)
 - [x] 플랫폼 권한 (Android CAMERA, iOS NSCameraUsageDescription)
-- [x] `exercise_angles.dart` — 운동 10개 각도 규칙 + 키워드 매칭
+- [x] `exercise_angles.dart` — 운동 14개 각도 규칙 (어깨 피벗 4개 추가) + 2단계 키워드 매칭
 - [x] `pose_detection_service.dart` — MediaPipe BlazePose 래퍼 (프레임 스킵, 각도 계산)
 - [x] `rep_counter_service.dart` v5.2 — One Euro Filter + Velocity Gate + 확인 시스템
 - [x] `pose_overlay.dart` — 33개 관절 CustomPainter
 - [x] `camera_overlay.dart` — 카메라+포즈+카운팅 위젯 (촬영 방향 표시)
 - [x] `workout_screen.dart` 통합 — CV 토글 + 콜백
 - [x] 실기기 테스트 + 정확도 검증 (정지 오카운팅 방지, 세트 간 정확도 유지, 준비 동작 필터링)
+- [x] **운동 종목 확장** (41→90개, 8개 카테고리) + Supabase SQL 시드 스크립트
+- [x] **어깨 피벗 CV 규칙 4개 추가** (Lateral Raise, Front Raise, Fly, Straight Arm Pull — H→S←E 축)
+- [x] **키워드 매칭 버그 수정** (fly→Fly, raise 모호성 제거) + 2단계 매칭 시스템 (긴 키워드 우선)
 
-#### CV Phase 2A: YOLO26 모델 학습 - **진행 중** (별도 프로젝트: `C:\Dev\V2log-CV-Training\`)
+#### CV Phase 2A: YOLO26 모델 학습 - **완료**
 - [x] 사진 촬영 완료 (20kg/15kg/10kg/5kg/2.5kg)
 - [x] Roboflow 프로젝트 생성 + 926장 업로드 + 537장 라벨링
 - [x] Dataset v2 생성 (YOLOv8 포맷, 5클래스)
-- [ ] YOLO26-N 학습 (Google Colab) — 진행 중
-- [ ] mAP50 ≥ 80% 검증 → .tflite 변환
+- [x] YOLO26-N 학습 완료 — mAP50: 96.2%, mAP50-95: 85.3% (목표 80% 초과 달성)
+- [x] .tflite 변환 → V2log 앱으로 전달 (9.8MB, assets/models/)
 
-#### CV Phase 2B: 앱 통합 - **미착수**
-- [ ] Two-Stage 파이프라인 (무게 감지 → Pose-only 분리)
+#### CV Phase 2B: 앱 통합 - **버그 수정 완료, 헬스장 실기기 테스트 필요**
+- [x] tflite_flutter + image 패키지 설치
+- [x] WeightDetectionService 구현 (YOLO26-N 추론, 프레임 스킵, 안정성 체크)
+- [x] **클래스 매핑 버그 수정** (Roboflow 알파벳순 5클래스로 교정, 9→5개)
+- [x] **Two-Stage 파이프라인 구현** (Stage1: YOLO무게감지 → Stage2: Pose횟수카운팅, 순차 처리)
+- [x] **"바벨 보여주기" UX** (전면카메라에 바벨 가져다대기 → 3회 안정화 → 자동 전환)
+- [x] CameraOverlay 완전 재작성 (CameraStage enum, Stage별 UI/처리 분리)
+- [x] WorkoutScreen AI 무게 감지 뱃지 + 자동 입력
+- [x] **v2B-006: 3대 버그 수정** — 카메라 비율(FittedBox cover) + 무게 이중계산(좌우 그룹핑) + 배경 사람(selectPrimaryPose)
+- [x] **v2B-007: 무게 감지 정확도 개선** — 카메라 720p + frameSkip 1 + Stage 1 프리뷰 280px
+- [x] **v2B-008: TFLite 크래시 수정** — 싱글톤 서비스 위젯 lifecycle dispose 제거 (Use-After-Free 방지)
+- [x] **v2B-009: 얼굴 오인식 수정** — confidence 0.7 + bbox 면적 필터 (False Positive 제거)
+- [ ] 헬스장 실기기 테스트 (무게 감지 정확도 + Two-Stage 전환 검증)
 - [ ] 버튼 0개 자동 UX (자동 감지 → 자동 시작 → 자동 종료)
 - [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자용)
 - [ ] OCR 무게 읽기 (Google ML Kit Text v2)

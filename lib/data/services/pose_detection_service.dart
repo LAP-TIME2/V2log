@@ -123,6 +123,66 @@ class PoseDetectionService {
     }
   }
 
+  /// 여러 포즈 중 사용자(가장 가까운 사람)를 선택
+  ///
+  /// 기준 1: 포즈의 바운딩 박스 크기 (큰 = 가까운) — 70%
+  /// 기준 2: 화면 중앙과의 거리 (가까운 = 사용자) — 30%
+  /// 두 기준을 합산해서 점수가 가장 높은 포즈 선택
+  static Pose selectPrimaryPose(List<Pose> poses, Size imageSize) {
+    if (poses.length == 1) return poses.first;
+
+    Pose bestPose = poses.first;
+    double bestScore = -1;
+
+    for (final pose in poses) {
+      final landmarks = pose.landmarks.values.toList();
+      if (landmarks.isEmpty) continue;
+
+      // 바운딩 박스 계산
+      double minX = double.infinity, maxX = -double.infinity;
+      double minY = double.infinity, maxY = -double.infinity;
+      double sumX = 0, sumY = 0;
+      int count = 0;
+
+      for (final lm in landmarks) {
+        if (lm.x < minX) minX = lm.x;
+        if (lm.x > maxX) maxX = lm.x;
+        if (lm.y < minY) minY = lm.y;
+        if (lm.y > maxY) maxY = lm.y;
+        sumX += lm.x;
+        sumY += lm.y;
+        count++;
+      }
+
+      // 크기 점수 (0~1): 바운딩 박스 면적 / 이미지 면적
+      final area = (maxX - minX) * (maxY - minY);
+      final imageArea = imageSize.width * imageSize.height;
+      final sizeScore = (area / imageArea).clamp(0.0, 1.0);
+
+      // 중앙 근접 점수 (0~1): 1 - (중심점~이미지중심 거리 / 최대거리)
+      final cx = sumX / count;
+      final cy = sumY / count;
+      final dx = (cx - imageSize.width / 2) / (imageSize.width / 2);
+      final dy = (cy - imageSize.height / 2) / (imageSize.height / 2);
+      final dist = math.sqrt(dx * dx + dy * dy); // 0~1.414
+      final centerScore = 1.0 - (dist / 1.414).clamp(0.0, 1.0);
+
+      // 합산 점수 (크기 70% + 중앙 30%)
+      // 크기가 더 중요: 가까운 사람이 크게 보이니까
+      final score = sizeScore * 0.7 + centerScore * 0.3;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestPose = pose;
+      }
+    }
+
+    print('=== selectPrimaryPose: ${poses.length}명 중 1명 선택 '
+        '(score: ${bestScore.toStringAsFixed(3)}) ===');
+
+    return bestPose;
+  }
+
   /// 3개 관절로 각도 계산 (도 단위)
   ///
   /// [first] → [middle] → [last] 에서 middle이 꼭짓점
