@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -83,6 +85,15 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
   /// 무게 확정 후 Stage 2 전환 대기 중
   bool _weightConfirmed = false;
 
+  /// 모니터링 모드 (2세트+: 이전 무게 기억하며 변경 감시)
+  bool _isMonitoring = false;
+  double? _monitoringWeight;
+  int _monitoringSecondsLeft = 30;
+  Timer? _monitoringTimer;
+
+  /// 모니터링 중 무게 변경 감지 임계값 (2.5kg = 최소 원판 단위)
+  static const double _monitoringChangeTolerance = 2.5;
+
   @override
   void initState() {
     super.initState();
@@ -105,16 +116,23 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
         oldWidget.exerciseName != widget.exerciseName) {
       _setupExercise();
     }
-    // 세트 완료 시 카운터 리셋 + Stage 1로 복귀 (무게 바뀔 수 있으니)
+    // 세트 완료 시 카운터 리셋 + Stage 1 복귀
     if (oldWidget.completedSets != widget.completedSets) {
       _repCounter.reset();
       _lastReportedReps = 0;
       if (widget.enableWeightDetection) {
         _weightService.resetStability();
         _weightConfirmed = false;
-        _detectedWeight = null;
         _currentStage = CameraStage.weightDetecting;
-        print('=== 세트 완료 → Stage 1 복귀 (무게 재감지) ===');
+
+        // 이전 무게가 있으면 30초 모니터링 모드 (원판 변경 감시)
+        // 첫 세트 후부터 작동, _detectedWeight 유지 (null로 안 지움)
+        if (_detectedWeight != null) {
+          _startMonitoring(_detectedWeight!);
+          print('=== 세트 완료 → Stage 1 + 모니터링 모드 (${_detectedWeight}kg, 30초) ===');
+        } else {
+          print('=== 세트 완료 → Stage 1 복귀 (첫 감지) ===');
+        }
       }
       if (mounted) setState(() {});
     }
@@ -128,6 +146,45 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
     } else if (widget.exerciseName != null) {
       _repCounter.setExerciseByName(widget.exerciseName!);
     }
+  }
+
+  /// 30초 모니터링 모드 시작 (2세트+: 원판 변경 감시)
+  void _startMonitoring(double weight) {
+    _monitoringTimer?.cancel();
+    _isMonitoring = true;
+    _monitoringWeight = weight;
+    _monitoringSecondsLeft = 30;
+
+    _monitoringTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _monitoringSecondsLeft--);
+      if (_monitoringSecondsLeft <= 0) {
+        timer.cancel();
+        // 30초간 변화 없음 → 같은 무게로 자동 확정
+        _confirmAndSwitchToStage2(_monitoringWeight!);
+        print('=== 모니터링 30초 경과 → ${_monitoringWeight}kg 자동 확정 ===');
+      }
+    });
+  }
+
+  /// 무게 확정 → Stage 2 전환 (모니터링/첫세트 공용)
+  void _confirmAndSwitchToStage2(double weight) {
+    _monitoringTimer?.cancel();
+    _isMonitoring = false;
+    _weightConfirmed = true;
+
+    widget.onWeightDetected?.call(weight, 0.9);
+
+    if (mounted) {
+      setState(() {
+        _detectedWeight = weight;
+        _currentStage = CameraStage.repCounting;
+      });
+    }
+    print('=== 무게 확정: ${weight}kg → Stage 2 전환 ===');
   }
 
   Future<void> _initCamera() async {
@@ -191,25 +248,28 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
             _stabilityRequired = weightResult.stabilityRequired;
           });
         }
-        // 안정화 → 무게 확정 → Stage 2 자동 전환
-        if (weightResult.isStable && !_weightConfirmed) {
-          _weightConfirmed = true;
-          print('=== 무게 확정: ${weightResult.totalWeight}kg → 2초 후 Stage 2 전환 ===');
 
-          widget.onWeightDetected?.call(
-            weightResult.totalWeight,
-            weightResult.confidence,
-          );
-
-          // 2초 후 Stage 2 전환 (사용자가 확인할 시간)
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted && _weightConfirmed) {
-              setState(() {
-                _currentStage = CameraStage.repCounting;
-              });
-              print('=== Stage 2 전환 완료 (Pose 감지 시작) ===');
+        if (_isMonitoring) {
+          // === 모니터링 모드 (2세트+): 원판 변경 감시 ===
+          if (weightResult.isStable) {
+            final diff = (weightResult.totalWeight - _monitoringWeight!).abs();
+            if (diff >= _monitoringChangeTolerance) {
+              // 원판 변경 감지! → 모니터링 종료 → 일반 감지 모드로 전환
+              _monitoringTimer?.cancel();
+              _isMonitoring = false;
+              _weightService.resetStability();
+              if (mounted) {
+                setState(() {
+                  _detectedWeight = null;
+                  _weightIsStable = false;
+                });
+              }
+              print('=== 원판 변경 감지! ${_monitoringWeight}kg → ${weightResult.totalWeight}kg ===');
             }
-          });
+          }
+        } else if (weightResult.isStable && !_weightConfirmed) {
+          // === 첫 세트 (일반 감지): 안정화 → 즉시 확정 ===
+          _confirmAndSwitchToStage2(weightResult.totalWeight);
         }
       }
     } else {
@@ -235,6 +295,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
 
   /// 수동으로 Stage 전환 (무게 스킵 → 바로 운동)
   void _skipWeightDetection() {
+    _monitoringTimer?.cancel();
+    _isMonitoring = false;
     setState(() {
       _currentStage = CameraStage.repCounting;
       _weightConfirmed = true;
@@ -242,8 +304,10 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
     print('=== 무게 감지 스킵 → Stage 2 전환 ===');
   }
 
-  /// 수동으로 Stage 1로 복귀 (무게 다시 감지)
+  /// 수동으로 Stage 1로 복귀 (무게 다시 감지, fresh 감지)
   void _retryWeightDetection() {
+    _monitoringTimer?.cancel();
+    _isMonitoring = false;
     _weightService.resetStability();
     setState(() {
       _currentStage = CameraStage.weightDetecting;
@@ -265,6 +329,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
 
   void _disposeCamera() {
     _isInitialized = false;
+    _monitoringTimer?.cancel();
+    _isMonitoring = false;
     _cameraController?.stopImageStream().catchError((_) {});
     _cameraController?.dispose();
     _cameraController = null;
@@ -286,7 +352,7 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
 
     if (!_isInitialized || _cameraController == null) {
       return Container(
-        height: 200,
+        height: 280,
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCard : AppColors.lightCard,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -311,7 +377,7 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       child: SizedBox(
-        height: _currentStage == CameraStage.weightDetecting ? 280 : 200,
+        height: 280, // Stage 1, 2 모두 동일 (전환 시 점프 방지 + 넓은 시야)
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -337,121 +403,43 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
     );
   }
 
-  /// Stage 1 UI: 무게 감지 모드
+  /// Stage 1 UI: 무게 감지 모드 (ROI 가이드 + 하단 compact 바)
   Widget _buildWeightDetectionUI() {
+    // 상태 결정
+    final bool isDetecting = _detectedWeight != null && !_weightIsStable && !_isMonitoring;
+    final bool isWaiting = _detectedWeight == null && !_isMonitoring;
+
+    // 상태 텍스트
+    String statusText;
+    IconData statusIcon;
+    Color statusColor;
+
+    if (_isMonitoring) {
+      statusText = '${_monitoringWeight!.toStringAsFixed(1)}kg · ${_monitoringSecondsLeft}초';
+      statusIcon = Icons.timer;
+      statusColor = Colors.blue;
+    } else if (isWaiting) {
+      statusText = '원판을 가이드 안에 맞추세요';
+      statusIcon = Icons.fitness_center;
+      statusColor = Colors.white;
+    } else if (isDetecting) {
+      statusText = '${_detectedWeight!.toStringAsFixed(1)}kg ($_stabilityHits/$_stabilityRequired)';
+      statusIcon = Icons.pending;
+      statusColor = Colors.orange;
+    } else {
+      statusText = '${_detectedWeight!.toStringAsFixed(1)}kg 확정!';
+      statusIcon = Icons.check_circle;
+      statusColor = Colors.green;
+    }
+
     return Stack(
       fit: StackFit.expand,
       children: [
-        // 반투명 오버레이
-        Container(
-          color: Colors.black.withValues(alpha: 0.3),
-        ),
-
-        // 중앙 안내
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_detectedWeight == null) ...[
-                // 아직 감지 안 됨
-                const Icon(
-                  Icons.fitness_center,
-                  color: Colors.white,
-                  size: 40,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
-                  '바벨을 카메라에 보여주세요',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '원판이 보이도록 가까이 가져오세요',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ] else if (!_weightIsStable) ...[
-                // 감지 중 (안정화 대기)
-                const Icon(
-                  Icons.pending,
-                  color: Colors.orange,
-                  size: 36,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  '감지 중... ${_detectedWeight!.toStringAsFixed(1)}kg',
-                  style: const TextStyle(
-                    color: Colors.orange,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '잠시 고정해주세요 ($_stabilityHits/$_stabilityRequired 안정화)',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ] else ...[
-                // 안정화 완료 → 확정!
-                const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 40,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  '${_detectedWeight!.toStringAsFixed(1)}kg 확정!',
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '운동 모드로 전환 중...',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-
-        // 스킵 버튼 (우하단)
-        Positioned(
-          bottom: AppSpacing.sm,
-          right: AppSpacing.sm,
-          child: GestureDetector(
-            onTap: _skipWeightDetection,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-              ),
-              child: const Text(
-                '건너뛰기',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                ),
-              ),
-            ),
+        // ROI 가이드 오버레이 (밖 어둡게, 안 투명)
+        CustomPaint(
+          painter: _RoiOverlayPainter(
+            isDetected: _detectedWeight != null,
+            isStable: _weightIsStable || _isMonitoring,
           ),
         ),
 
@@ -483,6 +471,97 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
                 ),
               ],
             ),
+          ),
+        ),
+
+        // 하단: 상태 바 + 버튼들
+        Positioned(
+          bottom: AppSpacing.sm,
+          left: AppSpacing.sm,
+          right: AppSpacing.sm,
+          child: Row(
+            children: [
+              // 상태 정보
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, color: statusColor, size: 16),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 모니터링 중 [확정] 버튼
+              if (_isMonitoring) ...[
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => _confirmAndSwitchToStage2(_monitoringWeight!),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                    child: const Text(
+                      '확정',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              // 건너뛰기 버튼
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: _skipWeightDetection,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  ),
+                  child: const Text(
+                    '건너뛰기',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -643,4 +722,60 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
       ],
     );
   }
+}
+
+/// ROI 가이드 오버레이 — ROI 밖 반투명, 안 투명, 테두리 표시
+class _RoiOverlayPainter extends CustomPainter {
+  final bool isDetected;
+  final bool isStable;
+
+  _RoiOverlayPainter({
+    required this.isDetected,
+    required this.isStable,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // ROI 영역 (중앙 70% × 60%)
+    final roiRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        size.width * 0.15,
+        size.height * 0.20,
+        size.width * 0.70,
+        size.height * 0.60,
+      ),
+      const Radius.circular(12),
+    );
+
+    // ROI 밖 반투명 검정
+    final outerPath = Path()..addRect(Offset.zero & size);
+    final roiPath = Path()..addRRect(roiRect);
+    final dimPath =
+        Path.combine(PathOperation.difference, outerPath, roiPath);
+
+    canvas.drawPath(
+      dimPath,
+      Paint()..color = Colors.black.withValues(alpha: 0.4),
+    );
+
+    // ROI 테두리
+    final borderColor = isStable
+        ? Colors.green
+        : isDetected
+            ? Colors.orange
+            : Colors.white.withValues(alpha: 0.6);
+
+    canvas.drawRRect(
+      roiRect,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RoiOverlayPainter oldDelegate) =>
+      oldDelegate.isDetected != isDetected ||
+      oldDelegate.isStable != isStable;
 }

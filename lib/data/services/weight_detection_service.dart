@@ -42,8 +42,15 @@ class WeightDetectionService {
   static const double _stabilityConfidenceThreshold = 0.7;
 
   /// 최소 바운딩 박스 면적 (정규화 좌표 기준, 0~1)
-  /// 진짜 원판은 프레임의 0.5%+ 차지. 노이즈성 미세 감지 필터링
-  static const double _minBboxArea = 0.005;
+  /// 0.01 (1%): 가까이(30~50cm) 3~8% 통과, 1m 1.5~2% 통과, 2m+ 배경 0.3~0.8% 필터
+  static const double _minBboxArea = 0.01;
+
+  /// ROI 공간 필터 — 프레임 중앙 70%×60% 영역만 감지 허용
+  /// 배경 랙 원판(프레임 가장자리) 오감지 방지
+  static const double _roiXMin = 0.15;
+  static const double _roiXMax = 0.85;
+  static const double _roiYMin = 0.20;
+  static const double _roiYMax = 0.80;
 
   /// YOLO26 최대 감지 수
   static const int _maxDetections = 300;
@@ -343,6 +350,14 @@ class WeightDetectionService {
       // 최소 크기 필터: 너무 작은 감지는 노이즈 (얼굴/배경 오인식 방지)
       final bboxArea = detection[2] * detection[3];
       if (bboxArea < _minBboxArea) continue;
+
+      // ROI 공간 필터: 프레임 가장자리(배경 랙) 감지 무시
+      final xCenter = detection[0];
+      final yCenter = detection[1];
+      if (xCenter < _roiXMin || xCenter > _roiXMax ||
+          yCenter < _roiYMin || yCenter > _roiYMax) {
+        continue;
+      }
 
       final classId = detection[5].round();
       if (classId < 0 || classId >= _classNames.length) continue;
