@@ -13,3 +13,10 @@ CLAUDE.local.md
 build/
 .dart_tool/flutter_build/
 .dart_tool/hooks_runner/
+
+# 빌드된 APK
+*.apk
+
+# 대용량 ML 모델 (Git LFS 없이 커밋 금지)
+assets/models/midas_v2.tflite
+assets/models/*.onnx

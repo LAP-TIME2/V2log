@@ -35,6 +35,7 @@
 - **02-15**: YOLO26-N 학습 완료 (mAP50: 96.2%, 목표 80% 초과 달성)
 - **02-15**: Phase 2B 앱 통합 시작 (tflite_flutter + Two-Stage 파이프라인)
 - **02-16**: 첫 헬스장 실기기 테스트 → 버그 10건 발견 + 수정
+- **02-18**: 다중 원판 감지 A/B/C 3가지 알고리즘 구현 + APK 2개 빌드
 
 ## 핵심 숫자
 
@@ -47,6 +48,52 @@
 ---
 
 # Part 2: 개발 타임라인
+
+### 2026-02-18 (수) — 다중 원판 감지 A/B/C 테스트 구현
+
+**Phase**: CV Phase 2B (다중 원판 감지 실험)
+
+YOLO가 겹친 원판을 1장만 감지하는 문제(20kg×2 → 60kg으로 과소추정)를 해결하기 위해, 3개 외부 AI(ChatGPT/Gemini/Genspark)의 접근법을 각각 구현하여 APK 2개에 담았다.
+
+#### 주요 작업
+- **Mode A (ChatGPT)**: Bbox aspect ratio 기반 — 대각선 각도에서 두께 비율로 원판 장수 추정
+- **Mode B (Gemini)**: MiDaS v2.1 monocular depth estimation — 원판 영역 depth variance로 장수 추정
+- **Mode C (Genspark)**: Sobel Y 에지 필터 + 수평 projection + 피크 카운팅
+- **APK 분리**: `--dart-define=BUILD_VARIANT` + applicationId suffix로 원본 앱과 공존
+  - V2log-AC (com.example.v2log.testac, 263MB) — Mode A + C
+  - V2log-B (com.example.v2log.testb, 326MB) — Mode B (MiDaS 64MB 포함)
+- **통합 레퍼런스 문서** 생성: `docs/reference/02-18_다중원판감지_ABC테스트_통합레퍼런스.md`
+
+#### 신규 파일
+- `lib/data/services/depth_estimation_service.dart` — MiDaS v2.1 TFLite 래퍼 (IsolateInterpreter, 동적 입력 크기)
+- `assets/models/midas_v2.tflite` — MiDaS v2.1 depth estimation 모델 (64MB)
+
+#### 수정 파일
+- `lib/data/services/weight_detection_service.dart` — 모드 전환 + Mode A/B/C 알고리즘 3개 + DetectedPlate 확장(estimatedPlateCount + copyWith) + _PlateGeometry
+- `lib/presentation/widgets/molecules/camera_overlay.dart` — 모드 선택 UI (BUILD_VARIANT 기반) + MiDaS 초기화
+
+#### 핵심 결정
+- **APK 2개 분리** — 사용자 요청: Mode B의 MiDaS 모델(64MB)이 크래시 리스크 있어서 A+C / B로 분리
+- **예상 정확도**: 정면(0°)은 3가지 모두 물리적 한계, 대각선(30°+)에서만 의미
+- **테스트 목적**: "어떤 각도/조건에서 어떤 방식이 실제로 작동하는지" 데이터 수집
+
+#### 배운 점
+- MiDaS v2.1 standard 모델은 25MB가 아닌 64MB (문서와 실제 차이)
+- `--dart-define`으로 compile-time 상수 주입 → 같은 코드베이스에서 APK 변형 생성 가능
+- applicationId를 임시 변경하면 같은 기기에 여러 빌드 공존 가능
+
+→ 테스트 계획: [02-18_다중원판감지_ABC테스트_통합레퍼런스.md](reference/02-18_다중원판감지_ABC테스트_통합레퍼런스.md)
+
+---
+
+### 2026-02-17 (화)
+
+#### 커밋 (auto)
+- `docs: 개발 프로세스 가이드 문서 추가 (DEVGUIDE.md)` — faefdb8
+- `feat: DEVLOG 개발 일지 시스템 구축 (3중 안전망)` — 0c430ae
+- `fix: Phase 2B 실기기 테스트 버그 v2B-010 수정 + 참고문서 추가` — d602a17
+
+---
 
 ## 2026-02-16 (일) — CV Phase 2B: 첫 헬스장 실기기 테스트 + 버그 10건 수정
 

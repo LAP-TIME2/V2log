@@ -12,6 +12,10 @@ import '../../../data/services/rep_counter_service.dart';
 import '../../../data/services/weight_detection_service.dart';
 import 'pose_overlay.dart';
 
+/// 빌드 변형: AC = Mode A+C (APK 1), B = Mode B (APK 2)
+const String kBuildVariant =
+    String.fromEnvironment('BUILD_VARIANT', defaultValue: 'AC');
+
 /// Two-Stage 파이프라인 상태
 enum CameraStage {
   /// Stage 1: 무게 감지 모드 (YOLO만 실행, Pose 스킵)
@@ -60,7 +64,8 @@ class CameraOverlay extends StatefulWidget {
   State<CameraOverlay> createState() => _CameraOverlayState();
 }
 
-class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserver {
+class _CameraOverlayState extends State<CameraOverlay>
+    with WidgetsBindingObserver {
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
   bool _isInitialized = false;
@@ -78,12 +83,14 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
 
   /// 무게 감지 결과 (카메라 UI 표시용)
   double? _detectedWeight;
-  bool _weightIsStable = false;
   int _stabilityHits = 0;
   int _stabilityRequired = 3;
 
   /// 무게 확정 후 Stage 2 전환 대기 중
   bool _weightConfirmed = false;
+
+  /// 현재 다중 원판 감지 모드
+  String _currentDetectionMode = 'none';
 
   /// 모니터링 모드 (2세트+: 이전 무게 기억하며 변경 감시)
   bool _isMonitoring = false;
@@ -129,7 +136,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
         // 첫 세트 후부터 작동, _detectedWeight 유지 (null로 안 지움)
         if (_detectedWeight != null) {
           _startMonitoring(_detectedWeight!);
-          print('=== 세트 완료 → Stage 1 + 모니터링 모드 (${_detectedWeight}kg, 30초) ===');
+          print(
+              '=== 세트 완료 → Stage 1 + 모니터링 모드 (${_detectedWeight}kg, 30초) ===');
         } else {
           print('=== 세트 완료 → Stage 1 복귀 (첫 감지) ===');
         }
@@ -165,7 +173,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
         timer.cancel();
         // 30초간 변화 없음 → 같은 무게로 자동 확정
         _confirmAndSwitchToStage2(_monitoringWeight!);
-        print('=== 모니터링 30초 경과 → ${_monitoringWeight}kg 자동 확정 ===');
+        print(
+            '=== 모니터링 30초 경과 → ${_monitoringWeight}kg 자동 확정 ===');
       }
     });
   }
@@ -243,7 +252,6 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
         if (mounted) {
           setState(() {
             _detectedWeight = weightResult.totalWeight;
-            _weightIsStable = weightResult.isStable;
             _stabilityHits = weightResult.stabilityHits;
             _stabilityRequired = weightResult.stabilityRequired;
           });
@@ -252,7 +260,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
         if (_isMonitoring) {
           // === 모니터링 모드 (2세트+): 원판 변경 감시 ===
           if (weightResult.isStable) {
-            final diff = (weightResult.totalWeight - _monitoringWeight!).abs();
+            final diff =
+                (weightResult.totalWeight - _monitoringWeight!).abs();
             if (diff >= _monitoringChangeTolerance) {
               // 원판 변경 감지! → 모니터링 종료 → 일반 감지 모드로 전환
               _monitoringTimer?.cancel();
@@ -261,10 +270,10 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
               if (mounted) {
                 setState(() {
                   _detectedWeight = null;
-                  _weightIsStable = false;
                 });
               }
-              print('=== 원판 변경 감지! ${_monitoringWeight}kg → ${weightResult.totalWeight}kg ===');
+              print(
+                  '=== 원판 변경 감지! ${_monitoringWeight}kg → ${weightResult.totalWeight}kg ===');
             }
           }
         } else if (weightResult.isStable && !_weightConfirmed) {
@@ -278,8 +287,10 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
       if (poses.isEmpty) return;
 
       // 가장 가까운(큰) 사람 선택 — 배경 사람 추적 방지
-      final rawImageSize = Size(image.width.toDouble(), image.height.toDouble());
-      final primaryPose = PoseDetectionService.selectPrimaryPose(poses, rawImageSize);
+      final rawImageSize =
+          Size(image.width.toDouble(), image.height.toDouble());
+      final primaryPose =
+          PoseDetectionService.selectPrimaryPose(poses, rawImageSize);
 
       if (mounted) {
         setState(() => _currentPoses = [primaryPose]);
@@ -304,6 +315,86 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
     print('=== 무게 감지 스킵 → Stage 2 전환 ===');
   }
 
+  /// 모드 선택 버튼 UI (BUILD_VARIANT에 따라 다른 버튼)
+  Widget _buildModeSelector() {
+    // BUILD_VARIANT에 따라 표시할 모드 결정
+    final List<_ModeOption> modes;
+    if (kBuildVariant == 'B') {
+      modes = [
+        _ModeOption('none', 'OFF'),
+        _ModeOption('modeB', 'B'),
+      ];
+    } else {
+      // 기본: AC
+      modes = [
+        _ModeOption('none', 'OFF'),
+        _ModeOption('modeA', 'A'),
+        _ModeOption('modeC', 'C'),
+      ];
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: modes.map((m) {
+          final isSelected = _currentDetectionMode == m.mode;
+          return GestureDetector(
+            onTap: () => _changeDetectionMode(m.mode),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.blue.withValues(alpha: 0.9)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: Text(
+                m.label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white60,
+                  fontSize: 11,
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// 다중 원판 감지 모드 변경
+  void _changeDetectionMode(String mode) async {
+    _weightService.setDetectionMode(mode);
+    _weightService.resetStability();
+    setState(() {
+      _currentDetectionMode = mode;
+      _detectedWeight = null;
+      _weightConfirmed = false;
+    });
+
+    // Mode B: MiDaS 초기화 (최초 1회)
+    if (mode == 'modeB' && !_weightService.isDepthServiceInitialized) {
+      print('=== MiDaS 모델 로드 시작... ===');
+      await _weightService.initializeDepthService();
+      if (!_weightService.isDepthServiceInitialized) {
+        print('=== MiDaS 모델 로드 실패 → OFF로 복귀 ===');
+        _weightService.setDetectionMode('none');
+        if (mounted) {
+          setState(() => _currentDetectionMode = 'none');
+        }
+      }
+    }
+  }
+
   /// 수동으로 Stage 1로 복귀 (무게 다시 감지, fresh 감지)
   void _retryWeightDetection() {
     _monitoringTimer?.cancel();
@@ -313,7 +404,6 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
       _currentStage = CameraStage.weightDetecting;
       _weightConfirmed = false;
       _detectedWeight = null;
-      _weightIsStable = false;
     });
     print('=== Stage 1 복귀 (무게 재감지) ===');
   }
@@ -406,8 +496,14 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
   /// Stage 1 UI: 무게 감지 모드 (ROI 가이드 + 하단 compact 바)
   Widget _buildWeightDetectionUI() {
     // 상태 결정
-    final bool isDetecting = _detectedWeight != null && !_weightIsStable && !_isMonitoring;
+    final bool isDetecting =
+        _detectedWeight != null && !_isMonitoring;
     final bool isWaiting = _detectedWeight == null && !_isMonitoring;
+
+    // 모드 태그 (디버그용)
+    final modeTag = _currentDetectionMode == 'none'
+        ? ''
+        : ' [${_currentDetectionMode.replaceFirst('mode', '')}]';
 
     // 상태 텍스트
     String statusText;
@@ -415,19 +511,21 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
     Color statusColor;
 
     if (_isMonitoring) {
-      statusText = '${_monitoringWeight!.toStringAsFixed(1)}kg · ${_monitoringSecondsLeft}초';
+      statusText =
+          '${_monitoringWeight!.toStringAsFixed(1)}kg · $_monitoringSecondsLeft초$modeTag';
       statusIcon = Icons.timer;
       statusColor = Colors.blue;
     } else if (isWaiting) {
-      statusText = '원판을 가이드 안에 맞추세요';
+      statusText = '원판을 가이드 안에 맞추세요$modeTag';
       statusIcon = Icons.fitness_center;
       statusColor = Colors.white;
     } else if (isDetecting) {
-      statusText = '${_detectedWeight!.toStringAsFixed(1)}kg ($_stabilityHits/$_stabilityRequired)';
+      statusText =
+          '${_detectedWeight!.toStringAsFixed(1)}kg ($_stabilityHits/$_stabilityRequired)$modeTag';
       statusIcon = Icons.pending;
       statusColor = Colors.orange;
     } else {
-      statusText = '${_detectedWeight!.toStringAsFixed(1)}kg 확정!';
+      statusText = '${_detectedWeight!.toStringAsFixed(1)}kg 확정!$modeTag';
       statusIcon = Icons.check_circle;
       statusColor = Colors.green;
     }
@@ -439,38 +537,47 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
         CustomPaint(
           painter: _RoiOverlayPainter(
             isDetected: _detectedWeight != null,
-            isStable: _weightIsStable || _isMonitoring,
+            isStable: _isMonitoring,
           ),
         ),
 
-        // Stage 표시 (좌상단)
+        // 상단: Stage 표시 (좌) + 모드 선택 (우)
         Positioned(
           top: AppSpacing.sm,
           left: AppSpacing.sm,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.scale, color: Colors.white, size: 12),
-                SizedBox(width: 4),
-                Text(
-                  '무게 감지',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+          right: AppSpacing.sm,
+          child: Row(
+            children: [
+              // Stage 표시 (좌상단)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
                 ),
-              ],
-            ),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.scale, color: Colors.white, size: 12),
+                    SizedBox(width: 4),
+                    Text(
+                      '무게 감지',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              // 모드 선택 버튼 (우상단)
+              _buildModeSelector(),
+            ],
           ),
         ),
 
@@ -517,7 +624,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
               if (_isMonitoring) ...[
                 const SizedBox(width: 6),
                 GestureDetector(
-                  onTap: () => _confirmAndSwitchToStage2(_monitoringWeight!),
+                  onTap: () =>
+                      _confirmAndSwitchToStage2(_monitoringWeight!),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm,
@@ -525,7 +633,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
                     ),
                     decoration: BoxDecoration(
                       color: Colors.green.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                     child: const Text(
                       '확정',
@@ -627,7 +736,8 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.white, size: 14),
+                    const Icon(Icons.check_circle,
+                        color: Colors.white, size: 14),
                     const SizedBox(width: 4),
                     Text(
                       '${_detectedWeight!.toStringAsFixed(1)}kg',
@@ -722,6 +832,13 @@ class _CameraOverlayState extends State<CameraOverlay> with WidgetsBindingObserv
       ],
     );
   }
+}
+
+/// 모드 선택 옵션 (UI용)
+class _ModeOption {
+  final String mode;
+  final String label;
+  const _ModeOption(this.mode, this.label);
 }
 
 /// ROI 가이드 오버레이 — ROI 밖 반투명, 안 투명, 테두리 표시

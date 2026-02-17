@@ -563,7 +563,14 @@ flutter build apk --release
 - [x] **v2B-008: TFLite 크래시 수정** — 싱글톤 서비스 위젯 lifecycle dispose 제거 (Use-After-Free 방지)
 - [x] **v2B-009: 얼굴 오인식 수정** — confidence 0.7 + bbox 면적 필터 (False Positive 제거)
 - [x] **v2B-010: 실기기 테스트 버그 4건** — 30초 모니터링 모드 + 하단 compact UI + 높이 280 통일 + ROI 3단계 배경 필터
-- [ ] 헬스장 실기기 테스트 (무게 감지 정확도 + Two-Stage 전환 검증)
+- [x] **다중 원판 감지 A/B/C 테스트 구현** — 겹친 원판 과소추정 문제 해결 실험
+  - Mode A: Bbox Aspect Ratio (ChatGPT 접근법) — 대각선 각도에서 두께 비율로 장수 추정
+  - Mode B: MiDaS v2.1 Depth Estimation (Gemini 접근법) — 단안 깊이 추정으로 스택 두께 계산
+  - Mode C: Sobel Edge Projection (Genspark 접근법) — 에지 히스토그램 피크 카운팅
+  - `depth_estimation_service.dart` 신규 생성 (MiDaS TFLite 래퍼)
+  - `--dart-define=BUILD_VARIANT` 분기로 APK 2개 빌드 (V2log-AC / V2log-B)
+  - 실기기 설치 완료 (R3CN90HVMKL), 헬스장 테스트 대기
+- [ ] 헬스장 실기기 테스트 (무게 감지 정확도 + Two-Stage 전환 + A/B/C 다중 원판 테스트)
 - [ ] 버튼 0개 자동 UX (자동 감지 → 자동 시작 → 자동 종료)
 - [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자용)
 - [ ] OCR 무게 읽기 (Google ML Kit Text v2)
