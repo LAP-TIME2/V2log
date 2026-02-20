@@ -40,10 +40,10 @@ Phase 2A (기본 모델 학습) — 앱 바깥, Python/Colab
 Phase 2B (앱 통합) — 기존 V2log 앱에 추가
 ├── Two-Stage 파이프라인: 무게 감지 모드 → Pose-only 모드
 ├── tflite_flutter로 model.tflite 실행
+├── ⚠️ 운동 중 무조작 원칙: 불가피한 조작(운동 선택/완료) 외 추가 조작 요구 금지
 ├── 무게 자동 적용 (확인 팝업 없음, 틀리면 수동 수정)
 ├── 자동 시작/종료 (첫 동작 감지 = 세트 시작, 무동작 = 세트 종료)
 ├── 플레이트 등록 (B2C 선택사항 / B2B 관리자용)
-├── OCR 숫자 읽기 (보조 수단)
 └── 80%만 맞춰도 수동 입력보다 빠름 = 충분한 가치
 
 Phase 3 (미래, 12개월+)
@@ -268,6 +268,22 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 - [ ] 쉬는 시간 AI 자동 중지
 - [ ] "자동 감지: 50kg × 8회" 토스트 표시
 
+### ⚠️ CV UX 최우선 원칙: 운동 중 무조작 (Zero Interaction)
+
+> **운동 작동 중에는 "운동 선택/완료" 같은 불가피한 조작 외에, 사용자에게 추가 조작을 요구하지 않는다.**
+
+- ❌ "몇 장인가요?" 버튼으로 장수 입력 요구
+- ❌ "각도를 맞춰주세요" 재촬영 요구
+- ❌ "확인" 팝업으로 무게 확정 요구
+- ❌ 측정 결과에 대한 Y/N 질문
+- ✅ 자동 감지 → 자동 적용 → 틀리면 사용자가 **나중에 알아서** 수동 수정
+- ✅ AI가 확신 없으면 조용히 표시만 하고 자동 입력 안 함 (수동 모드 유지)
+- ✅ 모든 감지/전환/확정이 사용자 개입 없이 자동으로 이루어져야 함
+
+**설계 원칙**: CV가 100% 자동으로 못하면, 차라리 안 하고 수동 입력에 맡긴다. "반자동 + 사용자 확인"은 수동 입력보다 UX가 나쁘다.
+
+**배경**: 헬스장에서 운동 중에 폰을 만지는 것 자체가 흐름을 깨뜨림. 세트 사이 휴식 시간에도 최소한의 조작만 허용. "장수 몇 개?" 같은 질문은 수동 입력과 다를 바 없음.
+
 ---
 
 ## 9. CV 작업 진행 상황
@@ -304,22 +320,24 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 - [x] YOLO26-N 학습 완료 — mAP50: 96.2%, mAP50-95: 85.3% (목표 80% 초과 달성)
 - [x] .tflite 변환 → V2log 앱으로 전달 (9.8MB, assets/models/weight_plate.tflite)
 
-### Phase 2B: 앱 통합 — **Two-Stage 구현 완료, 실기기 테스트 필요**
+### Phase 2B: 앱 통합 — **Mode A 안정화 완료, 재테스트 필요**
 - [x] tflite_flutter + image 패키지 설치
-- [x] `weight_detection_service.dart` (387줄) — YOLO26-N 추론, 프레임 스킵 5, 3회 안정성 체크
+- [x] `weight_detection_service.dart` — YOLO26-N 추론, 프레임 스킵 1, 최빈값 안정화
 - [x] **클래스 매핑 버그 수정** (Roboflow 알파벳순 5클래스: plate_10kg/15kg/2.5kg/20kg/5kg)
 - [x] **Two-Stage 파이프라인 구현** — CameraStage enum (weightDetecting → repCounting)
-  - Stage 1: YOLO만 실행 (Pose 스킵), "바벨을 카메라에 보여주세요" 안내
+  - Stage 1: YOLO만 실행 (Pose 스킵), ROI 가이드 + 하단 compact 바
   - Stage 2: Pose만 실행 (YOLO 스킵), 기존 횟수 카운팅 + 확정 무게 표시
-  - 자동 전환: isStable → 2초 딜레이 → Stage 2
-- [x] **"바벨 보여주기" UX** — 전면카메라에 바벨 가져다대기 (삼각대/거치대 기준)
+  - 자동 전환: isStable → 즉시 확정 → Stage 2
 - [x] `camera_overlay.dart` 완전 재작성 (~630줄) — Stage별 UI/처리 분리
 - [x] WorkoutScreen AI 무게 감지 뱃지 + onWeightDetected 콜백
-- [ ] 실기기 테스트 검증
-- [ ] 무게 자동 적용 UX (확인 팝업 없음) — 현재 구조 준비됨
+- [x] **헬스장 A/B/C 테스트 완료** — Mode A: 20kg 다중 성공(3/4), Mode B/C: 실전 불가
+- [x] **Mode A 안정화** — EMA(α=0.3) + Hold Counter(3프레임) + Cold Start Skip(3프레임)
+- [x] **Mode B/C 비활성화** — 실전 테스트 결과 기반, UI에서 제거
+- [x] **IoU NMS 중복 제거** — 클래스별 최대값 → IoU 기반으로 교체
+- [x] **독립 테스트 APK** — "V2log A(클로드)" product flavor (applicationIdSuffix .claude)
+- [ ] **안정화 후 헬스장 재테스트** — 20kg/10kg/5kg EMA 효과 검증
 - [ ] 자동 세트 시작 (첫 동작 감지) / 자동 종료 (무동작 감지)
 - [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자)
-- [ ] OCR 숫자 읽기 (보조)
 - [ ] B2B Fine-tuning 파이프라인
 
 ---

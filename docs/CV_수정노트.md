@@ -603,3 +603,125 @@ Stage 1=280px, Stage 2=200px → 전환 시 레이아웃 점프. Stage 2에서 �
 ### 영향 파일
 - `lib/presentation/widgets/molecules/camera_overlay.dart` — 모니터링 모드, 하단 compact 바, ROI 가이드, 높이 통일
 - `lib/data/services/weight_detection_service.dart` — ROI 공간 필터 + bbox 최소 크기 상향
+
+---
+
+## v2B-011: 헬스장 A/B/C 테스트 결과 (2026-02-18)
+
+### 테스트 환경
+- 헬스장 실기기, Galaxy Note 20 Ultra, 전면 카메라
+- V2log-AC 앱 (Mode A + C), V2log-B 앱 (Mode B)
+- 테스트 원판: 20kg, 5kg
+
+### 테스트 결과
+
+| 모드 | 20kg 단일 | 20kg×2 | 20kg×3 | 5kg 단일 |
+|------|-----------|--------|--------|----------|
+| Mode A | ✅ 1장 정확 | ✅ 2장 감지 (3/4) | ✅ 3장 감지 | ❌ 30→40kg 오카운팅 |
+| Mode B | ❌ 작동 불가 | — | — | — |
+| Mode C | ❌ 작동 불가 | — | — | — |
+
+### 핵심 발견
+
+**Mode A (ChatGPT — Bbox Aspect Ratio)**:
+- 20kg 다중 원판: **4회 중 3회 성공** (100kg 정확 감지). 1회만 140kg (첫 측정 Cold Start 문제)
+- 5kg: 단일 원판도 30→40kg 오카운팅. aspect ratio 진동으로 1→2장 오판
+- **평가**: 20kg급은 실용 가능, 5kg은 EMA 안정화 필요
+
+**Mode B (Gemini — MiDaS Depth)**:
+- MiDaS 모델 크래시 또는 depth 출력이 원판 감지와 무관한 값
+- **평가**: 실전 사용 불가. 단안 depth estimation의 한계
+
+**Mode C (Genspark — Sobel Edge)**:
+- 에지 피크 카운팅이 조명/반사에 과민 반응 → 1장을 3-4장으로 오판
+- **평가**: 실전 사용 불가. 메탈 반사 + 조명 노이즈
+
+### 근본 원인 분석
+
+1. **Cold Start**: 모델 로드 직후 첫 프레임에서 비정상 aspect ratio → 140kg
+2. **5kg SNR 부족**: 5kg 원판(∅248mm)이 작아서 bbox 노이즈가 aspect ratio에 큰 영향
+3. **프레임간 진동**: 연속 프레임에서 aspect ratio가 ±0.05 변동 → 1↔2장 진동
+
+### 결정
+- Mode A **유지 + 안정화** (EMA + Hold + Cold Start)
+- Mode B/C **비활성화** (UI에서 제거)
+- 5kg은 EMA 적용 후 재테스트로 판단
+
+### 영향 파일
+- 없음 (분석만, 코드 변경은 v2B-012에서)
+
+---
+
+## v2B-012: Mode A 안정화 — EMA + Hold + Cold Start (2026-02-18)
+
+### 배경
+- v2B-011 테스트에서 발견된 3가지 문제 해결:
+  1. 첫 측정 140kg (Cold Start)
+  2. 5kg 프레임간 진동 (EMA 필요)
+  3. 경계값 1↔2 진동 (Hold Counter 필요)
+
+### 변경 내용
+
+**1. Cold Start Skip (warmup 3프레임)**
+```dart
+int _warmupFrameCount = 0;
+static const int _warmupRequired = 3;
+// processFrame 시작:
+if (_warmupFrameCount < _warmupRequired) {
+  _warmupFrameCount++;
+  return null; // 스킵
+}
+```
+- 🔗 연쇄 점검: warmupRequired=3 × frameSkip=1 → 실제 6프레임 ≈ 1초 대기 → UX 허용
+
+**2. EMA Temporal Smoothing (alpha=0.3)**
+```dart
+final ema = prevEma * 0.7 + rawAspect * 0.3;
+```
+- 새 값 30%, 이전 이력 70% → 프레임간 aspect ratio 진동 억제
+- 5-7fps에서 0.5-0.7초 이력 → 적합
+
+**3. Hold Counter (3프레임 확인)**
+```dart
+if (rawCount != prevCount) {
+  holdCounter++;
+  if (holdCounter >= 3) confirmedCount = rawCount; // 확정
+  else confirmedCount = prevCount; // 이전 유지
+} else {
+  holdCounter = 0;
+}
+```
+- EMA 이후에도 남는 경계값 진동 방지
+
+**4. clamp(1,4) → clamp(1,8)**
+- 레그프레스 20kg×5~6장 대응
+- 🔗 연쇄 점검: max count 4→8 → _maxAspectRatio 1.8→2.0 (20kg×8 = aspect ≈ 1.93)
+
+**5. IoU NMS로 중복 제거 교체**
+- 기존: 클래스별 가장 큰 1개만 유지 (다른 클래스 겹침 못 잡음)
+- 변경: IoU > 0.5 → 같은 원판 (confidence 높은 것만 유지)
+- 다른 클래스끼리도 겹침 체크 가능
+
+**6. Mode B/C 비활성화**
+- camera_overlay.dart에서 BUILD_VARIANT 분기 제거
+- 모드 선택기: OFF / A만 남김
+- depth_estimation_service import 제거
+
+**7. 독립 테스트 APK "V2log A(클로드)"**
+- Product flavor: production (기존) / claude (테스트)
+- applicationIdSuffix = ".claude" → 기존 앱과 공존
+- app_name: "V2log A(클로드)"
+
+### 예상 효과 (재테스트 후 업데이트 예정)
+| 문제 | 수정 전 | 수정 후 (예상) |
+|------|---------|-------------|
+| 첫 측정 140kg | 발생 | Cold Start로 제거 |
+| 5kg 1↔2 진동 | 30→40kg | EMA+Hold로 안정화 |
+| 20kg 정확도 | 3/4 (75%) | 4/4 (100%) 기대 |
+
+### 영향 파일
+- `android/app/build.gradle.kts` — product flavor
+- `android/app/src/main/AndroidManifest.xml` — label → @string/app_name
+- `android/app/src/{main,production,claude}/res/values/strings.xml` — app_name
+- `lib/data/services/weight_detection_service.dart` — Cold Start + EMA + Hold + clamp + NMS
+- `lib/presentation/widgets/molecules/camera_overlay.dart` — B/C 제거, A만

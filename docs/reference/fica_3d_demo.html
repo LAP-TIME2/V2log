@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fica 피카 — Smart Fitness System Interactive Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0d0d20 100%);
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+#canvas-container {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1;
+}
+/* Header */
+#header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(10,10,26,0.7);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,212,255,0.15);
+}
+#header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #00d4ff, #00ff88);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#header .subtitle {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin-left: 12px;
+}
+#header button {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+#header button:hover { background: rgba(0,212,255,0.15); border-color: #00d4ff; }
+
+/* Info Panel */
+#info-panel {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, 90vw);
+  z-index: 10;
+  background: rgba(10,10,30,0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 16px;
+  padding: 20px 24px;
+  transition: all 0.4s ease;
+}
+#info-panel h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #00d4ff;
+  margin-bottom: 8px;
+}
+#info-panel p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.8);
+}
+#info-panel .highlight {
+  color: #00d4ff;
+  font-weight: 600;
+}
+#info-panel .cost-compare {
+  display: inline-block;
+  background: rgba(255,107,53,0.15);
+  border: 1px solid rgba(255,107,53,0.3);
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #ff6b35;
+}
+
+/* Step Buttons */
+#step-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: rgba(10,10,26,0.85);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0,212,255,0.15);
+}
+.step-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.6);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+.step-btn:hover {
+  background: rgba(0,212,255,0.1);
+  border-color: rgba(0,212,255,0.3);
+  color: #fff;
+}
+.step-btn.active {
+  background: linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,255,136,0.15));
+  border-color: #00d4ff;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 20px rgba(0,212,255,0.2);
+}
+
+/* Labels */
+.label-3d {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  font-size: 11px;
+  color: rgba(255,255,255,0.75);
+  background: rgba(10,10,30,0.7);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,212,255,0.2);
+  white-space: nowrap;
+  transition: opacity 0.3s;
+}
+
+/* Counter Display */
+#rep-counter {
+  position: absolute;
+  top: 80px;
+  right: 30px;
+  z-index: 10;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+#rep-counter .count {
+  font-size: 72px;
+  font-weight: 800;
+  color: #00d4ff;
+  text-shadow: 0 0 30px rgba(0,212,255,0.5);
+  line-height: 1;
+}
+#rep-counter .label {
+  font-size: 14px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 4px;
+}
+
+/* Wave Visualizer */
+#wave-canvas {
+  position: absolute;
+  top: 80px;
+  left: 30px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.4s;
+  border-radius: 12px;
+  border: 1px solid rgba(0,212,255,0.15);
+  background: rgba(10,10,30,0.6);
+}
+
+/* Timer Display */
+#timer-display {
+  position: absolute;
+  top: 80px;
+  right: 30px;
+  z-index: 10;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+#timer-display .time {
+  font-size: 48px;
+  font-weight: 700;
+  color: #ff6b35;
+  text-shadow: 0 0 20px rgba(255,107,53,0.4);
+  font-variant-numeric: tabular-nums;
+}
+#timer-display .rest-label {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+}
+
+/* Phone Summary */
+#phone-summary {
+  position: absolute;
+  top: 80px;
+  right: 30px;
+  z-index: 10;
+  width: 220px;
+  background: rgba(10,10,30,0.9);
+  border: 1px solid rgba(0,212,255,0.25);
+  border-radius: 16px;
+  padding: 16px;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+#phone-summary h3 {
+  font-size: 13px;
+  color: #00d4ff;
+  margin-bottom: 10px;
+  text-align: center;
+}
+#phone-summary .stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+#phone-summary .stat-row .val {
+  color: #00d4ff;
+  font-weight: 600;
+}
+#phone-summary .mileage {
+  margin-top: 10px;
+  text-align: center;
+  padding: 6px;
+  background: rgba(0,255,136,0.1);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #00ff88;
+  font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<!-- Header -->
+<div id="header">
+  <div style="display:flex;align-items:baseline;">
+    <h1>Fica 피카</h1>
+    <span class="subtitle">Smart Fitness System — Interactive 3D Demo</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button onclick="resetCamera()">&#x1f504; Reset</button>
+    <button onclick="toggleAutoRotate()">&#x1f3a5; Auto-Rotate</button>
+  </div>
+</div>
+
+<!-- Info Panel -->
+<div id="info-panel">
+  <h2 id="info-title">Step 1: NFC 탭 — 기구 자동 인식</h2>
+  <p id="info-text">스마트폰으로 기구의 NFC 태그를 탭하면, 앱이 자동으로 기구를 인식합니다.</p>
+</div>
+
+<!-- Step Buttons -->
+<div id="step-bar">
+  <button class="step-btn active" onclick="goStep(1)">1. NFC 탭</button>
+  <button class="step-btn" onclick="goStep(2)">2. AI 추천</button>
+  <button class="step-btn" onclick="goStep(3)">3. 무게 입력</button>
+  <button class="step-btn" onclick="goStep(4)">4. 운동</button>
+  <button class="step-btn" onclick="goStep(5)">5. 휴식</button>
+  <button class="step-btn" onclick="goStep(6)">6. 완료</button>
+</div>
+
+<!-- Rep Counter (Step 4) -->
+<div id="rep-counter">
+  <div class="count" id="rep-count">0</div>
+  <div class="label">회 (reps)</div>
+</div>
+
+<!-- Wave Canvas (Step 4) -->
+<canvas id="wave-canvas" width="200" height="100"></canvas>
+
+<!-- Timer (Step 5) -->
+<div id="timer-display">
+  <div class="rest-label">휴식 타이머</div>
+  <div class="time" id="timer-time">01:30</div>
+  <div class="rest-label" style="margin-top:8px;">세트 완료! 잠시 쉬세요</div>
+</div>
+
+<!-- Phone Summary (Step 6) -->
+<div id="phone-summary">
+  <h3>V2log — 운동 완료</h3>
+  <div class="stat-row"><span>운동</span><span class="val">레그프레스</span></div>
+  <div class="stat-row"><span>무게</span><span class="val">105kg</span></div>
+  <div class="stat-row"><span>세트</span><span class="val">5회 × 4세트</span></div>
+  <div class="stat-row"><span>총 볼륨</span><span class="val">2,100kg</span></div>
+  <div class="stat-row"><span>1RM 추정</span><span class="val">142kg (↑5kg)</span></div>
+  <div class="mileage">+500P 마일리지 적립!</div>
+</div>
+
+<!-- Three.js -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─── Globals ───
+let scene, camera, renderer, controls;
+let clock = new THREE.Clock();
+let currentStep = 1;
+let animTime = 0;
+let repCount = 0;
+let timerSeconds = 90;
+let timerInterval = null;
+
+// Machine parts (animated)
+let footPlate, weightStack, ficaSensor, ficaGlow;
+let nfcTag, nfcGlow;
+let controller, controllerScreen;
+let phoneModel;
+let bleParticles = [];
+
+// Labels
+const labelData = [];
+
+// ─── Scene Setup ───
+function init() {
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0a1a, 0.012);
+
+  camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(8, 6, 10);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+  controls.target.set(0, 2.5, 0);
+  controls.minDistance = 5;
+  controls.maxDistance = 25;
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xfff5e6, 0.4);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  dirLight.position.set(8, 12, 6);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(2048, 2048);
+  dirLight.shadow.camera.near = 1;
+  dirLight.shadow.camera.far = 30;
+  dirLight.shadow.camera.left = -10;
+  dirLight.shadow.camera.right = 10;
+  dirLight.shadow.camera.top = 10;
+  dirLight.shadow.camera.bottom = -10;
+  scene.add(dirLight);
+
+  const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+  fillLight.position.set(-5, 4, -3);
+  scene.add(fillLight);
+
+  // Fica cyan point light
+  const ficaLight = new THREE.PointLight(0x00d4ff, 0.8, 8);
+  ficaLight.position.set(2.5, 4.5, 0);
+  scene.add(ficaLight);
+
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(40, 40);
+  const groundMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a2e,
+    roughness: 0.9,
+    metalness: 0.1
+  });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Grid
+  const grid = new THREE.GridHelper(20, 20, 0x222244, 0x151530);
+  grid.position.y = 0.01;
+  scene.add(grid);
+
+  buildLegPressMachine();
+  buildFicaComponents();
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+// ─── Materials ───
+const metalMat = new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.3, metalness: 0.8 });
+const frameMat = new THREE.MeshStandardMaterial({ color: 0x555566, roughness: 0.4, metalness: 0.7 });
+const padMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8, metalness: 0.1 });
+const ironMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.6, metalness: 0.5 });
+const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.5, metalness: 0.1 });
+const cyanMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff, roughness: 0.3, metalness: 0.2, emissive: 0x00d4ff, emissiveIntensity: 0.3 });
+const screenMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.2, metalness: 0.1 });
+const orangeMat = new THREE.MeshStandardMaterial({ color: 0xff6b35, roughness: 0.4, metalness: 0.2, emissive: 0xff6b35, emissiveIntensity: 0.1 });
+
+// ─── Leg Press Machine ───
+function buildLegPressMachine() {
+  const machine = new THREE.Group();
+
+  // Base frame (horizontal beam)
+  const baseGeo = new THREE.BoxGeometry(1.2, 0.15, 4.5);
+  const base = new THREE.Mesh(baseGeo, frameMat);
+  base.position.set(0, 0.075, 0);
+  base.castShadow = true;
+  base.receiveShadow = true;
+  machine.add(base);
+
+  // Second base beam
+  const base2 = base.clone();
+  base2.position.set(2.2, 0.075, 0);
+  machine.add(base2);
+
+  // Vertical supports (rear)
+  for (let x of [0, 2.2]) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 5.5, 0.12), frameMat);
+    pillar.position.set(x, 2.75, -2);
+    pillar.castShadow = true;
+    machine.add(pillar);
+  }
+
+  // Top cross beam
+  const topBeam = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 0.12), frameMat);
+  topBeam.position.set(1.1, 5.5, -2);
+  machine.add(topBeam);
+
+  // Guide Rails (angled ~45°)
+  const railLen = 5.0;
+  for (let x of [0.15, 2.05]) {
+    const railGeo = new THREE.CylinderGeometry(0.04, 0.04, railLen, 8);
+    const rail = new THREE.Mesh(railGeo, metalMat);
+    rail.position.set(x, 2.8, -0.2);
+    rail.rotation.x = -Math.PI * 0.28;
+    rail.castShadow = true;
+    machine.add(rail);
+  }
+
+  // Seat backrest (angled)
+  const seatGeo = new THREE.BoxGeometry(1.8, 0.15, 2.0);
+  const seat = new THREE.Mesh(seatGeo, padMat);
+  seat.position.set(1.1, 1.2, 0.8);
+  seat.rotation.x = -Math.PI * 0.15;
+  seat.castShadow = true;
+  machine.add(seat);
+
+  // Seat bottom
+  const seatBottom = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 1.0), padMat);
+  seatBottom.position.set(1.1, 0.7, 1.6);
+  seatBottom.castShadow = true;
+  machine.add(seatBottom);
+
+  // Seat frame
+  const seatFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 2.2), frameMat);
+  seatFrame.position.set(1.1, 0.6, 0.9);
+  seatFrame.rotation.x = -Math.PI * 0.1;
+  machine.add(seatFrame);
+
+  // Foot Plate (ANIMATED)
+  const fpGroup = new THREE.Group();
+  const fpGeo = new THREE.BoxGeometry(1.6, 1.2, 0.12);
+  const fpMesh = new THREE.Mesh(fpGeo, metalMat);
+  fpGroup.add(fpMesh);
+  // Foot plate edge
+  const fpEdge = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.15), orangeMat);
+  fpEdge.position.y = -0.6;
+  fpEdge.position.z = 0.05;
+  fpGroup.add(fpEdge);
+  fpGroup.position.set(1.1, 3.8, -1.5);
+  fpGroup.rotation.x = -Math.PI * 0.15;
+  fpGroup.castShadow = true;
+  machine.add(fpGroup);
+  footPlate = fpGroup;
+
+  // Weight Stack (ANIMATED)
+  const wsGroup = new THREE.Group();
+  const numPlates = 8;
+  for (let i = 0; i < numPlates; i++) {
+    const plateGeo = new THREE.BoxGeometry(0.8, 0.12, 1.2);
+    const plate = new THREE.Mesh(plateGeo, ironMat);
+    plate.position.y = i * 0.16;
+    plate.castShadow = true;
+    wsGroup.add(plate);
+
+    // Pin hole
+    const holeGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.82, 6);
+    const hole = new THREE.Mesh(holeGeo, metalMat);
+    hole.rotation.z = Math.PI / 2;
+    hole.position.set(0, i * 0.16, 0.4);
+    wsGroup.add(hole);
+  }
+  // Guide rod
+  const guideRod = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.0, 8), metalMat);
+  guideRod.position.y = 0.7;
+  wsGroup.add(guideRod);
+
+  wsGroup.position.set(2.8, 0.3, -1.0);
+  machine.add(wsGroup);
+  weightStack = wsGroup;
+
+  // Weight stack housing
+  const housingGeo = new THREE.BoxGeometry(1.0, 0.08, 1.4);
+  const housing = new THREE.Mesh(housingGeo, frameMat);
+  housing.position.set(2.8, 0.15, -1.0);
+  machine.add(housing);
+
+  // Cable from weight stack to foot plate (visual only)
+  const cableGeo = new THREE.CylinderGeometry(0.015, 0.015, 3.5, 4);
+  const cableMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8 });
+  const cable = new THREE.Mesh(cableGeo, cableMat);
+  cable.position.set(2.4, 2.5, -1.2);
+  cable.rotation.x = -Math.PI * 0.2;
+  machine.add(cable);
+
+  // Pulley at top
+  const pulleyGeo = new THREE.TorusGeometry(0.12, 0.03, 8, 16);
+  const pulley = new THREE.Mesh(pulleyGeo, metalMat);
+  pulley.position.set(2.2, 5.2, -2);
+  pulley.rotation.y = Math.PI / 2;
+  machine.add(pulley);
+
+  machine.position.set(-1.1, 0, 0);
+  scene.add(machine);
+
+  addLabel('웨이트 스택', 2.8 - 1.1, 2.0, -1.0);
+  addLabel('풋 플레이트', 1.1 - 1.1, 4.2, -1.5);
+  addLabel('가이드 레일', 0.15 - 1.1, 3.5, -0.5);
+}
+
+// ─── Fica Components ───
+function buildFicaComponents() {
+  // 1. Fica IMU Sensor (on top of weight stack)
+  const sensorGroup = new THREE.Group();
+
+  // Sensor body
+  const sensorGeo = new THREE.BoxGeometry(0.25, 0.06, 0.18);
+  const sensorMesh = new THREE.Mesh(sensorGeo, whiteMat);
+  sensorMesh.castShadow = true;
+  sensorGroup.add(sensorMesh);
+
+  // Magnet indicator (bottom)
+  const magnetGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.01, 12);
+  const magnetMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.9 });
+  const magnet = new THREE.Mesh(magnetGeo, magnetMat);
+  magnet.position.y = -0.035;
+  sensorGroup.add(magnet);
+
+  // Glow sphere
+  const glowGeo = new THREE.SphereGeometry(0.25, 16, 16);
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.12 });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  sensorGroup.add(glow);
+  ficaGlow = glow;
+
+  sensorGroup.position.set(2.8 - 1.1, 1.65, -1.0);
+  scene.add(sensorGroup);
+  ficaSensor = sensorGroup;
+
+  addLabel('피카 모션 센서 (ICM-45686)', 2.8 - 1.1, 2.1, -1.0);
+
+  // 2. NFC Tag (on frame, reachable from seat)
+  const nfcGroup = new THREE.Group();
+  const nfcGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.01, 24);
+  const nfcMesh = new THREE.Mesh(nfcGeo, whiteMat);
+  nfcMesh.rotation.x = Math.PI / 2;
+  nfcGroup.add(nfcMesh);
+
+  // NFC symbol rings
+  for (let r of [0.04, 0.06, 0.08]) {
+    const ringGeo = new THREE.TorusGeometry(r, 0.004, 4, 24);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.6 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.z = 0.006;
+    nfcGroup.add(ring);
+  }
+
+  // NFC glow
+  const nfcGlowGeo = new THREE.SphereGeometry(0.18, 12, 12);
+  const nfcGlowMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0 });
+  const nfcGlowMesh = new THREE.Mesh(nfcGlowGeo, nfcGlowMat);
+  nfcGroup.add(nfcGlowMesh);
+  nfcGlow = nfcGlowMesh;
+
+  nfcGroup.position.set(-0.5, 1.8, 1.5);
+  scene.add(nfcGroup);
+  nfcTag = nfcGroup;
+
+  addLabel('NFC 태그 (NTAG213, 500원)', -0.5, 2.2, 1.5);
+
+  // 3. Fica Smart Controller (on frame at eye level)
+  const ctrlGroup = new THREE.Group();
+
+  // Controller body
+  const ctrlGeo = new THREE.BoxGeometry(0.5, 0.32, 0.1);
+  const ctrlBodyMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6, metalness: 0.3 });
+  const ctrlMesh = new THREE.Mesh(ctrlGeo, ctrlBodyMat);
+  ctrlMesh.castShadow = true;
+  ctrlGroup.add(ctrlMesh);
+
+  // OLED Screen
+  const scrGeo = new THREE.PlaneGeometry(0.38, 0.2);
+  const scrMesh = new THREE.Mesh(scrGeo, screenMat);
+  scrMesh.position.z = 0.051;
+  ctrlGroup.add(scrMesh);
+  controllerScreen = scrMesh;
+
+  // Screen border glow
+  const borderGeo = new THREE.BoxGeometry(0.42, 0.24, 0.005);
+  const borderMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.15 });
+  const border = new THREE.Mesh(borderGeo, borderMat);
+  border.position.z = 0.052;
+  ctrlGroup.add(border);
+
+  // Buttons (3 small circles below screen)
+  for (let i = -1; i <= 1; i++) {
+    const btnGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.02, 8);
+    const btn = new THREE.Mesh(btnGeo, metalMat);
+    btn.rotation.x = Math.PI / 2;
+    btn.position.set(i * 0.1, -0.12, 0.05);
+    ctrlGroup.add(btn);
+  }
+
+  ctrlGroup.position.set(-1.0, 3.2, -1.8);
+  ctrlGroup.rotation.y = Math.PI * 0.15;
+  scene.add(ctrlGroup);
+  controller = ctrlGroup;
+
+  addLabel('피카 컨트롤러 (BLE + OLED)', -1.0, 3.7, -1.8);
+
+  // 4. Phone model (floating)
+  const phoneGroup = new THREE.Group();
+  const phoneGeo = new THREE.BoxGeometry(0.4, 0.8, 0.04);
+  const phoneMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.3, metalness: 0.5 });
+  const phoneMesh = new THREE.Mesh(phoneGeo, phoneMat);
+  phoneGroup.add(phoneMesh);
+
+  // Phone screen
+  const pScrGeo = new THREE.PlaneGeometry(0.35, 0.7);
+  const pScrMat = new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.1, metalness: 0.1, emissive: 0x0a0a20, emissiveIntensity: 0.5 });
+  const pScr = new THREE.Mesh(pScrGeo, pScrMat);
+  pScr.position.z = 0.021;
+  phoneGroup.add(pScr);
+
+  phoneGroup.position.set(-2.5, 2.5, 2.0);
+  phoneGroup.rotation.y = Math.PI * 0.3;
+  phoneGroup.visible = false;
+  scene.add(phoneGroup);
+  phoneModel = phoneGroup;
+
+  // BLE particles (Step 3)
+  const particleGeo = new THREE.SphereGeometry(0.02, 6, 6);
+  const particleMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.7 });
+  for (let i = 0; i < 8; i++) {
+    const p = new THREE.Mesh(particleGeo, particleMat.clone());
+    p.visible = false;
+    scene.add(p);
+    bleParticles.push(p);
+  }
+}
+
+// ─── Labels ───
+function addLabel(text, x, y, z) {
+  const div = document.createElement('div');
+  div.className = 'label-3d';
+  div.textContent = text;
+  document.body.appendChild(div);
+  labelData.push({ el: div, pos: new THREE.Vector3(x, y, z) });
+}
+
+function updateLabels() {
+  for (const lb of labelData) {
+    const screenPos = lb.pos.clone().project(camera);
+    const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+    lb.el.style.left = x + 'px';
+    lb.el.style.top = y + 'px';
+    lb.el.style.opacity = screenPos.z < 1 ? '1' : '0';
+  }
+}
+
+// ─── Step Logic ───
+const stepInfo = {
+  1: {
+    title: 'Step 1: NFC 탭 — 기구 자동 인식',
+    text: '스마트폰으로 기구의 NFC 태그를 탭하면, 앱이 자동으로 기구를 인식합니다. 이전 운동 기록이 즉시 표시됩니다.'
+  },
+  2: {
+    title: 'Step 2: 이전 기록 + AI 맞춤 추천',
+    text: 'AI가 지난 운동 데이터를 분석하여 <span class="highlight">점진적 과부하</span>를 자동 추천합니다. 부위별 균형 분석 + 약점 파트 집중 추천 + 과훈련 경고까지.<br><span class="cost-compare">PT 1회 5~7만원 (월 84만원) → 피카 AI 월 9,900원</span>'
+  },
+  3: {
+    title: 'Step 3: 무게 입력 — 1초',
+    text: '컨트롤러에서 프리셋 버튼 한 번으로 무게 입력 완료. 폰을 꺼낼 필요 없습니다. <span class="highlight">BLE</span>로 앱과 실시간 동기화됩니다.'
+  },
+  4: {
+    title: 'Step 4: 운동 시작 — 자동 카운팅',
+    text: '기구에 부착된 <span class="highlight">IMU 센서 (ICM-45686)</span>가 가속도를 감지하여 자동으로 횟수를 카운팅합니다. 정확도: 85~98%. 운동 중 조작이 전혀 필요 없습니다 (Zero Interaction).'
+  },
+  5: {
+    title: 'Step 5: 세트 완료 — 휴식 타이머',
+    text: '세트 완료 후 자동으로 휴식 타이머가 시작됩니다. 설정된 쉬는시간이 지나면 진동으로 알려줍니다.<br><span class="highlight">총 기구 사용시간: 2:15 / 13:00</span> — NFC 기반 기구 사용시간 컨트롤로 불필요한 점유를 방지합니다.'
+  },
+  6: {
+    title: 'Step 6: 운동 완료 — AI 분석 결과',
+    text: '모든 데이터가 자동 저장됩니다. AI가 다음 세션 추천을 준비하고, <span class="highlight">운동 마일리지</span>가 적립됩니다. (보험료 인하 + 인앱 포인트)'
+  }
+};
+
+function goStep(n) {
+  currentStep = n;
+  animTime = 0;
+  repCount = 0;
+
+  // Update buttons
+  document.querySelectorAll('.step-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === n - 1);
+  });
+
+  // Update info
+  document.getElementById('info-title').textContent = stepInfo[n].title;
+  document.getElementById('info-text').innerHTML = stepInfo[n].text;
+
+  // Hide all overlays
+  document.getElementById('rep-counter').style.opacity = '0';
+  document.getElementById('wave-canvas').style.opacity = '0';
+  document.getElementById('timer-display').style.opacity = '0';
+  document.getElementById('phone-summary').style.opacity = '0';
+
+  // Reset NFC glow
+  nfcGlow.material.opacity = 0;
+
+  // Reset phone
+  phoneModel.visible = false;
+
+  // Reset BLE particles
+  bleParticles.forEach(p => p.visible = false);
+
+  // Reset timer
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  timerSeconds = 90;
+
+  // Step-specific setup
+  if (n === 1) {
+    phoneModel.visible = true;
+    controls.autoRotate = false;
+    animateCameraTo(new THREE.Vector3(-1.5, 2.5, 4), new THREE.Vector3(-0.5, 1.8, 1.5));
+  } else if (n === 2) {
+    controls.autoRotate = false;
+    animateCameraTo(new THREE.Vector3(-2.5, 3.5, 0.5), new THREE.Vector3(-1.0, 3.2, -1.8));
+  } else if (n === 3) {
+    controls.autoRotate = false;
+    animateCameraTo(new THREE.Vector3(-2.5, 3.5, -0.5), new THREE.Vector3(-1.0, 3.2, -1.8));
+  } else if (n === 4) {
+    document.getElementById('rep-counter').style.opacity = '1';
+    document.getElementById('wave-canvas').style.opacity = '1';
+    document.getElementById('rep-count').textContent = '0';
+    controls.autoRotate = false;
+    animateCameraTo(new THREE.Vector3(5, 4, 7), new THREE.Vector3(0, 2.5, -0.5));
+  } else if (n === 5) {
+    document.getElementById('timer-display').style.opacity = '1';
+    startTimer();
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.3;
+  } else if (n === 6) {
+    document.getElementById('phone-summary').style.opacity = '1';
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.8;
+  }
+}
+
+// ─── Camera Animation ───
+let cameraTargetPos = null;
+let cameraTargetLookAt = null;
+let cameraAnimating = false;
+let cameraAnimProgress = 0;
+let cameraStartPos = new THREE.Vector3();
+let cameraStartTarget = new THREE.Vector3();
+
+function animateCameraTo(pos, lookAt) {
+  cameraStartPos.copy(camera.position);
+  cameraStartTarget.copy(controls.target);
+  cameraTargetPos = pos.clone();
+  cameraTargetLookAt = lookAt.clone();
+  cameraAnimating = true;
+  cameraAnimProgress = 0;
+}
+
+function updateCameraAnim(dt) {
+  if (!cameraAnimating) return;
+  cameraAnimProgress += dt * 1.2;
+  if (cameraAnimProgress >= 1) {
+    cameraAnimProgress = 1;
+    cameraAnimating = false;
+  }
+  const t = easeInOutCubic(cameraAnimProgress);
+  camera.position.lerpVectors(cameraStartPos, cameraTargetPos, t);
+  controls.target.lerpVectors(cameraStartTarget, cameraTargetLookAt, t);
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// ─── Timer ───
+function startTimer() {
+  timerSeconds = 90;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerSeconds = 0;
+    }
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timer-time').textContent =
+    String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+// ─── Wave Visualizer ───
+const waveCanvas = document.getElementById('wave-canvas');
+const waveCtx = waveCanvas.getContext('2d');
+
+function drawWave(t) {
+  waveCtx.clearRect(0, 0, 200, 100);
+  waveCtx.strokeStyle = '#00d4ff';
+  waveCtx.lineWidth = 2;
+  waveCtx.beginPath();
+  for (let x = 0; x < 200; x++) {
+    const y = 50 + Math.sin((x * 0.05) + t * 4) * 30 * Math.sin(t * 2);
+    if (x === 0) waveCtx.moveTo(x, y);
+    else waveCtx.lineTo(x, y);
+  }
+  waveCtx.stroke();
+
+  // Label
+  waveCtx.fillStyle = 'rgba(0,212,255,0.6)';
+  waveCtx.font = '10px sans-serif';
+  waveCtx.fillText('가속도 파형 (Accelerometer)', 8, 14);
+}
+
+// ─── Animation Loop ───
+const footPlateRestY = 3.8;
+const footPlateMinY = 2.8;
+const weightStackRestY = 0.3;
+const weightStackMaxY = 1.3;
+let lastRepPhase = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  animTime += dt;
+
+  controls.update();
+  updateCameraAnim(dt);
+
+  // Step-specific animations
+  switch (currentStep) {
+    case 1: animateStep1(dt); break;
+    case 2: animateStep2(dt); break;
+    case 3: animateStep3(dt); break;
+    case 4: animateStep4(dt); break;
+    case 5: animateStep5(dt); break;
+    case 6: animateStep6(dt); break;
+  }
+
+  // Sensor glow pulse (always)
+  const pulse = 0.08 + Math.sin(animTime * 3) * 0.05;
+  ficaGlow.material.opacity = pulse;
+  ficaGlow.scale.setScalar(1 + Math.sin(animTime * 2) * 0.15);
+
+  updateLabels();
+  renderer.render(scene, camera);
+}
+
+// ─── Step Animations ───
+function animateStep1(dt) {
+  // Phone floating toward NFC tag
+  phoneModel.visible = true;
+  const phoneTarget = new THREE.Vector3(-0.5, 1.8, 1.6);
+  const phoneStart = new THREE.Vector3(-2.5, 2.5, 3.0);
+
+  const progress = Math.min(animTime * 0.4, 1);
+  const t = easeInOutCubic(progress);
+  phoneModel.position.lerpVectors(phoneStart, phoneTarget, t);
+  phoneModel.rotation.y = Math.PI * 0.3 - t * Math.PI * 0.2;
+
+  // Slight float
+  phoneModel.position.y += Math.sin(animTime * 2) * 0.03;
+
+  // NFC glow on touch
+  if (progress > 0.85) {
+    const glowIntensity = Math.sin((animTime - 2.1) * 3) * 0.5 + 0.5;
+    nfcGlow.material.opacity = glowIntensity * 0.5;
+    nfcGlow.material.color.setHex(0x00ff88);
+  }
+}
+
+function animateStep2(dt) {
+  // Controller glow highlight
+  const glowVal = 0.15 + Math.sin(animTime * 2) * 0.1;
+  controllerScreen.material.emissive = new THREE.Color(0x00d4ff);
+  controllerScreen.material.emissiveIntensity = glowVal;
+}
+
+function animateStep3(dt) {
+  // Controller screen flash
+  const flash = animTime > 1 && animTime < 1.3;
+  controllerScreen.material.emissive = new THREE.Color(flash ? 0x00ff88 : 0x00d4ff);
+  controllerScreen.material.emissiveIntensity = flash ? 0.8 : 0.1 + Math.sin(animTime * 3) * 0.05;
+
+  // BLE particles flying from controller to phone position
+  if (animTime > 1.5) {
+    phoneModel.visible = true;
+    phoneModel.position.set(-2.5, 2.5, 2.0);
+    phoneModel.rotation.y = Math.PI * 0.3;
+
+    const ctrlPos = new THREE.Vector3(-1.0, 3.2, -1.8);
+    const phonePos = new THREE.Vector3(-2.5, 2.5, 2.0);
+
+    bleParticles.forEach((p, i) => {
+      p.visible = true;
+      const offset = (animTime * 0.8 + i * 0.12) % 1;
+      p.position.lerpVectors(ctrlPos, phonePos, offset);
+      p.material.opacity = 0.4 + Math.sin(offset * Math.PI) * 0.4;
+      p.scale.setScalar(0.5 + Math.sin(offset * Math.PI) * 0.5);
+    });
+  }
+}
+
+function animateStep4(dt) {
+  // Leg press animation — foot plate and weight stack move together
+  const cycleTime = 2.0; // seconds per rep
+  const maxReps = 5;
+
+  if (repCount < maxReps) {
+    const phase = (animTime % cycleTime) / cycleTime; // 0 to 1
+    const motion = Math.sin(phase * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5; // 0→1→0
+
+    // Move foot plate down (push)
+    const fpY = footPlateRestY - motion * (footPlateRestY - footPlateMinY);
+    footPlate.position.y = fpY;
+
+    // Move weight stack up
+    const wsY = weightStackRestY + motion * (weightStackMaxY - weightStackRestY);
+    weightStack.position.y = wsY;
+
+    // Sensor follows weight stack
+    ficaSensor.position.y = wsY + 1.35;
+
+    // Count reps at the top
+    if (phase < 0.1 && lastRepPhase > 0.9) {
+      repCount++;
+      document.getElementById('rep-count').textContent = repCount;
+
+      // Flash sensor glow
+      ficaGlow.material.opacity = 0.6;
+      ficaGlow.scale.setScalar(2.0);
+    }
+    lastRepPhase = phase;
+
+    // Sensor glow intensity based on motion
+    ficaGlow.material.opacity = 0.1 + motion * 0.3;
+
+    // Draw wave
+    drawWave(animTime);
+  } else {
+    // Rest position after 5 reps
+    footPlate.position.y = footPlateRestY;
+    weightStack.position.y = weightStackRestY;
+    ficaSensor.position.y = weightStackRestY + 1.35;
+  }
+}
+
+function animateStep5(dt) {
+  // Machine at rest
+  footPlate.position.y = footPlateRestY;
+  weightStack.position.y = weightStackRestY;
+  ficaSensor.position.y = weightStackRestY + 1.35;
+
+  // Controller glow orange (rest mode)
+  controllerScreen.material.emissive = new THREE.Color(0xff6b35);
+  controllerScreen.material.emissiveIntensity = 0.15 + Math.sin(animTime * 1.5) * 0.08;
+}
+
+function animateStep6(dt) {
+  // Machine at rest
+  footPlate.position.y = footPlateRestY;
+  weightStack.position.y = weightStackRestY;
+  ficaSensor.position.y = weightStackRestY + 1.35;
+
+  // All components glow success green
+  ficaGlow.material.color.setHex(0x00ff88);
+  controllerScreen.material.emissive = new THREE.Color(0x00ff88);
+  controllerScreen.material.emissiveIntensity = 0.2;
+}
+
+// ─── Utilities ───
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+window.resetCamera = function() {
+  animateCameraTo(new THREE.Vector3(8, 6, 10), new THREE.Vector3(0, 2.5, 0));
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
+};
+
+window.toggleAutoRotate = function() {
+  controls.autoRotate = !controls.autoRotate;
+};
+
+window.goStep = goStep;
+
+// ─── Start ───
+init();
+goStep(1);
+</script>
+</body>
+</html>

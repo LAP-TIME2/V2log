@@ -49,7 +49,10 @@
 
 # Part 2: 개발 타임라인
 
-### 2026-02-18 (수) — 다중 원판 감지 A/B/C 테스트 구현
+### 2026-02-18 (수)
+
+#### 커밋 (auto)
+- `feat: 다중 원판 감지 A/B/C 테스트 구현 (3가지 알고리즘 비교)` — 0c6d03e — 다중 원판 감지 A/B/C 테스트 구현
 
 **Phase**: CV Phase 2B (다중 원판 감지 실험)
 
@@ -83,6 +86,36 @@ YOLO가 겹친 원판을 1장만 감지하는 문제(20kg×2 → 60kg으로 과�
 - applicationId를 임시 변경하면 같은 기기에 여러 빌드 공존 가능
 
 → 테스트 계획: [02-18_다중원판감지_ABC테스트_통합레퍼런스.md](reference/02-18_다중원판감지_ABC테스트_통합레퍼런스.md)
+
+---
+
+## 2026-02-18 (수) — 헬스장 A/B/C 테스트 결과 + Mode A 안정화
+
+**Phase**: CV Phase 2B (다중 원판 감지 안정화)
+
+헬스장 실기기 테스트에서 Mode A만 20kg 다중 원판 감지에 성공(3/4). Mode B/C는 실전 불가 확인. Mode A에 EMA/Hold/Cold Start 안정화를 적용하고, 독립 테스트 APK "V2log A(클로드)"를 product flavor로 생성.
+
+#### 주요 작업
+- **헬스장 A/B/C 테스트 결과 분석** — Mode A: 20kg×2 100kg 정확(3/4), 첫 측정만 140kg. Mode B/C: 실전 불가
+- **Cold Start Skip** — 첫 3프레임 스킵으로 모델 warmup 대기 (140kg 버그 해결)
+- **EMA Temporal Smoothing** — aspect ratio에 α=0.3 EMA 적용 (프레임간 진동 방지)
+- **Hold Counter** — count 변경 시 3프레임 연속 확인 후 확정 (경계값 진동 방지)
+- **clamp(1,4) → clamp(1,8)** — 레그프레스 20kg×5~6장 대응 + _maxAspectRatio 1.8→2.0
+- **IoU NMS** — 클래스별 중복 제거 → IoU 기반 NMS로 교체 (다른 클래스 겹침도 처리)
+- **Mode B/C 비활성화** — BUILD_VARIANT 분기 제거, 모드 선택기 OFF/A만
+- **독립 테스트 APK** — product flavor (production/claude), applicationIdSuffix ".claude"
+
+#### 핵심 결정
+- **Mode A 유지 + 안정화**: 실전 테스트에서 유일하게 작동한 방식
+- **OCR Phase 3에서 제외**: 겹친 원판 숫자 안 보임, 바깥 원판은 YOLO로 충분
+- **5kg singleAspectMax 상향 철회**: 5kg×2 겹침은 흔한 상황, 감지 포기 불가
+
+#### 배운 점
+- **Cold Start는 실전에서만 보인다** — 실험실에서는 초기화 후 충분히 기다리고 테스트하기 때문
+- **EMA + Hold 조합**이 실시간 CV에서 표준 패턴 — 1단계(smoothing) + 2단계(confirmation)
+- **Product Flavor**로 같은 코드베이스에서 테스트/프로덕션 APK 분리 가능
+
+→ 상세: [CV_수정노트.md](CV_수정노트.md) v2B-011, v2B-012
 
 ---
 
