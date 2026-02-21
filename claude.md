@@ -132,283 +132,44 @@ lib/
 
 ## 라우트 맵 (GoRouter)
 
-| 경로 | 이름 | 화면 | 비고 |
-|------|------|------|------|
-| `/` | splash | SplashScreen | 앱 시작 |
-| `/onboarding` | onboarding | OnboardingScreen | 최초 설정 |
-| `/auth/login` | login | LoginScreen | |
-| `/auth/register` | register | RegisterScreen | |
-| `/home` | home | HomeScreen | ShellRoute (하단탭) |
-| `/history` | history | HistoryScreen | ShellRoute (하단탭) |
-| `/history/:sessionId` | history-detail | HistoryDetailScreen | |
-| `/stats` | stats | StatsScreen | ShellRoute (하단탭) |
-| `/profile` | profile | ProfileScreen | ShellRoute (하단탭) |
-| `/workout/ai` | workout-ai | WorkoutScreen | Shell 외부, 슬라이드업 |
-| `/workout/free` | workout-free | WorkoutScreen | Shell 외부, 슬라이드업 |
-| `/workout/session/:id` | workout-session | WorkoutScreen | |
-| `/workout/summary` | workout-summary | WorkoutSummaryScreen | 운동 완료 요약 |
-| `/routine/library` | routine-library | RoutineLibraryScreen | |
-| `/routine/create` | routine-create | (플레이스홀더) | 미구현 |
-| `/routine/:routineId` | routine-detail | (플레이스홀더) | 루틴 상세 |
-| `/exercise/:exerciseId` | exercise-detail | ExerciseDetailScreen | 페이드 전환 |
+> 전체 라우트 → `lib/core/router/app_router.dart` 참조
 
-**하단 네비게이션 탭**: 홈 → 기록 → 통계 → 프로필
+**ShellRoute 탭**: `/home`, `/history`, `/stats`, `/profile`
+**Shell 외부**: `/workout/ai|free|session/:id`, `/workout/summary`, `/routine/library|create|:id`, `/exercise/:id`
+**인증**: `/` (splash), `/onboarding`, `/auth/login|register`
 
 ---
 
 ## 테마 시스템
 
-### 핵심 패턴
-```dart
-// 다크/라이트 판별 (항상 이 방식 사용!)
-final isDark = Theme.of(context).brightness == Brightness.dark;
-// 또는
-context.isDarkMode  // context_extension.dart
-
-// 테마 반응형 색상 (context_extension.dart)
-context.bgColor           // dark: 0xFF0F0F0F / light: 0xFFFAFAFA
-context.cardColor         // dark: 0xFF1A1A1A / light: 0xFFFFFFFF
-context.cardElevatedColor // dark: 0xFF242424 / light: 0xFFF4F4F5
-context.borderColor       // dark: 0xFF2A2A2A / light: 0xFFE4E4E7
-context.textColor         // dark: 0xFFFFFFFF / light: 0xFF18181B
-context.textSecondaryColor
-context.textTertiaryColor
-```
-
-### 주의사항
-- `MediaQuery.of(context).platformBrightness` = **시스템 설정** (사용 금지)
-- `Theme.of(context).brightness` = **앱 설정** (이것만 사용)
+- 다크/라이트 판별: `Theme.of(context).brightness` 또는 `context.isDarkMode`
+- **금지**: `MediaQuery.of(context).platformBrightness` (시스템 설정 → 사용 금지)
+- 테마 반응형 색상: `context.bgColor`, `context.cardColor`, `context.borderColor`, `context.textColor` 등 → `lib/core/extensions/context_extension.dart` 참조
 - Atom 위젯: factory constructor에서 null 전달 → `build()`에서 테마 기반 기본값 결정
-- `context_extension.dart`의 `push()`/`pop()`은 GoRouter와 충돌 → 제거됨. 라우팅은 `context.go()` / `context.push()` (GoRouter 것) 사용
+- 라우팅: GoRouter의 `context.go()` / `context.push()` 만 사용 (자체 push/pop 금지)
 
 ---
 
 ## 데이터베이스 스키마 (Supabase)
 
-### 테이블 관계도
+> **전체 DDL, FK, CHECK 제약조건** → `docs/db-schema.md` 참조
+> DB INSERT/UPDATE 작업 시 반드시 해당 파일을 읽고 제약조건 확인 후 진행.
+
+**테이블 (10개)**: users, exercises, preset_routines, preset_routine_exercises, routines, routine_exercises, workout_sessions, workout_sets, exercise_records, body_records
+
+**핵심 관계**:
 ```
-auth.users ← users (1:1)
-users ← routines ← routine_exercises → exercises
+auth.users ← users ← routines ← routine_exercises → exercises
 users ← workout_sessions ← workout_sets → exercises
-users ← exercise_records → exercises
-users ← body_records
 preset_routines ← preset_routine_exercises → exercises
-preset_routines ← routines (source_type='PRESET')
 ```
-
-### 테이블 DDL
-
-```sql
--- 사용자
-CREATE TABLE users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id),
-  email TEXT UNIQUE NOT NULL,
-  nickname TEXT NOT NULL,
-  profile_image_url TEXT,
-  gender TEXT CHECK (gender IN ('MALE', 'FEMALE', 'OTHER')),
-  birth_date DATE,
-  height DECIMAL(5,2),
-  weight DECIMAL(5,2),
-  experience_level TEXT DEFAULT 'BEGINNER'
-    CHECK (experience_level IN ('BEGINNER', 'INTERMEDIATE', 'ADVANCED')),
-  fitness_goal TEXT DEFAULT 'HYPERTROPHY'
-    CHECK (fitness_goal IN ('STRENGTH', 'HYPERTROPHY', 'ENDURANCE', 'WEIGHT_LOSS')),
-  preferred_mode TEXT DEFAULT 'HYBRID'
-    CHECK (preferred_mode IN ('PRESET', 'FREE', 'HYBRID')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 운동 라이브러리
-CREATE TABLE exercises (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  name_en TEXT,
-  category TEXT CHECK (category IN ('STRENGTH', 'CARDIO', 'FLEXIBILITY')),
-  primary_muscle TEXT NOT NULL,
-  secondary_muscles TEXT[],
-  equipment_required TEXT[],
-  difficulty TEXT CHECK (difficulty IN ('BEGINNER', 'INTERMEDIATE', 'ADVANCED')),
-  instructions TEXT[],
-  tips TEXT[],
-  animation_url TEXT,
-  video_url TEXT,
-  thumbnail_url TEXT,
-  calories_per_minute DECIMAL(5,2),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 프리셋 루틴 (전문가 큐레이션)
-CREATE TABLE preset_routines (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  name_en TEXT,
-  description TEXT,
-  difficulty TEXT CHECK (difficulty IN ('BEGINNER', 'INTERMEDIATE', 'ADVANCED')),
-  target_goal TEXT CHECK (target_goal IN ('STRENGTH', 'HYPERTROPHY', 'ENDURANCE', 'WEIGHT_LOSS')),
-  days_per_week INTEGER NOT NULL,
-  estimated_duration_minutes INTEGER,
-  target_muscles TEXT[],
-  equipment_required TEXT[],
-  thumbnail_url TEXT,
-  popularity_score INTEGER DEFAULT 0,
-  is_featured BOOLEAN DEFAULT FALSE,
-  created_by TEXT DEFAULT 'V2log Team',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 프리셋 루틴 ↔ 운동 연결
-CREATE TABLE preset_routine_exercises (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  preset_routine_id UUID REFERENCES preset_routines(id) ON DELETE CASCADE,
-  exercise_id UUID REFERENCES exercises(id),
-  day_number INTEGER NOT NULL,
-  day_name TEXT,
-  order_index INTEGER NOT NULL,
-  target_sets INTEGER DEFAULT 3,
-  target_reps TEXT DEFAULT '10-12',
-  rest_seconds INTEGER DEFAULT 90,
-  notes TEXT
-);
-
--- 사용자 루틴
-CREATE TABLE routines (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  description TEXT,
-  source_type TEXT DEFAULT 'CUSTOM'
-    CHECK (source_type IN ('PRESET', 'CUSTOM', 'TEMPLATE')),
-  is_ai_generated BOOLEAN DEFAULT FALSE,
-  preset_routine_id UUID REFERENCES preset_routines(id),
-  target_muscles TEXT[],
-  estimated_duration INTEGER,
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 루틴 ↔ 운동 연결
-CREATE TABLE routine_exercises (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  routine_id UUID REFERENCES routines(id) ON DELETE CASCADE,
-  exercise_id UUID REFERENCES exercises(id),
-  order_index INTEGER NOT NULL,
-  target_sets INTEGER DEFAULT 3,
-  target_reps TEXT DEFAULT '10-12',
-  target_weight DECIMAL(6,2),
-  rest_seconds INTEGER DEFAULT 90,
-  notes TEXT
-);
-
--- 운동 세션
-CREATE TABLE workout_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  routine_id UUID REFERENCES routines(id),
-  session_number INTEGER DEFAULT 1,
-  mode TEXT CHECK (mode IN ('PRESET', 'FREE')),
-  started_at TIMESTAMPTZ DEFAULT NOW(),
-  finished_at TIMESTAMPTZ,
-  is_cancelled BOOLEAN DEFAULT FALSE,
-  total_volume DECIMAL(10,2),
-  total_sets INTEGER,
-  total_duration_seconds INTEGER,
-  calories_burned INTEGER,
-  notes TEXT,
-  mood_rating INTEGER CHECK (mood_rating >= 1 AND mood_rating <= 5),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 세트 기록
-CREATE TABLE workout_sets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID REFERENCES workout_sessions(id) ON DELETE CASCADE,
-  exercise_id UUID REFERENCES exercises(id),
-  set_number INTEGER NOT NULL,
-  set_type TEXT DEFAULT 'WORKING'
-    CHECK (set_type IN ('WARMUP', 'WORKING', 'DROP', 'FAILURE', 'SUPERSET')),
-  weight DECIMAL(6,2),
-  reps INTEGER,
-  target_weight DECIMAL(6,2),
-  target_reps INTEGER,
-  rpe DECIMAL(3,1) CHECK (rpe >= 1 AND rpe <= 10),
-  rest_seconds INTEGER,
-  is_pr BOOLEAN DEFAULT FALSE,
-  notes TEXT,
-  completed_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 운동별 기록 집계 (1RM 추적)
-CREATE TABLE exercise_records (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  exercise_id UUID REFERENCES exercises(id),
-  estimated_1rm DECIMAL(6,2),
-  max_weight DECIMAL(6,2),
-  max_reps INTEGER,
-  max_volume DECIMAL(10,2),
-  total_volume DECIMAL(12,2) DEFAULT 0,
-  total_sets INTEGER DEFAULT 0,
-  last_performed_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, exercise_id)
-);
-
--- 신체 기록
-CREATE TABLE body_records (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  weight DECIMAL(5,2),
-  body_fat_percentage DECIMAL(4,2),
-  muscle_mass DECIMAL(5,2),
-  skeletal_muscle_mass DECIMAL(5,2),
-  bmi DECIMAL(4,2),
-  chest DECIMAL(5,2),
-  waist DECIMAL(5,2),
-  hip DECIMAL(5,2),
-  thigh DECIMAL(5,2),
-  arm DECIMAL(5,2),
-  notes TEXT,
-  photo_url TEXT,
-  recorded_at DATE DEFAULT CURRENT_DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-### FK 구조 요약
-| FK 컬럼 | 참조 | NOT NULL |
-|---------|------|----------|
-| `workout_sessions.user_id` | `users.id` | YES |
-| `workout_sessions.routine_id` | `routines.id` | NO |
-| `workout_sets.session_id` | `workout_sessions.id` | YES |
-| `workout_sets.exercise_id` | `exercises.id` | YES |
-| `routines.user_id` | `users.id` | YES |
-| `routine_exercises.routine_id` | `routines.id` | YES |
-| `routine_exercises.exercise_id` | `exercises.id` | YES |
-
-### CHECK 제약조건
-| 테이블 | 컬럼 | 허용값 |
-|--------|------|--------|
-| users | fitness_goal | STRENGTH, HYPERTROPHY, ENDURANCE, WEIGHT_LOSS |
-| users | preferred_mode | PRESET, FREE, HYBRID |
-| users | experience_level | BEGINNER, INTERMEDIATE, ADVANCED |
-| users | gender | MALE, FEMALE, OTHER |
-| exercises | category | STRENGTH, CARDIO, FLEXIBILITY |
-| exercises | difficulty | BEGINNER, INTERMEDIATE, ADVANCED |
-| preset_routines | difficulty | BEGINNER, INTERMEDIATE, ADVANCED |
-| preset_routines | target_goal | STRENGTH, HYPERTROPHY, ENDURANCE, WEIGHT_LOSS |
-| routines | source_type | PRESET, CUSTOM, TEMPLATE |
-| workout_sessions | mode | PRESET, FREE |
-| workout_sets | set_type | WARMUP, WORKING, DROP, FAILURE, SUPERSET |
 
 ---
 
 ## 필수 개발 규칙
 
 ### DB 작업 규칙
-1. INSERT/UPDATE 전 **반드시** 위 CHECK 제약조건, NOT NULL, FK 확인
+1. INSERT/UPDATE 전 **반드시** `docs/db-schema.md` 읽고 CHECK 제약조건, NOT NULL, FK 확인
 2. `user_id` = `Supabase.instance.client.auth.currentUser?.id`
 3. 회원가입 시 Auth + users 테이블 **동시** INSERT
 4. Exercise ID는 반드시 **UUID** 형식 (ex-001 스타일 금지)
@@ -506,26 +267,8 @@ flutter build apk --release
 
 ## 개발 진행 상황
 
-### Phase 1: MVP 기본 기능 - **완료**
-- [x] 프로젝트 설정, Supabase 연동, 디자인 시스템
-- [x] 인증 (이메일 로그인/회원가입), 온보딩
-- [x] DB 테이블 생성, 운동 라이브러리, 프리셋 루틴 5개
-- [x] 모든 모델 (Freezed), Repository, Provider
-- [x] 홈 화면 (듀얼 모드), 프리셋 루틴 라이브러리/상세
-- [x] 운동 진행 화면, 세트 기록, 빠른 입력, 휴식 타이머, 요약
-- [x] 히스토리 캘린더, 기록 상세, 통계 대시보드, 1RM/PR
-- [x] 프로필, 테마 (다크/라이트), 버그 수정
-
-### Phase 2: 확장 기능 - **완료**
-- [x] 운동 애니메이션 (시범 이미지), 상세 가이드, 운동 검색/필터
-- [x] 주간/월간 볼륨 차트, 부위별 분석, 1RM 진행도 (6개월)
-- [x] 운동 메모 기능, 세트 타입 구분 (웜업/본세트/드롭)
-- [x] 알림 설정 UI, 오운완 공유 카드 위젯
-- [x] **근육 맵 시각화** (muscle_selector 패키지 + MiniMuscleMap 위젯, workout 헤더 적용)
-- [x] **운동 강도 분석 UI** (stats 강도 존 카드 + workout 실시간 강도 표시바)
-- [x] **슈퍼세트** (세트 타입 선택 + 파트너 운동 선택 + A↔B 자동 전환)
-- [x] **이미지 저장/공유** (RepaintBoundary 캡처 + gal 갤러리 저장 + share_plus 공유)
-- [x] **로컬 알림** (flutter_local_notifications + 요일별 시간 설정 + 테스트 알림)
+### Phase 1: MVP 기본 기능 — **완료** (인증, DB, 홈, 운동, 히스토리, 통계, 프로필, 테마)
+### Phase 2: 확장 기능 — **완료** (애니메이션, 차트, 메모, 세트타입, 근육맵, 강도분석, 슈퍼세트, 공유, 알림)
 
 ### Phase 3: CV 기능 — **진행 중** (상세: `CLAUDE-CV.md`, 수정노트: `docs/CV_수정노트.md`)
 
@@ -570,7 +313,16 @@ flutter build apk --release
   - `depth_estimation_service.dart` 신규 생성 (MiDaS TFLite 래퍼)
   - `--dart-define=BUILD_VARIANT` 분기로 APK 2개 빌드 (V2log-AC / V2log-B)
   - 실기기 설치 완료 (R3CN90HVMKL), 헬스장 테스트 대기
-- [ ] 헬스장 실기기 테스트 (무게 감지 정확도 + Two-Stage 전환 + A/B/C 다중 원판 테스트)
-- [ ] 버튼 0개 자동 UX (자동 감지 → 자동 시작 → 자동 종료)
-- [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자용)
-- [ ] OCR 무게 읽기 (Google ML Kit Text v2)
+- [ ] 헬스장 실기기 테스트 (무게 감지 정확도 + Two-Stage 전환 + A/B/C 다중 원판 테스트) — **보류** (IoT 개발 우선)
+- [ ] 버튼 0개 자동 UX (자동 감지 → 자동 시작 → 자동 종료) — **보류**
+- [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자용) — **보류**
+- [ ] OCR 무게 읽기 (Google ML Kit Text v2) — **보류**
+
+### Phase 4: Fica IoT 하드웨어 — **계획 중**
+- [x] 종합 개발 가이드 문서 작성
+- [ ] 용어집 + 하드웨어 BOM 정리
+- [ ] 센서 모델 최종 선택 (ICM-45686 vs LSM6DSV)
+- [ ] 펌웨어 개발 (nRF52840 + Zephyr)
+- [ ] BLE 프로토콜 설계
+- [ ] 앱 BLE 연동 (Flutter)
+- [ ] 프로토타입 PCB 설계
