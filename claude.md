@@ -318,11 +318,11 @@ flutter build apk --release
 - [ ] 플레이트 등록 기능 (B2C 선택 / B2B 관리자용) — **보류**
 - [ ] OCR 무게 읽기 (Google ML Kit Text v2) — **보류**
 
-### Phase 4: Fica IoT 하드웨어 — **계획 중**
+### Phase 4: Fica IoT 하드웨어 — **진행 중** (워크플로우: `docs/Phase4_IoT_워크플로우.md`)
 - [x] 종합 개발 가이드 문서 작성
 - [ ] 용어집 + 하드웨어 BOM 정리
 - [ ] 센서 모델 최종 선택 (ICM-45686 vs LSM6DSV)
 - [ ] 펌웨어 개발 (nRF52840 + Zephyr)
-- [ ] BLE 프로토콜 설계
+- [x] BLE GATT 프로토콜 스펙 v1.0 완성 (1,825줄, 13개 섹션) + 비전공자 해설집
 - [ ] 앱 BLE 연동 (Flutter)
 - [ ] 프로토타입 PCB 설계

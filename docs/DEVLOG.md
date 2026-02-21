@@ -53,6 +53,47 @@
 
 # Part 2: 개발 타임라인
 
+## 2026-02-22 (토) — BLE GATT 프로토콜 스펙 v1.0 완성
+
+**Phase**: Phase 4 (Fica IoT 하드웨어)
+
+BLE GATT 프로토콜을 5팀 에이전트 병렬로 설계하고, 1,825줄짜리 완전 스펙 문서를 완성한 날. 비전공자 대표를 위해 해설집도 별도 생성.
+
+#### 커밋
+- `docs: BLE GATT 프로토콜 스펙 v1.0 완성 + 비전공자 해설집`
+
+#### 핵심 성과
+- **BLE GATT 스펙 v1.0**: `docs/ble-gatt-spec.md` (1,825줄, 13개 섹션)
+  - §1 개요 + §2 UUID 체계 (Base UUID 확정, 12개 Characteristic)
+  - §3 GATT 서비스 구조 (Fica Fitness + Battery + DIS)
+  - §4 Characteristic 상세 12개 (바이트 레이아웃, 값 범위, 예제)
+  - §5 Session Data 패킷 (헤더 3B + 세트당 6B, MTU 분할 전략)
+  - §6 Command 코드 (0x01~0xFF, ACK/에러 응답)
+  - §7 Set Status 상태 머신 (STEP 0~6 매핑, ASCII 다이어그램)
+  - §8 연결 파라미터 (광고/연결/MTU/PHY)
+  - §9 보안 (Just Works B2C + Numeric Comparison B2B)
+  - §10 연결 흐름 시퀀스 (최초/재연결/3중 안전망)
+  - §11 OTA DFU (Nordic Secure DFU, Buttonless, Dual-Bank)
+  - §12 헬스장 환경 (AFH, TX Power, 다중 기기, Wi-Fi 공존)
+  - §13 코드 레퍼런스 (Dart/C 인코딩/디코딩, 검증 체크리스트 V1~V5)
+- **비전공자 해설집**: `docs/ble-gatt-spec-해설집.md` — 16개 섹션, 실생활 비유로 풀어쓴 가이드
+- **워크플로우 업데이트**: Team 1 대시보드 4단계 ✅ + M1 체크박스 완료
+
+#### 핵심 결정
+- **UUID 체계 확정**: FCA0000X (X=1~C, 12개 Characteristic) — 센서↔앱 통신 계약
+- **Session Data는 Indicate 사용**: Notify 아닌 ACK 보장 방식 (데이터 유실 방지)
+- **3중 안전망 확정**: 센서 FIFO → 앱 Hive → Supabase 클라우드
+
+#### 배운 점
+- 5팀 에이전트 병렬 문서 작성 시 **UUID 매핑 교차 검증 필수** — Team E가 독자 UUID를 사용해서 §4와 불일치 발견, 수동 교정
+- BLE GATT 프로토콜 = "센서와 앱 사이의 약속서", 이것이 확정되어야 펌웨어와 앱이 독립 개발 가능
+- 비전공자를 위한 해설집은 기술 문서와 별도 유지가 효과적 (스펙 문서는 개발자용으로 유지)
+
+→ 스펙: [ble-gatt-spec.md](ble-gatt-spec.md)
+→ 해설집: [ble-gatt-spec-해설집.md](ble-gatt-spec-해설집.md)
+
+---
+
 ## 2026-02-21 (금) — 종합 개발 가이드 완성
 
 **Phase**: Phase 4 (Fica IoT 하드웨어)
