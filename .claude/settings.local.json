@@ -1,6 +1,12 @@
 {
   "permissions": {
     "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "NotebookEdit",
       "Bash",
       "WebSearch",
       "WebFetch",
@@ -18,18 +24,6 @@
       "mcp__filesystem__move_file",
       "mcp__filesystem__list_directory_with_sizes",
       "mcp__filesystem__list_allowed_directories",
-      "mcp__claude_ai_Notion__notion-fetch",
-      "mcp__claude_ai_Notion__notion-search",
-      "mcp__claude_ai_Notion__notion-create-pages",
-      "mcp__claude_ai_Notion__notion-update-page",
-      "mcp__claude_ai_Notion__notion-create-comment",
-      "mcp__claude_ai_Notion__notion-get-comments",
-      "mcp__claude_ai_Notion__notion-get-teams",
-      "mcp__claude_ai_Notion__notion-get-users",
-      "mcp__claude_ai_Notion__notion-move-pages",
-      "mcp__claude_ai_Notion__notion-duplicate-page",
-      "mcp__claude_ai_Notion__notion-create-database",
-      "mcp__claude_ai_Notion__notion-update-data-source",
       "mcp__windows-mcp__Snapshot",
       "mcp__windows-mcp__App",
       "mcp__windows-mcp__Shell",
@@ -41,23 +35,17 @@
       "mcp__windows-mcp__Wait",
       "mcp__windows-mcp__Scrape",
       "mcp__windows-mcp__MultiSelect",
-      "mcp__windows-mcp__MultiEdit"
+      "mcp__windows-mcp__MultiEdit",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_snapshot"
     ]
   },
-  "hooks": {
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/pre-compact-notion.js",
-            "timeout": 30000
-          }
-        ]
-      }
-    ]
-  },
+  "hooks": {},
   "instructions": "AFTER GIT COMMIT: Always suggest running /compact to save context. After each successful 'git commit', ask user: '커밋 완료되었습니다. /compact를 실행하여 현재 작업 내용을 요약할까요?'",
   "mcpServers": {
     "supabase": {

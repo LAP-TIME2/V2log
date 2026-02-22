@@ -1,5 +1,5 @@
-import '../../../data/dummy/dummy_exercises.dart';
-import '../../../data/dummy/dummy_preset_routines.dart';
+import 'package:v2log/shared/dummy/dummy_exercises.dart';
+import 'package:v2log/shared/dummy/dummy_preset_routines.dart';
 
 /// 세션 메모에서 운동별 메모를 추출하고 exercise_id를 운동명으로 변환
 String formatSessionNotes(String? notes, Map<String, String> exerciseNames) {

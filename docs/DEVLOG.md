@@ -53,6 +53,34 @@
 
 # Part 2: 개발 타임라인
 
+## 2026-02-22 (토) — 앱 전체 리팩토링 5단계 완료 + BLE GATT 스펙
+
+**Phase**: Phase 5 (앱 전체 리팩토링)
+
+IoT 기능 추가 전 앱 건강 상태 점검 + 구조 정리. 3개 에이전트 감사(데이터/UI/아키텍처) 후 5단계 리팩토링 실행.
+
+#### 커밋
+- `refactor: 앱 전체 리팩토링 5단계 — Feature-First 구조 + God Component 분해 + 에러 통일 + print 제거`
+
+#### 리팩토링 성과
+| 지표 | Before | After |
+|------|--------|-------|
+| WorkoutScreen | 1,754줄 | 719줄 (59% 감소) |
+| StatsScreen | 1,934줄 | 213줄 (89% 감소) |
+| isDark 하드코딩 | 47건 | 0건 |
+| print() 호출 | 268건 | 0건 |
+| 에러 처리 패턴 | 3가지 혼재 | sealed AppException 통일 |
+| 데이터 흐름 | Provider+Repository 중복 | Repository 단일 경로 |
+| 파일 구조 | Layer-First | Feature-First (8 features + shared) |
+
+#### 핵심 결정/배운 점
+- **Feature-First > DDD**: 1인 개발에 DDD는 과도 (도메인당 6~8파일 보일러플레이트). Riverpod 네이티브 Feature-First가 80/20 최적.
+- **Completer > boolean flag**: `finishWorkout()` 이중 실행 방지에 `Completer<T>` 패턴 — 동일 Future 반환으로 중복 호출 안전 처리.
+- **git checkout 사고**: Phase 5 마이그레이션 중 import 수정 실패 → `git checkout -- lib/` 사용 → Phase 1~4 기존 파일 수정 전부 손실. 추출 파일(untracked)만 생존. 교훈: 대규모 파일 이동 전 반드시 커밋하고 시작.
+- **에이전트 병렬화 효과**: Phase 1에서 A/B 병렬, Phase 3에서 D/E 병렬, Phase 4에서 3개 병렬 — 순차 대비 50%+ 시간 단축 체감.
+
+---
+
 ## 2026-02-22 (토) — BLE GATT 프로토콜 스펙 v1.0 완성
 
 **Phase**: Phase 4 (Fica IoT 하드웨어)
@@ -91,6 +119,15 @@ BLE GATT 프로토콜을 5팀 에이전트 병렬로 설계하고, 1,825줄짜�
 
 → 스펙: [ble-gatt-spec.md](ble-gatt-spec.md)
 → 해설집: [ble-gatt-spec-해설집.md](ble-gatt-spec-해설집.md)
+
+#### 하드웨어 5개 미결정 사항 최종 확정
+- **센서 모델**: ICM-45686 확정 (프로토 3대 → 양산 시 LSM6DSV 재검토)
+- **세트 입력 위치**: 앱에서 설정 → BLE 전송
+- **횟수 동기화**: Rep=실시간 Notify + Session=완료 후 Indicate (BLE GATT 스펙 변경 불필요)
+- **7-seg IC**: TM1637 (GPIO bit-bang, P0.11/P0.12)
+- **세트 LED**: 74HC595 ×3 + 2색 LED(초록/빨강) 10개
+- **배운 점**: TM1637은 Zephyr 공식 드라이버 없어 bit-bang 직접 구현 필요. 74HC595는 2색 LED(초록+빨강) 20비트 제어에 3개 필요 (2개로는 16비트까지만). WS2812B 대비 대기 전력 250배 절약.
+- **Phase 매핑**: Phase 4 IoT 하드웨어 — 하드웨어 구성요소 결정 완료
 
 ---
 

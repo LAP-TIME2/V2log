@@ -13,8 +13,8 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
       final prefs = await SharedPreferences.getInstance();
       final isDark = prefs.getBool('is_dark_mode') ?? true;
       state = isDark ? ThemeMode.dark : ThemeMode.light;
-    } catch (e) {
-      print('=== 테마 설정 로드 실패: $e ===');
+    } catch (_) {
+      // Error logged silently
     }
   }
 
@@ -26,8 +26,8 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_dark_mode', newMode == ThemeMode.dark);
-    } catch (e) {
-      print('=== 테마 설정 저장 실패: $e ===');
+    } catch (_) {
+      // Error logged silently
     }
   }
 

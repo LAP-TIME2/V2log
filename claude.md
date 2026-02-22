@@ -23,109 +23,57 @@
 
 ---
 
-## 프로젝트 구조 (실제 파일 기준)
+## 프로젝트 구조 (Feature-First, Phase 5 마이그레이션 완료)
 
 ```
 lib/
-├── main.dart                          # 앱 진입점
-├── app.dart                           # MaterialApp + ProviderScope
+├── main.dart                              # 앱 진입점
+├── app.dart                               # MaterialApp + ProviderScope
 │
-├── core/
-│   ├── constants/
-│   │   ├── app_colors.dart            # 컬러 팔레트 (dark + light)
-│   │   ├── app_typography.dart        # Pretendard 타이포그래피
-│   │   ├── app_spacing.dart           # 간격 시스템
-│   │   └── app_assets.dart            # 에셋 경로
-│   ├── theme/
-│   │   ├── app_theme.dart             # 라이트/다크 ThemeData
-│   │   └── theme_provider.dart        # 테마 상태 관리
-│   ├── router/
-│   │   └── app_router.dart            # GoRouter 설정 + ShellRoute
-│   ├── utils/
-│   │   ├── validators.dart
-│   │   ├── formatters.dart
-│   │   ├── fitness_calculator.dart    # 1RM, 볼륨, 강도 계산
-│   │   ├── haptic_feedback.dart
-│   │   ├── animation_config.dart      # 화면 전환 애니메이션 설정
-│   │   ├── session_notes_formatter.dart
-│   │   └── workout_share_utils.dart   # 공유 카드 유틸
-│   └── extensions/
-│       ├── context_extension.dart     # context.bgColor, isDarkMode 등
-│       └── string_extension.dart
+├── core/                                  # 앱 전역 설정 (변경 없음)
+│   ├── constants/                         # app_colors, app_typography, app_spacing, app_assets
+│   ├── theme/                             # app_theme, theme_provider
+│   ├── router/app_router.dart             # GoRouter 설정 + ShellRoute
+│   ├── utils/                             # validators, formatters, fitness_calculator, haptic_feedback, animation_config, session_notes_formatter, workout_share_utils, exercise_angles
+│   ├── errors/app_exception.dart          # 통합 에러 타입
+│   └── extensions/                        # context_extension, string_extension
 │
-├── data/
-│   ├── models/                        # 모두 Freezed + JsonSerializable
-│   │   ├── user_model.dart
-│   │   ├── exercise_model.dart
-│   │   ├── routine_model.dart
-│   │   ├── preset_routine_model.dart
-│   │   ├── workout_session_model.dart
-│   │   ├── workout_set_model.dart
-│   │   ├── body_record_model.dart
-│   │   ├── notification_settings_model.dart
-│   │   └── sync_queue_model.dart
-│   ├── repositories/
-│   │   ├── auth_repository.dart
-│   │   ├── user_repository.dart
-│   │   ├── exercise_repository.dart
-│   │   ├── routine_repository.dart
-│   │   ├── preset_routine_repository.dart
-│   │   └── workout_repository.dart
-│   ├── services/
-│   │   ├── supabase_service.dart
-│   │   ├── local_storage_service.dart
-│   │   ├── notification_service.dart
-│   │   └── sync_service.dart
-│   └── dummy/                         # 테스트용 더미 데이터
-│       ├── dummy_exercises.dart
-│       ├── dummy_preset_routines.dart
-│       └── dummy_routines.dart
+├── features/                              # 기능별 모듈 (data/domain/presentation)
+│   ├── auth/
+│   │   ├── data/auth_repository.dart
+│   │   ├── domain/auth_provider.dart
+│   │   └── presentation/                  # login, register, splash, onboarding
+│   ├── workout/
+│   │   ├── data/                          # workout_repository, CV 서비스 (pose_detection, rep_counter, weight_detection, depth_estimation)
+│   │   ├── domain/                        # workout_provider, workout_input_provider, timer_provider, cv_provider
+│   │   └── presentation/                  # workout_screen, workout_summary, workout_dialogs, workout_components, camera_overlay, pose_overlay
+│   ├── history/
+│   │   └── presentation/history_screen.dart
+│   ├── stats/
+│   │   └── presentation/                  # stats_screen, widgets/ (volume_chart, one_rm_trend_chart, muscle_distribution_chart, weekly_summary_card)
+│   ├── profile/
+│   │   ├── data/user_repository.dart
+│   │   ├── domain/                        # user_provider, notification_provider
+│   │   └── presentation/                  # profile_screen, edit_profile_screen, notification_settings_screen
+│   ├── routine/
+│   │   ├── data/                          # routine_repository, preset_routine_repository
+│   │   ├── domain/                        # routine_provider, preset_routine_provider
+│   │   └── presentation/                  # routine_library_screen, preset_routine_detail_sheet
+│   ├── exercise/
+│   │   ├── data/exercise_repository.dart
+│   │   ├── domain/exercise_provider.dart
+│   │   └── presentation/exercise_detail_screen.dart
+│   └── home/
+│       └── presentation/home_screen.dart
 │
-├── domain/
-│   └── providers/                     # 모두 @riverpod
-│       ├── auth_provider.dart
-│       ├── user_provider.dart
-│       ├── exercise_provider.dart
-│       ├── routine_provider.dart
-│       ├── preset_routine_provider.dart
-│       ├── workout_provider.dart
-│       ├── timer_provider.dart
-│       ├── notification_provider.dart
-│       └── sync_provider.dart
-│
-└── presentation/
-    ├── widgets/
-    │   ├── atoms/                     # 기본 위젯
-    │   │   ├── v2_button.dart
-    │   │   ├── v2_text_field.dart
-    │   │   ├── v2_card.dart
-    │   │   ├── v2_switch.dart
-    │   │   ├── number_stepper.dart
-    │   │   └── animated_wrappers.dart
-    │   └── molecules/                 # 조합 위젯
-    │       ├── set_row.dart
-    │       ├── rest_timer.dart
-    │       ├── quick_input_control.dart
-    │       ├── preset_routine_card.dart
-    │       ├── exercise_animation_widget.dart
-    │       ├── mini_muscle_map.dart
-    │       └── workout_share_card.dart
-    └── screens/
-        ├── splash/splash_screen.dart
-        ├── onboarding/onboarding_screen.dart
-        ├── auth/login_screen.dart
-        ├── auth/register_screen.dart
-        ├── home/home_screen.dart
-        ├── workout/workout_screen.dart
-        ├── workout/workout_summary_screen.dart
-        ├── routine/routine_library_screen.dart
-        ├── routine/preset_routine_detail_sheet.dart
-        ├── exercise/exercise_detail_screen.dart
-        ├── history/history_screen.dart
-        ├── stats/stats_screen.dart
-        ├── profile/profile_screen.dart
-        ├── profile/edit_profile_screen.dart
-        └── profile/notification_settings_screen.dart
+├── shared/                                # 기능 간 공유 리소스
+│   ├── models/                            # 모두 Freezed + JsonSerializable (user, exercise, routine, preset_routine, workout_session, workout_set, body_record, notification_settings, sync_queue)
+│   ├── services/                          # supabase_service, local_storage_service, notification_service, sync_service, sync_provider
+│   ├── widgets/
+│   │   ├── atoms/                         # v2_button, v2_text_field, v2_card, v2_switch, number_stepper, animated_wrappers
+│   │   └── molecules/                     # set_row, rest_timer, quick_input_control, preset_routine_card, exercise_animation_widget, mini_muscle_map, workout_share_card, share_preview_dialog
+│   ├── dummy/                             # dummy_exercises, dummy_preset_routines, dummy_routines
+│   └── sql/                               # seed_exercises.sql, update_exercise_animations.sql
 ```
 
 ---
@@ -142,7 +90,7 @@ lib/
 
 ## 테마 시스템
 
-- 다크/라이트 판별: `Theme.of(context).brightness` 또는 `context.isDarkMode`
+- 다크/라이트 판별: `context.isDarkMode` (통일 완료, `Theme.of(context).brightness` 직접 사용 금지)
 - **금지**: `MediaQuery.of(context).platformBrightness` (시스템 설정 → 사용 금지)
 - 테마 반응형 색상: `context.bgColor`, `context.cardColor`, `context.borderColor`, `context.textColor` 등 → `lib/core/extensions/context_extension.dart` 참조
 - Atom 위젯: factory constructor에서 null 전달 → `build()`에서 테마 기반 기본값 결정
@@ -321,8 +269,24 @@ flutter build apk --release
 ### Phase 4: Fica IoT 하드웨어 — **진행 중** (워크플로우: `docs/Phase4_IoT_워크플로우.md`)
 - [x] 종합 개발 가이드 문서 작성
 - [ ] 용어집 + 하드웨어 BOM 정리
-- [ ] 센서 모델 최종 선택 (ICM-45686 vs LSM6DSV)
+- [x] 센서 모델 최종 선택: ICM-45686 (프로토타입용, 양산 시 LSM6DSV 재검토)
 - [ ] 펌웨어 개발 (nRF52840 + Zephyr)
 - [x] BLE GATT 프로토콜 스펙 v1.0 완성 (1,825줄, 13개 섹션) + 비전공자 해설집
+- [x] 하드웨어 5개 미결정 사항 최종 확정 (센서 ICM-45686, 세트입력=앱, 동기화=실시간+배치, 7-seg=TM1637, LED=74HC595×3)
 - [ ] 앱 BLE 연동 (Flutter)
 - [ ] 프로토타입 PCB 설계
+
+### Phase 5: 앱 전체 리팩토링 — **완료** (02-22)
+- [x] **isDark 하드코딩 제거** (47건, 18파일) → `context.isDarkMode` 통일
+- [x] **atom 위젯 const 추가** + **GoRouter 인증 가드** 추가
+- [x] **sealed AppException 에러 처리 통일** (6개 repository)
+- [x] **WorkoutScreen 분해**: 1,754줄 → 719줄 (workout_dialogs, workout_components, workout_input_provider 추출)
+- [x] **StatsScreen 분해**: 1,934줄 → 213줄 (4개 차트 위젯 추출)
+- [x] **Provider↔Repository 일관성**: workout_provider의 Supabase 직접 호출 13건 → Repository 경유
+- [x] **finishWorkout 이중 실행 방지**: boolean flag → Completer 패턴
+- [x] **세션 번호 레이스 컨디션 수정**: COUNT → MAX 방식
+- [x] **print() 제거**: 268건 (29파일) → 0건 + 미사용 변수 정리
+- [x] **Feature-First 폴더 마이그레이션**: `data/`+`domain/`+`presentation/` → `features/`+`shared/`
+  - 8개 feature 모듈: auth, workout, history, stats, profile, routine, exercise, home
+  - 60+ 파일 이동 + 323개 import 업데이트 + build_runner 재생성
+  - `dart analyze` 에러 0건

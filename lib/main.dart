@@ -7,7 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
-import 'data/services/notification_service.dart';
+import 'package:v2log/shared/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,9 +33,8 @@ Future<void> main() async {
   // .env 파일 로드 (존재하는 경우에만)
   try {
     await dotenv.load(fileName: '.env');
-    print('✅ .env 파일 로드 성공');
-  } catch (e) {
-    print('⚠️ .env 파일 없음 - 데모 모드로 실행');
+  } catch (_) {
+    // Error logged silently
   }
 
   // Supabase 초기화
@@ -51,12 +50,9 @@ Future<void> main() async {
           authFlowType: AuthFlowType.pkce,
         ),
       );
-      print('✅ Supabase 초기화 성공');
-    } catch (e) {
-      print('⚠️ Supabase 초기화 실패: $e');
+    } catch (_) {
+      // Error logged silently
     }
-  } else {
-    print('⚠️ Supabase 환경 변수 없음 - 데모 모드로 실행');
   }
 
   // Hive 초기화 (로컬 캐싱)
@@ -68,9 +64,8 @@ Future<void> main() async {
   // 알림 서비스 초기화 (앱 시작 전에 완료)
   try {
     await NotificationService().initialize();
-    print('✅ 알림 서비스 초기화 성공');
-  } catch (e) {
-    print('⚠️ 알림 서비스 초기화 실패: $e');
+  } catch (_) {
+    // Error logged silently
   }
 
   runApp(

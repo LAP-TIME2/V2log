@@ -1,0 +1,780 @@
+import 'dart:async';
+
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
+
+import 'package:v2log/core/utils/fitness_calculator.dart';
+import 'package:v2log/shared/dummy/dummy_exercises.dart';
+import 'package:v2log/shared/dummy/dummy_preset_routines.dart';
+import 'package:v2log/shared/models/exercise_model.dart';
+import 'package:v2log/shared/models/preset_routine_model.dart';
+import 'package:v2log/shared/models/workout_session_model.dart';
+import 'package:v2log/shared/models/workout_set_model.dart';
+import 'package:v2log/shared/services/local_storage_service.dart';
+import 'package:v2log/shared/services/supabase_service.dart';
+import 'package:v2log/features/auth/domain/auth_provider.dart';
+import 'package:v2log/features/routine/domain/preset_routine_provider.dart';
+
+part 'workout_provider.g.dart';
+
+const _uuid = Uuid();
+
+/// 활성 운동 세션 Provider
+@Riverpod(keepAlive: true)
+class ActiveWorkout extends _$ActiveWorkout {
+  // 데모 모드용 로컬 PR 기록
+  final Map<String, double> _localPrRecords = {};
+
+  // 운동 완료 중복 실행 방지 (Completer 패턴)
+  Completer<WorkoutSessionModel?>? _finishCompleter;
+
+  @override
+  WorkoutSessionModel? build() {
+    // 앱 시작 시 로컬에 저장된 세션 복구 시도
+    _restoreSession();
+    return null;
+  }
+
+  /// 운동 완료 진행 중 여부 (UI에서 구독용)
+  bool get isFinishing => _finishCompleter != null;
+
+  Future<void> _restoreSession() async {
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      final savedSession = await localStorage.getWorkoutSession();
+
+      if (savedSession != null) {
+        try {
+          state = WorkoutSessionModel.fromJson(savedSession);
+        } catch (e) {
+          await localStorage.clearWorkoutSession();
+        }
+      }
+    } catch (_) {
+      // Error logged silently
+    }
+  }
+
+  /// 운동 시작
+  Future<void> startWorkout({
+    String? routineId,
+    required WorkoutMode mode,
+  }) async {
+    final userId = ref.read(currentUserIdProvider);
+    final isLoggedIn = userId != null;
+
+    final sessionNumber = isLoggedIn ? await _getTodaySessionNumber(userId) : 1;
+
+    final session = WorkoutSessionModel(
+      id: _uuid.v4(),
+      userId: userId ?? 'anonymous',
+      routineId: routineId,
+      sessionNumber: sessionNumber,
+      mode: mode,
+      startedAt: DateTime.now(),
+      createdAt: DateTime.now(),
+    );
+
+    // 로그인한 경우에만 Supabase에 세션 생성
+    if (isLoggedIn) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        // routine_id는 routines 테이블 참조 - preset 모드에서는 null로 설정
+        await supabase.from(SupabaseTables.workoutSessions).insert({
+          'id': session.id,
+          'user_id': session.userId,
+          'routine_id': null, // preset 루틴은 routines 테이블에 없으므로 null
+          'session_number': session.sessionNumber,
+          'mode': session.mode.value,
+          'started_at': session.startedAt.toIso8601String(),
+        });
+      } catch (_) {
+        // Error logged silently
+      }
+    }
+
+    // 로컬 저장소에 백업
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.saveWorkoutSession(session.toJson());
+      localStorage.lastWorkoutMode = mode.value;
+    } catch (_) {
+      // Error logged silently
+    }
+
+    state = session;
+  }
+
+  Future<int> _getTodaySessionNumber(String userId) async {
+    try {
+      final supabase = ref.read(supabaseServiceProvider);
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      final response = await supabase
+          .from(SupabaseTables.workoutSessions)
+          .select('id')
+          .eq('user_id', userId)
+          .gte('started_at', startOfDay.toIso8601String())
+          .lt('started_at', endOfDay.toIso8601String());
+
+      return (response as List).length + 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  /// 세트 추가
+  Future<void> addSet({
+    required String exerciseId,
+    required double weight,
+    required int reps,
+    SetType setType = SetType.working,
+    double? rpe,
+    String? notes,
+  }) async {
+    if (state == null) throw Exception('진행 중인 운동이 없습니다');
+
+    final session = state!;
+    final exerciseSets =
+        session.sets.where((s) => s.exerciseId == exerciseId).toList();
+    final setNumber = exerciseSets.length + 1;
+
+    // 세션 완료 시점에 PR이 확정되므로 진행 중에는 false
+    // 화면에서는 세션 내 최고 무게 세트에 실시간 PR 표시
+    final newSet = WorkoutSetModel(
+      id: _uuid.v4(),
+      sessionId: session.id,
+      exerciseId: exerciseId,
+      setNumber: setNumber,
+      setType: setType,
+      weight: weight,
+      reps: reps,
+      rpe: rpe,
+      isPr: false,
+      notes: notes,
+      completedAt: DateTime.now(),
+    );
+
+    // 로그인한 경우에만 Supabase에 세트 저장
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSets).insert({
+          'id': newSet.id,
+          'session_id': newSet.sessionId,
+          'exercise_id': newSet.exerciseId,
+          'set_number': newSet.setNumber,
+          'set_type': newSet.setType.value,
+          'weight': newSet.weight,
+          'reps': newSet.reps,
+          'rpe': newSet.rpe,
+          'is_pr': newSet.isPr,
+          'notes': newSet.notes,
+          'completed_at': newSet.completedAt.toIso8601String(),
+        });
+      } catch (_) {
+        // Error logged silently
+      }
+    }
+
+    // 로컬 PR 업데이트
+    _updateLocalPR(exerciseId, weight, reps);
+
+    // 마지막 세트 저장
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.saveLastSet(session.userId, exerciseId, weight, reps);
+    } catch (_) {
+      // Error logged silently
+    }
+
+    // 상태 업데이트
+    final updatedSession = session.copyWith(
+      sets: [...session.sets, newSet],
+      totalSets: (session.totalSets ?? 0) + 1,
+      totalVolume: (session.totalVolume ?? 0) + newSet.volume,
+    );
+
+    state = updatedSession;
+
+    // 로컬 백업
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.saveWorkoutSession(updatedSession.toJson());
+    } catch (_) {
+      // Error logged silently
+    }
+  }
+
+  void _updateLocalPR(String exerciseId, double weight, int reps) {
+    final new1rm = FitnessCalculator.calculate1RM(weight, reps);
+    final current1rm = _localPrRecords[exerciseId];
+
+    if (current1rm == null || new1rm > current1rm) {
+      _localPrRecords[exerciseId] = new1rm;
+    }
+  }
+
+  /// 세트 수정
+  Future<void> updateSet(String setId, {double? weight, int? reps}) async {
+    if (state == null) return;
+
+    final session = state!;
+    final setIndex = session.sets.indexWhere((s) => s.id == setId);
+    if (setIndex == -1) return;
+
+    final oldSet = session.sets[setIndex];
+    final updatedSet = oldSet.copyWith(
+      weight: weight ?? oldSet.weight,
+      reps: reps ?? oldSet.reps,
+    );
+
+    // 로그인한 경우에만 Supabase 업데이트
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSets).update({
+          'weight': updatedSet.weight,
+          'reps': updatedSet.reps,
+        }).eq('id', setId);
+      } catch (_) {
+        // Error logged silently
+      }
+    }
+
+    final newSets = [...session.sets];
+    newSets[setIndex] = updatedSet;
+
+    final volumeDiff = updatedSet.volume - oldSet.volume;
+
+    state = session.copyWith(
+      sets: newSets,
+      totalVolume: (session.totalVolume ?? 0) + volumeDiff,
+    );
+  }
+
+  /// 세트 삭제
+  Future<void> deleteSet(String setId) async {
+    if (state == null) return;
+
+    final session = state!;
+    final setToDelete = session.sets.firstWhere((s) => s.id == setId);
+
+    // 로그인한 경우에만 Supabase 삭제
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSets).delete().eq('id', setId);
+      } catch (_) {
+        // Error logged silently
+      }
+    }
+
+    state = session.copyWith(
+      sets: session.sets.where((s) => s.id != setId).toList(),
+      totalSets: (session.totalSets ?? 1) - 1,
+      totalVolume: (session.totalVolume ?? 0) - setToDelete.volume,
+    );
+  }
+
+  /// 운동 완료 - 완료된 세션을 반환 (Completer 패턴으로 중복 호출 시 같은 Future 반환)
+  Future<WorkoutSessionModel?> finishWorkout({String? notes, int? moodRating}) async {
+    // 중복 실행 방지 (Completer 패턴: 이미 진행 중이면 같은 Future 반환)
+    if (_finishCompleter != null) {
+      return _finishCompleter!.future;
+    }
+
+    if (state == null) {
+      return null;
+    }
+
+    // Completer 생성 (lock 역할)
+    _finishCompleter = Completer<WorkoutSessionModel?>();
+
+    try {
+      final session = state!;
+      final finishedAt = DateTime.now();
+      final durationSeconds = finishedAt.difference(session.startedAt).inSeconds;
+
+      // 세션 내 각 운동별 최고 무게 세트에만 PR 표시
+      final updatedSets = _updateSessionPRs(session.sets);
+
+      // 완료된 세션 생성
+      final finishedSession = session.copyWith(
+        finishedAt: finishedAt,
+        totalVolume: session.calculatedVolume,
+        totalSets: session.sets.length,
+        totalDurationSeconds: durationSeconds,
+        notes: notes,
+        moodRating: moodRating,
+        sets: updatedSets,
+      );
+
+      // 로그인한 경우에만 Supabase 업데이트
+      final userId = ref.read(currentUserIdProvider);
+      if (userId != null) {
+        try {
+          final supabase = ref.read(supabaseServiceProvider);
+
+          // PR 상태가 변경된 세트들만 Supabase 업데이트
+          for (int i = 0; i < session.sets.length; i++) {
+            final oldSet = session.sets[i];
+            final newSet = updatedSets[i];
+            if (oldSet.isPr != newSet.isPr) {
+              await supabase
+                  .from(SupabaseTables.workoutSets)
+                  .update({'is_pr': newSet.isPr})
+                  .eq('id', newSet.id);
+            }
+          }
+
+          await supabase.from(SupabaseTables.workoutSessions).update({
+            'finished_at': finishedAt.toIso8601String(),
+            'total_volume': session.calculatedVolume,
+            'total_sets': session.sets.length,
+            'total_duration_seconds': durationSeconds,
+            'notes': notes,
+            'mood_rating': moodRating,
+          }).eq('id', session.id);
+        } catch (e) {
+          // 실패해도 로컬 세션은 반환 (오프라인 지원)
+        }
+      } else {
+      }
+
+      // 로컬 저장소 정리
+      try {
+        final localStorage = ref.read(localStorageServiceProvider);
+        await localStorage.clearWorkoutSession();
+      } catch (_) {
+        // Error logged silently
+      }
+
+      // 상태 null 설정은 요약 화면 이후에 처리 (여기서는 제거)
+
+      _finishCompleter!.complete(finishedSession);
+      return finishedSession;
+    } catch (e) {
+      _finishCompleter!.completeError(e);
+      rethrow;
+    } finally {
+      // Completer 해제 (성공/실패 상관없이 반드시 실행)
+      _finishCompleter = null;
+    }
+  }
+
+  /// 세션 내 각 운동별 최고 무게 세트에만 PR 표시
+  List<WorkoutSetModel> _updateSessionPRs(List<WorkoutSetModel> sets) {
+    // 모든 세트의 isPr를 false로 초기화
+    final updatedSets = sets.map((set) => set.copyWith(isPr: false)).toList();
+
+    // 운동별로 그룹화
+    final Map<String, List<WorkoutSetModel>> exerciseSets = {};
+    for (final set in updatedSets) {
+      exerciseSets.putIfAbsent(set.exerciseId, () => []);
+      exerciseSets[set.exerciseId]!.add(set);
+    }
+
+    // 각 운동별로 최고 무게를 찾아 첫 번째 세트에만 PR 표시
+    for (final entry in exerciseSets.entries) {
+      final exerciseSetsList = entry.value;
+
+      // setNumber 순으로 정렬 (이미 정렬되어 있을 수 있지만 명시적)
+      exerciseSetsList.sort((a, b) => a.setNumber.compareTo(b.setNumber));
+
+      // 최고 무게 찾기
+      double? maxWeight;
+      for (final set in exerciseSetsList) {
+        if (set.weight != null) {
+          if (maxWeight == null || set.weight! > maxWeight) {
+            maxWeight = set.weight!;
+          }
+        }
+      }
+
+      // 최고 무게를 가진 첫 번째 세트에만 PR 표시
+      if (maxWeight != null) {
+        for (int i = 0; i < exerciseSetsList.length; i++) {
+          final set = exerciseSetsList[i];
+          if (set.weight == maxWeight) {
+            // 전체 리스트에서 해당 세트를 찾아 isPr를 true로 설정
+            final index = updatedSets.indexWhere((s) => s.id == set.id);
+            if (index != -1) {
+              updatedSets[index] = set.copyWith(isPr: true);
+            }
+            break; // 첫 번째 최고 무게 세트만 PR
+          }
+        }
+      }
+    }
+
+    return updatedSets;
+  }
+
+  /// 세션 메모 업데이트
+  Future<void> updateSessionNotes(String notes) async {
+    if (state == null) return;
+
+    final session = state!;
+    final updatedSession = session.copyWith(notes: notes);
+
+    // 로그인한 경우에만 Supabase 업데이트
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSessions).update({
+          'notes': notes,
+        }).eq('id', session.id);
+      } catch (_) {
+        // Error logged silently
+      }
+    }
+
+    state = updatedSession;
+
+    // 로컬 백업
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.saveWorkoutSession(updatedSession.toJson());
+    } catch (_) {
+      // Error logged silently
+    }
+  }
+
+  /// 활성 운동 정리 (요약 화면 이후 호출용)
+  Future<void> clearActiveWorkout() async {
+    // 로컬 저장소 정리
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.clearWorkoutSession();
+    } catch (_) {
+      // Error logged silently
+    }
+
+    // 상태 null로 설정
+    state = null;
+  }
+
+  /// 운동 취소
+  Future<void> cancelWorkout() async {
+    if (state == null) return;
+
+    final session = state!;
+
+    // 로그인한 경우에만 Supabase 업데이트
+    final userId = ref.read(currentUserIdProvider);
+    if (userId != null) {
+      try {
+        final supabase = ref.read(supabaseServiceProvider);
+        await supabase.from(SupabaseTables.workoutSessions).update({
+          'is_cancelled': true,
+          'finished_at': DateTime.now().toIso8601String(),
+        }).eq('id', session.id);
+      } catch (_) {
+        // Error logged silently
+      }
+    }
+
+    // 로컬 저장소 정리
+    try {
+      final localStorage = ref.read(localStorageServiceProvider);
+      await localStorage.clearWorkoutSession();
+    } catch (_) {
+      // Error logged silently
+    }
+
+    state = null;
+  }
+}
+
+/// 현재 루틴 운동 목록 Provider (프리셋 루틴 모드일 때)
+@Riverpod(keepAlive: true)
+class RoutineExercises extends _$RoutineExercises {
+  @override
+  List<PresetRoutineExerciseModel> build() => [];
+
+  /// 루틴 운동 목록 설정
+  Future<void> loadFromRoutine(String routineId, {int dayNumber = 1}) async {
+    try {
+      final exercises = await ref.read(
+        presetRoutineDayExercisesProvider(routineId, dayNumber).future,
+      );
+      state = exercises;
+    } catch (_) {
+      // 더미 데이터에서 로드
+      final routine = DummyPresetRoutines.getById(routineId);
+      if (routine != null) {
+        state = routine.exercisesByDay[dayNumber] ?? [];
+      }
+    }
+  }
+
+  /// 운동 목록 초기화
+  void clear() {
+    state = [];
+  }
+}
+
+/// 현재 운동 인덱스 Provider
+@Riverpod(keepAlive: true)
+class CurrentExerciseIndex extends _$CurrentExerciseIndex {
+  @override
+  int build() => 0;
+
+  /// 다음 운동으로 이동
+  void next() {
+    final exercises = ref.read(routineExercisesProvider);
+    if (state < exercises.length - 1) {
+      state = state + 1;
+    }
+  }
+
+  /// 이전 운동으로 이동
+  void previous() {
+    if (state > 0) {
+      state = state - 1;
+    }
+  }
+
+  /// 특정 운동으로 이동
+  void goTo(int index) {
+    final exercises = ref.read(routineExercisesProvider);
+    if (index >= 0 && index < exercises.length) {
+      state = index;
+    }
+  }
+
+  /// 인덱스 초기화
+  void reset() {
+    state = 0;
+  }
+}
+
+/// 현재 운동 (루틴 모드)
+@riverpod
+PresetRoutineExerciseModel? currentRoutineExercise(CurrentRoutineExerciseRef ref) {
+  final exercises = ref.watch(routineExercisesProvider);
+  final index = ref.watch(currentExerciseIndexProvider);
+
+  if (exercises.isEmpty || index >= exercises.length) return null;
+  return exercises[index];
+}
+
+/// 운동 진행 상태 Provider
+@riverpod
+bool isWorkoutInProgress(IsWorkoutInProgressRef ref) {
+  final session = ref.watch(activeWorkoutProvider);
+  return session != null;
+}
+
+/// 현재 운동의 세트 목록 Provider
+@riverpod
+List<WorkoutSetModel> currentWorkoutSets(CurrentWorkoutSetsRef ref) {
+  final session = ref.watch(activeWorkoutProvider);
+  return session?.sets ?? [];
+}
+
+/// 특정 운동의 세트 목록 Provider
+@riverpod
+List<WorkoutSetModel> exerciseSets(ExerciseSetsRef ref, String exerciseId) {
+  final sets = ref.watch(currentWorkoutSetsProvider);
+  return sets.where((s) => s.exerciseId == exerciseId).toList();
+}
+
+/// 특정 운동의 추정 1RM 조회 Provider (exercise_records 테이블)
+@riverpod
+Future<double?> exerciseEstimated1rm(
+  ExerciseEstimated1rmRef ref,
+  String exerciseId,
+) async {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.exerciseRecords)
+        .select('estimated_1rm')
+        .eq('user_id', userId)
+        .eq('exercise_id', exerciseId)
+        .maybeSingle();
+
+    if (response == null) return null;
+    return (response['estimated_1rm'] as num?)?.toDouble();
+  } catch (e) {
+    return null;
+  }
+}
+
+/// 운동별 마지막 세트 정보 Provider
+@riverpod
+Future<Map<String, dynamic>?> lastSetInfo(
+  LastSetInfoRef ref,
+  String exerciseId,
+) async {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+
+  try {
+    final localStorage = ref.read(localStorageServiceProvider);
+    return await localStorage.getLastSet(userId, exerciseId);
+  } catch (e) {
+    return null;
+  }
+}
+
+/// 현재 운동 운동 목록 Provider (더미 데이터 사용)
+@riverpod
+List<ExerciseModel> currentExercises(CurrentExercisesRef ref) {
+  // 자유 모드 시 인기 운동 목록 반환
+  return DummyExercises.exercises.take(10).toList();
+}
+
+/// 최근 운동 기록 Provider
+@riverpod
+Future<List<WorkoutSessionModel>> recentWorkouts(RecentWorkoutsRef ref) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 리스트 반환
+  if (userId == null) {
+    return [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          *,
+          workout_sets (*)
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .order('started_at', ascending: false)
+        .limit(5);
+
+
+    return response.map((e) {
+      final sets = (e['workout_sets'] as List?)
+              ?.map((s) => WorkoutSetModel.fromJson(s))
+              .toList() ??
+          [];
+
+      return WorkoutSessionModel.fromJson({
+        ...e,
+        'sets': sets.map((s) => s.toJson()).toList(),
+      });
+    }).toList();
+  } catch (e) {
+    return [];
+  }
+}
+
+/// 운동 기록 히스토리 Provider (월별 그룹화)
+@riverpod
+Future<List<WorkoutSessionModel>> workoutHistory(
+  WorkoutHistoryRef ref, {
+  int limit = 20,
+  int offset = 0,
+}) async {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // 로그인하지 않은 경우 빈 리스트 반환
+  if (userId == null) {
+    return [];
+  }
+
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          *,
+          workout_sets (*)
+        ''')
+        .eq('user_id', userId)
+        .eq('is_cancelled', false)
+        .not('finished_at', 'is', null)
+        .order('started_at', ascending: false)
+        .range(offset, offset + limit - 1);
+
+    return (response as List).map((e) {
+      final sets = (e['workout_sets'] as List?)
+              ?.map((s) => WorkoutSetModel.fromJson(s))
+              .toList() ??
+          [];
+
+      return WorkoutSessionModel.fromJson({
+        ...e,
+        'sets': sets.map((s) => s.toJson()).toList(),
+      });
+    }).toList();
+  } catch (_) {
+    return [];
+  }
+}
+
+/// 특정 세션 상세 조회 Provider
+@riverpod
+Future<WorkoutSessionModel?> workoutSessionDetail(
+  WorkoutSessionDetailRef ref,
+  String sessionId,
+) async {
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.workoutSessions)
+        .select('''
+          *,
+          workout_sets (*)
+        ''')
+        .eq('id', sessionId)
+        .single();
+
+    final sets = (response['workout_sets'] as List?)
+            ?.map((s) => WorkoutSetModel.fromJson(s))
+            .toList() ??
+        [];
+
+    // 세트를 set_number 순으로 정렬
+    sets.sort((a, b) => a.setNumber.compareTo(b.setNumber));
+
+    return WorkoutSessionModel.fromJson({
+      ...response,
+      'sets': sets.map((s) => s.toJson()).toList(),
+    });
+  } catch (_) {
+    return null;
+  }
+}
+
+/// 운동 이름 맵 Provider (exercise_id -> name)
+@riverpod
+Future<Map<String, String>> exerciseNamesMap(ExerciseNamesMapRef ref) async {
+  try {
+    final supabase = ref.read(supabaseServiceProvider);
+    final response = await supabase
+        .from(SupabaseTables.exercises)
+        .select('id, name');
+
+    final map = <String, String>{};
+    for (final e in response as List) {
+      map[e['id'] as String] = e['name'] as String;
+    }
+    return map;
+  } catch (_) {
+    // 더미 데이터에서 가져오기
+    final map = <String, String>{};
+    for (final ex in DummyExercises.exercises) {
+      map[ex.id] = ex.name;
+    }
+    return map;
+  }
+}

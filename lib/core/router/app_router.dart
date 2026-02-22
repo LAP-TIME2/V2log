@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_colors.dart';
+import '../extensions/context_extension.dart';
 import '../utils/animation_config.dart';
 
-import '../../presentation/screens/auth/login_screen.dart';
-import '../../presentation/screens/auth/register_screen.dart';
-import '../../presentation/screens/history/history_screen.dart';
-import '../../presentation/screens/home/home_screen.dart';
-import '../../presentation/screens/onboarding/onboarding_screen.dart';
-import '../../presentation/screens/profile/profile_screen.dart';
-import '../../presentation/screens/routine/routine_library_screen.dart';
-import '../../presentation/screens/splash/splash_screen.dart';
-import '../../presentation/screens/stats/stats_screen.dart';
-import '../../presentation/screens/exercise/exercise_detail_screen.dart';
-import '../../presentation/screens/workout/workout_screen.dart';
-import '../../presentation/screens/workout/workout_summary_screen.dart';
-import '../../data/models/workout_session_model.dart';
+import 'package:v2log/features/auth/presentation/login_screen.dart';
+import 'package:v2log/features/auth/presentation/register_screen.dart';
+import 'package:v2log/features/history/presentation/history_screen.dart';
+import 'package:v2log/features/home/presentation/home_screen.dart';
+import 'package:v2log/features/auth/presentation/onboarding_screen.dart';
+import 'package:v2log/features/profile/presentation/profile_screen.dart';
+import 'package:v2log/features/routine/presentation/routine_library_screen.dart';
+import 'package:v2log/features/auth/presentation/splash_screen.dart';
+import 'package:v2log/features/stats/presentation/stats_screen.dart';
+import 'package:v2log/features/exercise/presentation/exercise_detail_screen.dart';
+import 'package:v2log/features/workout/presentation/workout_screen.dart';
+import 'package:v2log/features/workout/presentation/workout_summary_screen.dart';
+import 'package:v2log/shared/models/workout_session_model.dart';
 
 /// V2log 앱 라우터
 class AppRouter {
@@ -31,6 +33,14 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
+    redirect: (context, state) {
+      final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
+      final isAuthRoute = state.matchedLocation == '/' ||
+          state.matchedLocation == '/onboarding' ||
+          state.matchedLocation.startsWith('/auth');
+      if (!isLoggedIn && !isAuthRoute) return '/auth/login';
+      return null;
+    },
     routes: [
       // Splash
       GoRoute(
@@ -282,7 +292,7 @@ class _MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = context.isDarkMode;
     final navBgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF);
     final indicatorColor = AppColors.primary500.withValues(alpha: 0.2);
 

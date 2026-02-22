@@ -36,7 +36,6 @@ class WorkoutShareUtils {
               as RenderRepaintBoundary?;
 
       if (boundary == null) {
-        print('=== 경고: RenderRepaintBoundary를 찾을 수 없음 ===');
         return null;
       }
 
@@ -54,8 +53,7 @@ class WorkoutShareUtils {
       }
 
       return byteData.buffer.asUint8List();
-    } catch (e) {
-      print('=== 캡처 실패: $e ===');
+    } catch (_) {
       return null;
     }
   }
@@ -83,9 +81,8 @@ class WorkoutShareUtils {
       // 임시 파일 정리
       try {
         await file.delete();
-      } catch (_) {}
-    } catch (e) {
-      print('=== 공유 실패: $e ===');
+      } catch (_) { /* Error logged silently */ }
+    } catch (_) {
       rethrow;
     }
   }
@@ -98,18 +95,15 @@ class WorkoutShareUtils {
       if (!hasAccess) {
         final granted = await Gal.requestAccess();
         if (!granted) {
-          print('=== 갤러리 권한 거부됨 ===');
           return false;
         }
       }
 
       await Gal.putImageBytes(imageBytes, album: 'V2log');
       return true;
-    } on GalException catch (e) {
-      print('=== 갤러리 저장 실패: ${e.type} ===');
+    } on GalException catch (_) {
       return false;
-    } catch (e) {
-      print('=== 갤러리 저장 에러: $e ===');
+    } catch (_) {
       return false;
     }
   }
