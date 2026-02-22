@@ -121,14 +121,30 @@ preset_routines ← preset_routine_exercises → exercises
 2. `user_id` = `Supabase.instance.client.auth.currentUser?.id`
 3. 회원가입 시 Auth + users 테이블 **동시** INSERT
 4. Exercise ID는 반드시 **UUID** 형식 (ex-001 스타일 금지)
-5. `debugPrint()` 사용 금지 → `print('=== 에러: $e ===')` 사용 (터미널에 보임)
 
 ### CV 작업 시
 - **반드시 `CLAUDE-CV.md` 참조** (CV 기술 스택, 코딩 규칙, 통합 포인트, 성능 최적화)
 
+### 코드 품질 게이트 (2026-02-22 리팩토링 후 신설, 위반 시 커밋 금지)
+
+| # | 규칙 | 위반 기준 | 검증 방법 |
+|---|------|----------|----------|
+| Q1 | **화면(Screen) 500줄 이하** | Screen 파일이 500줄 초과 | `wc -l` |
+| Q2 | **print() / debugPrint() 금지** | lib/ 내 print/debugPrint 1건 이상 (cv/ 제외) | `Grep print\(` |
+| Q3 | **isDark → context.isDarkMode** | `Theme.of(context).brightness` 직접 사용 1건 이상 | `Grep Theme.of.*brightness` |
+| Q4 | **에러 처리 AppException만** | Repository에서 `return null` (에러 경로) 또는 커스텀 Exception | Grep |
+| Q5 | **Provider가 Supabase 직접 호출 금지** | Provider에서 `supabase.from(` 직접 호출 | `Grep supabase.from` in providers |
+| Q6 | **새 기능은 features/ 폴더에** | lib/ 루트나 기존 Layer-First 경로에 새 파일 생성 | 파일 경로 확인 |
+| Q7 | **dart analyze error 0개** | error 1건 이상 | `dart analyze lib/` |
+
+**커밋 전 자동 체크:** 위 7개 중 하나라도 위반되면 커밋하지 않고 먼저 수정.
+**500줄 초과 시:** 위젯/다이얼로그/로직을 별도 파일로 추출한 후 커밋.
+
 ### 코드 작성 규칙
 - Provider: `@riverpod` 어노테이션 사용
-- 에러 처리: 비동기 작업에 try-catch + AsyncValue 활용
+- 에러 처리: `AppException` 계열로 throw (`lib/core/errors/app_exception.dart`)
+- Repository만 Supabase/Hive 호출. Provider → Repository → DB (단일 경로)
+- 다크모드 판별: `context.isDarkMode` (context_extension.dart)
 - 성능: ListView.builder, const 위젯 활용
 - 코드 생성 후: `dart run build_runner build --delete-conflicting-outputs`
 

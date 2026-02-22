@@ -52,7 +52,7 @@ static const List<String> _classNames = [
 3. **Python으로 TFLite 모델의 입출력 shape를 확인하는 습관** 필요
 
 ### 영향 파일
-- `lib/data/services/weight_detection_service.dart` — _classNames, _classWeights 수정
+- `lib/features/workout/data/weight_detection_service.dart` — _classNames, _classWeights 수정
 
 ---
 
@@ -83,8 +83,8 @@ Stage 2 (운동 모드):
 - **세트 완료 시 Stage 1 복귀** → 무게 변경 대응
 
 ### 영향 파일
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — 완전 재작성 (~630줄)
-- `lib/data/services/weight_detection_service.dart` — 디버그 로그 추가
+- `lib/shared/widgets/molecules/camera_overlay.dart` — 완전 재작성 (~630줄)
+- `lib/features/workout/data/weight_detection_service.dart` — 디버그 로그 추가
 
 ### CameraStage enum
 ```dart
@@ -182,7 +182,7 @@ final inputData = await Isolate.run(() => _preprocessInIsolate(params));
 5. **안정성 로직에 감지 실패 케이스 처리 필수** — 0kg 삽입이 전체 안정화를 방해
 
 ### 영향 파일
-- `lib/data/services/weight_detection_service.dart` — 전면 재작성 (449줄 → 485줄)
+- `lib/features/workout/data/weight_detection_service.dart` — 전면 재작성 (449줄 → 485줄)
 
 ### 상세 보고서
 → `docs/reference/02-16_무게감지_성능최적화_분석.md`
@@ -238,7 +238,7 @@ final inputData = await Isolate.run(() => _preprocessInIsolate(params));
 4. **"작동하던 것 기반으로 수정"이 가장 안전** — 새로운 최적화 기법보다 검증된 입출력 형식 우선
 
 ### 영향 파일
-- `lib/data/services/weight_detection_service.dart` — 재작성
+- `lib/features/workout/data/weight_detection_service.dart` — 재작성
 
 ---
 
@@ -312,8 +312,8 @@ Text('잠시 고정해주세요 ($_stabilityHits/$_stabilityRequired 안정화)'
 4. **Isolate.run()과 IsolateInterpreter는 완전히 다른 패턴** — 전자는 1회용, 후자는 상주
 
 ### 영향 파일
-- `lib/data/services/weight_detection_service.dart` — IsolateInterpreter + 안정화 로직 재작성
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — UI 안정화 진행률 표시
+- `lib/features/workout/data/weight_detection_service.dart` — IsolateInterpreter + 안정화 로직 재작성
+- `lib/shared/widgets/molecules/camera_overlay.dart` — UI 안정화 진행률 표시
 
 ---
 
@@ -357,9 +357,9 @@ Text('잠시 고정해주세요 ($_stabilityHits/$_stabilityRequired 안정화)'
 - 배경 사람 = 작고 가장자리 → 자동 무시
 
 ### 영향 파일
-- `lib/data/services/weight_detection_service.dart` — `_calculateTotalWeight()` 좌/우 그룹핑
-- `lib/data/services/pose_detection_service.dart` — `selectPrimaryPose()` static 메서드 추가
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — FittedBox cover + primaryPose 적용
+- `lib/features/workout/data/weight_detection_service.dart` — `_calculateTotalWeight()` 좌/우 그룹핑
+- `lib/features/workout/data/pose_detection_service.dart` — `selectPrimaryPose()` static 메서드 추가
+- `lib/shared/widgets/molecules/camera_overlay.dart` — FittedBox cover + primaryPose 적용
 
 ### 배운 점
 1. **StackFit.expand는 카메라에 쓰면 안 됨** — 비율이 깨짐. `FittedBox(BoxFit.cover)` 사용
@@ -443,8 +443,8 @@ height: _currentStage == CameraStage.weightDetecting ? 280 : 200,
 | Stage별 해상도 분리 안 함 | CameraController는 1개 해상도만, 전환 시 1~2초 검은 화면 → UX 나쁨 |
 
 ### 영향 파일
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — ResolutionPreset.high + Stage별 프리뷰 높이
-- `lib/data/services/weight_detection_service.dart` — frameSkip 1 + stability threshold 0.55
+- `lib/shared/widgets/molecules/camera_overlay.dart` — ResolutionPreset.high + Stage별 프리뷰 높이
+- `lib/features/workout/data/weight_detection_service.dart` — frameSkip 1 + stability threshold 0.55
 
 ---
 
@@ -511,8 +511,8 @@ await _isolateInterpreter!.run(input, output);
 4. **스크린샷이 AppLifecycleState.inactive를 트리거한다** — 삼성 캡처 애니메이션 때문
 
 ### 영향 파일
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — `_disposeCamera()`에서 `_weightService.dispose()` 제거
-- `lib/data/services/weight_detection_service.dart` — `processFrame()` 내 추론 직전 방어 null check
+- `lib/shared/widgets/molecules/camera_overlay.dart` — `_disposeCamera()`에서 `_weightService.dispose()` 제거
+- `lib/features/workout/data/weight_detection_service.dart` — `processFrame()` 내 추론 직전 방어 null check
 
 ---
 
@@ -539,7 +539,7 @@ v2B-007에서 카메라를 640×480 → 1280×720으로 올리면서 `_confidenc
 3. **"AI 감지 N%"가 58%면 의심해야** — 진짜 원판은 80%+ 나옴
 
 ### 영향 파일
-- `lib/data/services/weight_detection_service.dart` — 임계값 상향 + bbox 면적 필터
+- `lib/features/workout/data/weight_detection_service.dart` — 임계값 상향 + bbox 면적 필터
 
 ---
 
@@ -601,8 +601,8 @@ Stage 1=280px, Stage 2=200px → 전환 시 레이아웃 점프. Stage 2에서 �
 4. **3단계 방어 (conf→ROI→bbox)가 실전에서 안전** — 1단계만으로는 헬스장 환경 커버 불가
 
 ### 영향 파일
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — 모니터링 모드, 하단 compact 바, ROI 가이드, 높이 통일
-- `lib/data/services/weight_detection_service.dart` — ROI 공간 필터 + bbox 최소 크기 상향
+- `lib/shared/widgets/molecules/camera_overlay.dart` — 모니터링 모드, 하단 compact 바, ROI 가이드, 높이 통일
+- `lib/features/workout/data/weight_detection_service.dart` — ROI 공간 필터 + bbox 최소 크기 상향
 
 ---
 
@@ -723,5 +723,5 @@ if (rawCount != prevCount) {
 - `android/app/build.gradle.kts` — product flavor
 - `android/app/src/main/AndroidManifest.xml` — label → @string/app_name
 - `android/app/src/{main,production,claude}/res/values/strings.xml` — app_name
-- `lib/data/services/weight_detection_service.dart` — Cold Start + EMA + Hold + clamp + NMS
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — B/C 제거, A만
+- `lib/features/workout/data/weight_detection_service.dart` — Cold Start + EMA + Hold + clamp + NMS
+- `lib/shared/widgets/molecules/camera_overlay.dart` — B/C 제거, A만

@@ -39,12 +39,12 @@ CLAUDE-CV.md에 정의된 CV 코딩 규칙 6가지를 기준으로 CV 관련 파
 ## 검사 대상 파일
 
 CV 관련 파일을 Glob으로 찾아서 검사:
-- `lib/data/services/pose_detection_service.dart`
-- `lib/data/services/rep_counter_service.dart`
-- `lib/domain/providers/cv_provider.dart`
-- `lib/presentation/widgets/molecules/camera_overlay.dart`
-- `lib/presentation/widgets/molecules/pose_overlay.dart`
-- `lib/presentation/screens/workout/workout_screen.dart` (CV 관련 부분만)
+- `lib/features/workout/data/pose_detection_service.dart`
+- `lib/features/workout/data/rep_counter_service.dart`
+- `lib/features/workout/domain/cv_provider.dart`
+- `lib/features/workout/presentation/camera_overlay.dart`
+- `lib/features/workout/presentation/pose_overlay.dart`
+- `lib/features/workout/presentation/workout_screen.dart` (CV 관련 부분만)
 
 ## 출력 형식
 

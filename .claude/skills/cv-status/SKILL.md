@@ -30,23 +30,23 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 
 ### 3단계: Phase 1 — 핵심 서비스 파일 체크
 아래 파일의 존재 여부 + 줄 수 확인 (Bash: `wc -l`):
-- `lib/data/services/pose_detection_service.dart`
-- `lib/data/services/rep_counter_service.dart`
+- `lib/features/workout/data/pose_detection_service.dart`
+- `lib/features/workout/data/rep_counter_service.dart`
 - `lib/core/utils/exercise_angles.dart`
-- `lib/domain/providers/cv_provider.dart`
+- `lib/features/workout/domain/cv_provider.dart`
 
 ### 4단계: Phase 1 — UI 파일 체크
-- `lib/presentation/widgets/molecules/camera_overlay.dart` — 존재 + 줄 수
-- `lib/presentation/widgets/molecules/pose_overlay.dart` — 존재 + 줄 수
+- `lib/features/workout/presentation/camera_overlay.dart` — 존재 + 줄 수
+- `lib/features/workout/presentation/pose_overlay.dart` — 존재 + 줄 수
 
 ### 5단계: Phase 1 — 앱 통합 상태 체크
-`lib/presentation/screens/workout/workout_screen.dart`에서 Grep:
+`lib/features/workout/presentation/workout_screen.dart`에서 Grep:
 - `_cvModeEnabled` → CV 토글 존재?
 - `CameraOverlay` → 위젯 사용?
 - `onRepsDetected` → 콜백 연결?
 
 ### 6단계: Phase 1 — 알고리즘 상세 체크
-`lib/data/services/rep_counter_service.dart` 상단 50줄 Read:
+`lib/features/workout/data/rep_counter_service.dart` 상단 50줄 Read:
 - 버전 정보 (v5.x)
 - 사용 중인 필터 (One Euro, Velocity Gate 등)
 - **버전 크로스체크**: 코드 버전 주석 vs CLAUDE.md "v5.2" 표기 비교
@@ -58,11 +58,11 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 
 ### 8단계: Phase 1 — 성능 최적화 체크
 코드에서 직접 확인:
-- `camera_overlay.dart`에서 `ResolutionPreset` → 해상도 제한?
+- `camera_overlay.dart`에서 `ResolutionPreset` → 해상도 제한? (`lib/features/workout/presentation/camera_overlay.dart`)
 - `camera_overlay.dart`에서 프레임 스킵 로직 (`_frameCount` 등)?
 - `camera_overlay.dart`에서 `dispose()` + `didChangeAppLifecycleState`?
-- `rep_counter_service.dart`에서 디바운싱 간격 (`_debounceMs` 등)?
-- `workout_screen.dart`에서 `confidence >= 0.7` 신뢰도 체크?
+- `rep_counter_service.dart`에서 디바운싱 간격 (`_debounceMs` 등)? (`lib/features/workout/data/rep_counter_service.dart`)
+- `workout_screen.dart`에서 `confidence >= 0.7` 신뢰도 체크? (`lib/features/workout/presentation/workout_screen.dart`)
 
 ### 9단계: Phase 1 — UX 체크
 코드에서 직접 확인:
@@ -88,7 +88,7 @@ CV 개발 전체 워크플로우의 모든 항목을 **실제 코드 기반**으
 
 ### 11단계: Phase 2B (앱 통합) 체크
 - `pubspec.yaml`에 `tflite_flutter` 패키지?
-- `lib/data/services/weight_detection_service.dart` 존재?
+- `lib/features/workout/data/weight_detection_service.dart` 존재?
 - Two-Stage 파이프라인 구현 여부 (무게 감지 모드 ↔ Pose-only 모드)
 - 무게 자동 적용 UX (확인 팝업 없이 화면 표시)
 - 자동 세트 시작/종료 구현 여부

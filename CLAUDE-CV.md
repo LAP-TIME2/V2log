@@ -69,14 +69,14 @@ Phase 3 (미래, 12개월+)
 ### 신규 파일 (Phase 1)
 
 ```
-lib/data/services/
+lib/features/workout/data/
 ├── pose_detection_service.dart    # MediaPipe 래퍼 (초기화, 프레임 분석, 해제)
 └── rep_counter_service.dart        # 횟수 카운팅 (운동별 관절 각도 Peak/Valley)
 
-lib/domain/providers/
+lib/features/workout/domain/
 └── cv_provider.dart                # CV 상태 관리 (@riverpod)
 
-lib/presentation/widgets/molecules/
+lib/features/workout/presentation/
 ├── camera_overlay.dart             # 카메라 프리뷰 + 토글 UI
 └── pose_overlay.dart               # 관절 점/선 오버레이
 
@@ -291,12 +291,12 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 ### Phase 1: 횟수 카운팅 — **완료** (v5.2)
 - [x] 카메라 권한 설정 (Android `CAMERA` / iOS `NSCameraUsageDescription`)
 - [x] camera `^0.11.3+1` + google_mlkit_pose_detection `^0.14.1` + permission_handler `^12.0.1`
-- [x] `pose_detection_service.dart` (162줄) — MediaPipe BlazePose 래퍼, 프레임 스킵, 각도 계산
-- [x] `rep_counter_service.dart` (655줄) — One Euro Filter + Velocity Gate + 운동 시작 확인 시스템
-- [x] `cv_provider.dart` (108줄) — CvState + CvInputModeState (@riverpod)
-- [x] `camera_overlay.dart` (318줄) + `pose_overlay.dart` (133줄) — 촬영 방향 표시, 33개 관절 오버레이
-- [x] `exercise_angles.dart` (374줄) — 10개 운동 각도 데이터 + 3단계 매칭
-- [x] `workout_screen.dart`에 CV 모드 토글 + `onRepsDetected` 콜백 통합
+- [x] `features/workout/data/pose_detection_service.dart` (162줄) — MediaPipe BlazePose 래퍼, 프레임 스킵, 각도 계산
+- [x] `features/workout/data/rep_counter_service.dart` (655줄) — One Euro Filter + Velocity Gate + 운동 시작 확인 시스템
+- [x] `features/workout/domain/cv_provider.dart` (108줄) — CvState + CvInputModeState (@riverpod)
+- [x] `features/workout/presentation/camera_overlay.dart` (318줄) + `features/workout/presentation/pose_overlay.dart` (133줄) — 촬영 방향 표시, 33개 관절 오버레이
+- [x] `core/utils/exercise_angles.dart` (374줄) — 10개 운동 각도 데이터 + 3단계 매칭
+- [x] `features/workout/presentation/workout_screen.dart`에 CV 모드 토글 + `onRepsDetected` 콜백 통합
 - [x] 실기기 테스트 완료 — 정지 오카운팅 방지, 세트 간 정확도 유지, 준비 동작 필터링 검증
 
 #### Phase 1 구현 상세
@@ -322,13 +322,13 @@ CameraOverlay(onDetected: _onCvDetected)  // 이 위젯만 리빌드
 
 ### Phase 2B: 앱 통합 — **Mode A 안정화 완료, 재테스트 필요**
 - [x] tflite_flutter + image 패키지 설치
-- [x] `weight_detection_service.dart` — YOLO26-N 추론, 프레임 스킵 1, 최빈값 안정화
+- [x] `features/workout/data/weight_detection_service.dart` — YOLO26-N 추론, 프레임 스킵 1, 최빈값 안정화
 - [x] **클래스 매핑 버그 수정** (Roboflow 알파벳순 5클래스: plate_10kg/15kg/2.5kg/20kg/5kg)
 - [x] **Two-Stage 파이프라인 구현** — CameraStage enum (weightDetecting → repCounting)
   - Stage 1: YOLO만 실행 (Pose 스킵), ROI 가이드 + 하단 compact 바
   - Stage 2: Pose만 실행 (YOLO 스킵), 기존 횟수 카운팅 + 확정 무게 표시
   - 자동 전환: isStable → 즉시 확정 → Stage 2
-- [x] `camera_overlay.dart` 완전 재작성 (~630줄) — Stage별 UI/처리 분리
+- [x] `features/workout/presentation/camera_overlay.dart` 완전 재작성 (~630줄) — Stage별 UI/처리 분리
 - [x] WorkoutScreen AI 무게 감지 뱃지 + onWeightDetected 콜백
 - [x] **헬스장 A/B/C 테스트 완료** — Mode A: 20kg 다중 성공(3/4), Mode B/C: 실전 불가
 - [x] **Mode A 안정화** — EMA(α=0.3) + Hold Counter(3프레임) + Cold Start Skip(3프레임)

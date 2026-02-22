@@ -1336,7 +1336,7 @@ nRF52840은 BLE 전용 칩 → PTA 하드웨어 없음
 ### 13.1 Session Data 인코딩 (Dart)
 
 ```dart
-// lib/data/services/ble_session_encoder.dart
+// lib/features/workout/data/ble_session_encoder.dart
 //
 // BLE GATT 세션 데이터 패킷 인코딩
 // 패킷 구조:
@@ -1637,7 +1637,7 @@ void bleWeightUtilsSelfTest() {
 ### 13.4 Characteristic 읽기/쓰기 헬퍼 (Dart)
 
 ```dart
-// lib/data/services/ble_characteristic_helper.dart
+// lib/features/workout/data/ble_characteristic_helper.dart
 //
 // flutter_blue_plus API 래퍼
 // UUID 체계: §4 Characteristic 매핑과 1:1 대응
