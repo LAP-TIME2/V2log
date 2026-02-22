@@ -6,6 +6,7 @@ import 'package:v2log/core/constants/app_colors.dart';
 import 'package:v2log/core/constants/app_spacing.dart';
 import 'package:v2log/core/constants/app_typography.dart';
 import 'package:v2log/core/extensions/context_extension.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:v2log/shared/services/local_storage_service.dart';
 import 'package:v2log/features/auth/domain/auth_provider.dart';
 
@@ -63,9 +64,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         return;
       }
 
-      // 로그인 상태 확인
-      final authState = ref.read(authProvider);
-      if (authState.valueOrNull != null) {
+      // 로그인 상태 확인 (디바이스에 저장된 세션 토큰으로 직접 확인)
+      final isLoggedIn =
+          Supabase.instance.client.auth.currentUser != null;
+      if (isLoggedIn) {
+        // 백그라운드에서 프로필 로드 시작 (화면 전환은 먼저)
+        ref.read(authProvider);
         context.go('/home');
       } else {
         context.go('/auth/login');
